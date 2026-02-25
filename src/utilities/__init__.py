@@ -85,6 +85,10 @@ from utilities.style_profiles import (
     get_style,
     use_style,
 )
+
+from utilities.plume_loader import (
+    load_plume_path_runs,
+)
 # from utilities.namelist_metadata import (
 #     MetadataManager, 
 #     update_dataset_metadata, 
