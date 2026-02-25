@@ -25,6 +25,10 @@ env/
 tmp/
 logs/
 
+# NetCDF data files
+*.nc
+*.png
+
 # Project data (kept local; publish via Zenodo)
 data/processed/*
 data/observations/holimo_data/*
