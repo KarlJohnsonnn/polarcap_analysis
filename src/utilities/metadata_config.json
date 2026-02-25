@@ -1,0 +1,502 @@
+{
+  "units": {
+    "CONCENTRATION": "1/m³",
+    "MIXING_RATIO": "kg/kg", 
+    "NUMBER_MIXING_RATIO": "1/kg",
+    "TEMPERATURE": "K",
+    "PRESSURE": "Pa",
+    "DENSITY": "kg/m³",
+    "HEIGHT": "m",
+    "WIND": "m/s",
+    "TENDENCY_CONCENTRATION": "cm⁻³ s⁻¹",
+    "TENDENCY_MASS": "g cm⁻³ s⁻¹"
+  },
+  "variables": {
+    "SPECTRAL": {
+      "NF": {
+        "long_name": "Ice particle number concentration",
+        "units": "dN/dlog(D_p) [L⁻¹) log(μm⁻¹)]",
+        "standard_name": "ice_particle_number_concentration",
+        "description": "Ice particle number concentration in spectral bins",
+        "var_lims": [1e0, 1e8]
+      },
+      "NW": {
+        "long_name": "Cloud droplet number concentration", 
+        "units": "dN/dlog(D_p) [cm⁻³ log(μm⁻¹)]",
+        "standard_name": "cloud_droplet_number_concentration",
+        "description": "Cloud droplet number concentration in spectral bins",
+        "var_lims": [1e0, 1e8]
+      },
+      "QF": {
+        "long_name": "Ice water mixing ratio",
+        "units": "g/L",
+        "standard_name": "ice_water_content",
+        "description": "Ice water mixing ratio in spectral bins",
+        "var_lims": [1e-8, 1e-2]
+      },
+      "QW": {
+        "long_name": "Cloud water mixing ratio",
+        "units": "g/cm³", 
+        "standard_name": "cloud_water_content",
+        "description": "Cloud water mixing ratio in spectral bins",
+        "var_lims": [1e-8, 1e-2]
+      },
+      "QFW": {
+        "long_name": "Mixed-phase water mixing ratio",
+        "units": "g/L",
+        "standard_name": "mixed_phase_water_content", 
+        "description": "Mixed-phase particle water mixing ratio",
+        "var_lims": [1e-8, 1e-2]
+      },
+      "QWS": {
+        "long_name": "Cloud water shell mixing ratio",
+        "units": "g/cm³",
+        "standard_name": "cloud_water_shell_content",
+        "description": "Cloud water shell mixing ratio",
+        "var_lims": [1e-8, 1e-2]
+      },
+      "QWA": {
+        "long_name": "Cloud water aerosol mixing ratio",
+        "units": "g/cm³",
+        "standard_name": "cloud_water_aerosol_content",
+        "description": "Cloud water with insoluble aerosol mixing ratio",
+        "var_lims": [1e-8, 1e-2]
+      },
+      "QFS": {
+        "long_name": "Ice water shell mixing ratio",
+        "units": "g/L",
+        "standard_name": "ice_water_shell_content",
+        "description": "Ice water shell mixing ratio",
+        "var_lims": [1e-8, 1e-2]
+      },
+      "QFA": {
+        "long_name": "Ice water aerosol mixing ratio",
+        "units": "g/L",
+        "standard_name": "ice_water_aerosol_content",
+        "description": "Ice water with insoluble aerosol mixing ratio",
+        "var_lims": [1e-8, 1e-2]
+      },
+      "QIA": {
+        "long_name": "Ice aerosol mixing ratio",
+        "units": "g/m³",
+        "standard_name": "ice_aerosol_content",
+        "description": "Ice with insoluble aerosol mixing ratio",
+        "var_lims": [1e-8, 1e-2]
+      }
+    },
+    "BULK": {
+      "QV": {
+        "long_name": "Water vapor mixing ratio",
+        "units": "kg/kg",
+        "standard_name": "water_vapor",
+        "description": "Water vapor mixing ratio",
+        "var_lims": [1e-3, 4e-3]
+      },
+      "QI": {
+        "long_name": "Ice water content",
+        "units": "kg/kg",
+        "standard_name": "ice_water_content",
+        "description": "Ice water content",
+        "var_lims": [1e-8, 1e-2]
+      },
+      "QC": {
+        "long_name": "Cloud water content",
+        "units": "kg/kg",
+        "standard_name": "cloud_water_content",
+        "description": "Cloud water content",
+        "var_lims": [1e-8, 1e-2]
+      },
+      "QR": {
+        "long_name": "Rain water content",
+        "units": "kg/kg",
+        "standard_name": "rain_water_content",
+        "description": "Rain water content",
+        "var_lims": [1e-8, 1e-2]
+      },
+      "QS": {
+        "long_name": "Snow water content",
+        "units": "kg/kg",
+        "standard_name": "snow_water_content",
+        "description": "Snow water content",
+        "var_lims": [1e-8, 1e-2]
+      },
+      "NI": {
+        "long_name": "Ice particle number concentration",
+        "units": "1/kg",
+        "standard_name": "ice_particle_number_concentration",
+        "description": "Ice particle number concentration",
+        "var_lims": [1e0, 1e8]
+      },
+      "NC": {
+        "long_name": "Cloud droplet number concentration",
+        "units": "1/kg",
+        "standard_name": "cloud_droplet_number_concentration",
+        "description": "Cloud droplet number concentration",
+        "var_lims": [1e0, 1e8]
+      },
+      "NINP": {
+        "long_name": "Ice nucleating particles",
+        "units": "1/kg",
+        "standard_name": "ice_nucleating_particles",
+        "description": "Ice nucleating particles concentration",
+        "var_lims": [1e-1, 1e5]
+      }
+    },
+    "ENVIRONMENT": {
+      "T": {
+        "long_name": "Temperature",
+        "units": "K",
+        "standard_name": "air_temperature"
+      },
+      "TSBM": {
+        "long_name": "Surface temperature",
+        "units": "K",
+        "standard_name": "surface_temperature"
+      },
+      "PP": {
+        "long_name": "Pressure",
+        "units": "Pa",
+        "standard_name": "air_pressure"
+      },
+      "RHO": {
+        "long_name": "Air density",
+        "units": "kg/m³",
+        "standard_name": "air_density"
+      },
+      "HHL": {
+        "long_name": "Geopotential height",
+        "units": "m",
+        "standard_name": "geopotential_height"
+      },
+      "DZ": {
+        "long_name": "Height difference",
+        "units": "m",
+        "standard_name": "height_difference"
+      },
+      "UT": {
+        "long_name": "Zonal wind component",
+        "units": "m/s",
+        "standard_name": "zonal_wind_component"
+      },
+      "VT": {
+        "long_name": "Meridional wind component",
+        "units": "m/s",
+        "standard_name": "meridional_wind_component"
+      },
+      "WT": {
+        "long_name": "Vertical wind component",
+        "units": "m/s",
+        "standard_name": "vertical_wind_component"
+      }
+    }
+  },
+  "tendencies": {
+    "CONDENSATION": {
+      "CONDN": {
+        "description": "Tendency of cloud droplet number concentration from water vapor ↔ liquid phase transitions",
+        "vlim": [-1e6, 1e6],
+        "linthresh": 1.0e2,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "CONDQ": {
+        "description": "Tendency of cloud water content from water vapor ↔ liquid phase transitions",
+        "vlim": [-1e-8, 1e-8],
+        "linthresh": 1.0e-12,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "CONDNFROD": {
+        "description": "Tendency of ice particle number concentration from water vapor ↔ ice phase transitions",
+        "vlim": [-352.62604, 320.5706],
+        "linthresh": 1.0e-3,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "CONDQFROD": {
+        "description": "Tendency of ice water content from water vapor ↔ ice phase transitions",
+        "vlim": [-1.655894e-07, 2.086416e-07],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "CONDQWFROD": {
+        "description": "Tendency of mixed-phase water content from water vapor ↔ ice phase transitions",
+        "vlim": [-1.655729e-07, 2.0862493e-07],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      }
+    },
+    "COLLISION": {
+      "KOLLN": {
+        "description": "Tendency of cloud droplet number concentration from droplet-droplet coalescence",
+        "vlim": [-1.0e+3, 1.0e+3],
+        "linthresh": 1.0e+0,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "KOLLQ": {
+        "description": "Tendency of cloud water content from droplet-droplet coalescence",
+        "vlim": [-1e-8, 1e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "KOLLNI": {
+        "description": "Tendency of ice particle number concentration from ice-droplet riming",
+        "vlim": [-1e1, 0.0],
+        "linthresh": 1.0e-4,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "KOLLQI": {
+        "description": "Tendency of ice water content from ice-droplet riming",
+        "vlim": [-1e-8, 0.0],
+        "linthresh": 1.0e-15,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "KOLLNFRODI": {
+        "description": "Tendency of ice particle number concentration from ice-ice aggregation",
+        "vlim": [-1e0, 1e0],
+        "linthresh": 1.0e-4,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "KOLLQFRODI": {
+        "description": "Tendency of ice water content from ice-ice aggregation",
+        "vlim": [-1e-8, 1e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "KOLLQFROD": {
+        "description": "Tendency of ice water content from ice-ice aggregation",
+        "vlim": [-1e-7, 1e-7],
+        "linthresh": 1.0e-12,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "KOLLQWF": {
+        "description": "Tendency of mixed-phase water content from mixed-phase collision mass transfer",
+        "vlim": [-1e-8, 1e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      }
+    },
+    "BREAKUP": {
+      "BREAN": {
+        "description": "Tendency of cloud droplet number concentration from large droplet fragmentation",
+        "vlim": [-1e6, 1e6],
+        "linthresh": 1.0e2,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "BREAQ": {
+        "description": "Tendency of cloud water content from large droplet fragmentation",
+        "vlim": [-1e-8, 1e-8],
+        "linthresh": 1.0e-12,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      }
+    },
+    "FREEZING": {
+      "IMMERN": {
+        "description": "Tendency of ice particle number concentration from INP-mediated immersion freezing",
+        "vlim": [0.0, 1e4],
+        "linthresh": 1.0e-2,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "IMMERQ": {
+        "description": "Tendency of ice water content from INP-mediated immersion freezing",
+        "vlim": [1.0e-12, 1e-8],
+        "linthresh": 1.0e-16,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "HOMN": {
+        "description": "Tendency of ice particle number concentration from spontaneous homogeneous freezing",
+        "vlim": [-1e-2, 1e-2],
+        "linthresh": 1.0e-4,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "HOMQ": {
+        "description": "Tendency of ice water content from spontaneous homogeneous freezing",
+        "vlim": [-1e-8, 1e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      }
+    },
+    "MELTING": {
+      "DNFMELT": {
+        "description": "Tendency of ice particle number concentration from complete ice particle melting",
+        "vlim": [-8.239758e-01, 0.0],
+        "linthresh": 1.0e-8,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "DQFMELT": {
+        "description": "Tendency of ice water content from complete ice particle melting",
+        "vlim": [-1.1150348e-8, 0.0],
+        "linthresh": 1.0e-10,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "DQFWMELT": {
+        "description": "Tendency of mixed-phase water content from mixed-phase particle melting",
+        "vlim": [-6.3647294e-10, 0.0],
+        "linthresh": 1.0e-8,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "DNWMELT": {
+        "description": "Tendency of cloud droplet number concentration from ice particle melting",
+        "vlim": [0.0, 1e0],
+        "linthresh": 1.0e-4,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "DQWMELT": {
+        "description": "Tendency of cloud water content from ice particle melting",
+        "vlim": [0.0, 6.3647294e-10],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "DQFFRIER": {
+        "description": "Tendency of ice water content from liquid shell freezing",
+        "vlim": [0.0, 1.0e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      }
+    },
+    "COLLISION_KERNELS": {
+      "KNF": {
+        "description": "Tendency of ice particle number concentration from ice particle collision kernels",
+        "vlim": [-1e0, 1e0],
+        "linthresh": 1.0e-4,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "KQF": {
+        "description": "Tendency of ice water content from ice particle collision kernels",
+        "vlim": [-1e-8, 1e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "KQWF": {
+        "description": "Tendency of mixed-phase water content from mixed-phase collision kernels",
+        "vlim": [-1e-8, 1e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      }
+    },
+    "DEPOSITION": {
+      "DEPONF": {
+        "description": "Tendency of ice particle number concentration from direct vapor → ice deposition nucleation",
+        "vlim": [0.0, 1e0],
+        "linthresh": 1.0e-4,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "DEPOQF": {
+        "description": "Tendency of ice water content from direct vapor → ice deposition nucleation",
+        "vlim": [0.0, 1e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      }
+    },
+    "INSOLUBLE": {
+      "KOLLN_INS": {
+        "description": "Tendency of cloud droplet number concentration from insoluble particle scavenging",
+        "vlim": [-1e3, 1e3],
+        "linthresh": 1.0e0,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "KOLLQ_INS": {
+        "description": "Tendency of cloud water content from insoluble particle scavenging",
+        "vlim": [-1e-8, 1e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "KOLLNFROD_INS": {
+        "description": "Tendency of ice particle number concentration from insoluble particle scavenging",
+        "vlim": [-1e0, 1e0],
+        "linthresh": 1.0e-4,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "KOLLQFROD_INS": {
+        "description": "Tendency of ice water content from insoluble particle scavenging",
+        "vlim": [-1e-8, 1e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "KOLLNINS": {
+        "description": "Tendency of ice particle number concentration from insoluble particle collision",
+        "vlim": [-1e0, 1e0],
+        "linthresh": 1.0e-4,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "KOLLNINS_FR": {
+        "description": "Tendency of ice particle number concentration from insoluble particle collision (frozen)",
+        "vlim": [-1e0, 1e0],
+        "linthresh": 1.0e-4,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "KOLLAINS": {
+        "description": "Tendency of ice water content from insoluble particle collision",
+        "vlim": [-1e-8, 1e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "KOLLAINS_FR": {
+        "description": "Tendency of ice water content from insoluble particle collision (frozen)",
+        "vlim": [-1e-8, 1e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      },
+      "DEPONI": {
+        "description": "Tendency of ice particle number concentration from insoluble particle deposition",
+        "vlim": [0.0, 1e0],
+        "linthresh": 1.0e-4,
+        "linscale": 1.0,
+        "unit": "cm⁻³ s⁻¹"
+      },
+      "DEPOQIA": {
+        "description": "Tendency of ice water content from insoluble particle deposition",
+        "vlim": [0.0, 1e-8],
+        "linthresh": 1.0e-14,
+        "linscale": 1.0,
+        "unit": "g cm⁻³ s⁻¹"
+      }
+    }
+  },
+  "process_groups": {
+    "CONDENSATION": ["CONDN", "CONDQ", "CONDNFROD", "CONDQFROD", "CONDQWFROD"],
+    "COLLISION": ["KOLLN", "KOLLQ", "KOLLNI", "KOLLQI", "KOLLNFROD", "KOLLQFROD", "KOLLNFRODI", "KOLLQFRODI", "KOLLN_INS", "KOLLQ_INS", "KOLLNFROD_INS", "KOLLQFROD_INS", "KOLLQWF"],
+    "BREAKUP": ["BREAN", "BREAQ"],
+    "IMMERSION_FREEZING": ["IMMERN", "IMMERQ"],
+    "HOMOGENEOUS_FREEZING": ["HOMN", "HOMQ"],
+    "MELTING": ["DNFMELT", "DQFMELT", "DNWMELT", "DQWMELT", "DQFWMELT"],
+    "LIQUID_SHELL_FREEZING": ["DQFFRIER"],
+    "COLLISION_KERNELS": ["KNF", "KQF", "KQWF"],
+    "DEPOSITION": ["DEPONF", "DEPOQF"]
+  }
+} 

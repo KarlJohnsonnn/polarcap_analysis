@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosmo-Specs Data Viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0c10;
+    --bg-secondary: #12151c;
+    --bg-tertiary: #1a1e28;
+    --bg-hover: #222733;
+    --border: #2a2f3c;
+    --border-active: #4a7cff;
+    --text-primary: #e4e8f0;
+    --text-secondary: #8b92a5;
+    --text-muted: #555d73;
+    --accent: #4a7cff;
+    --accent-dim: #2a4a99;
+    --accent-glow: rgba(74, 124, 255, 0.15);
+    --warning: #f59e42;
+    --success: #3dd68c;
+    --sidebar-w: 300px;
+    --header-h: 56px;
+    --thumb-size: 260px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    height: var(--header-h);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    flex-shrink: 0;
+    z-index: 100;
+  }
+
+  header .logo {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  header .logo span { color: var(--accent); }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    overflow: hidden;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .breadcrumb .sep { color: var(--text-muted); opacity: 0.4; }
+
+  .breadcrumb .crumb {
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: color 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .breadcrumb .crumb:hover { color: var(--accent); }
+  .breadcrumb .crumb.active { color: var(--text-primary); cursor: default; }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .view-toggle {
+    display: flex;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .view-toggle button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .view-toggle button.active {
+    background: var(--accent-dim);
+    color: var(--text-primary);
+  }
+
+  .view-toggle button:hover:not(.active) { color: var(--text-secondary); }
+
+  .search-box {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 12px;
+    width: 200px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--text-muted); }
+
+  /* ── Sort Controls ── */
+  .sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+
+  .sort-controls .sort-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .sort-select {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 28px 5px 10px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 11px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555d73'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    transition: border-color 0.15s;
+    min-width: 140px;
+  }
+
+  .sort-select:hover { border-color: var(--text-muted); }
+  .sort-select:focus { border-color: var(--accent); }
+
+  .sort-select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+
+  .sort-dir-btn {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    width: 30px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .sort-dir-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .sort-dir-btn.desc { transform: scaleY(-1); }
+
+  .file-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* ── Layout ── */
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 14px 16px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .sidebar-header .folder-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .sidebar-header .folder-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .tree-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
+  .tree-container::-webkit-scrollbar { width: 4px; }
+  .tree-container::-webkit-scrollbar-track { background: transparent; }
+  .tree-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .tree-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 16px;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-secondary);
+    transition: all 0.1s;
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .tree-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .tree-item.active { background: var(--accent-glow); color: var(--accent); border-right: 2px solid var(--accent); }
+
+  .tree-item .icon { font-size: 14px; flex-shrink: 0; width: 18px; text-align: center; }
+  .tree-item .label { overflow: hidden; text-overflow: ellipsis; }
+
+  .tree-item .badge {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 1px 6px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .tree-children { display: none; }
+  .tree-children.open { display: block; }
+  .tree-children .tree-item { padding-left: 32px; }
+  .tree-children .tree-children .tree-item { padding-left: 48px; }
+
+  .tree-item .chevron {
+    font-size: 10px;
+    transition: transform 0.15s;
+    flex-shrink: 0;
+    width: 12px;
+    text-align: center;
+  }
+
+  .tree-item.expanded .chevron { transform: rotate(90deg); }
+
+  /* ── Main Content ── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    scroll-behavior: smooth;
+  }
+
+  .main::-webkit-scrollbar { width: 6px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Grid View */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--thumb-size), 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .card:hover {
+    border-color: var(--border-active);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .card .thumb-wrapper {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .card .thumb-wrapper img,
+  .card .thumb-wrapper video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  .card .thumb-wrapper .placeholder {
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+
+  .card .thumb-wrapper .media-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.7);
+    color: var(--warning);
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .card .card-info {
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .card .card-info .name {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .card .card-info .meta {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  /* List View */
+  .list-view .list-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+    font-size: 12px;
+  }
+
+  .list-view .list-row:hover { background: var(--bg-hover); }
+
+  .list-view .list-row .list-thumb {
+    width: 48px;
+    height: 36px;
+    background: var(--bg-primary);
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .list-view .list-row .list-thumb img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  .list-view .list-row .list-name { flex: 1; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .list-view .list-row .list-type { color: var(--text-muted); width: 50px; text-align: right; font-size: 10px; text-transform: uppercase; }
+
+  /* ── Lightbox ── */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+
+  .lightbox.open { display: flex; }
+
+  .lightbox .lb-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 28px;
+    cursor: pointer;
+    z-index: 10;
+    transition: color 0.15s;
+    line-height: 1;
+  }
+
+  .lightbox .lb-close:hover { color: var(--text-primary); }
+
+  .lightbox .lb-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.15s;
+    z-index: 10;
+  }
+
+  .lightbox .lb-nav:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--accent); }
+  .lightbox .lb-prev { left: 20px; }
+  .lightbox .lb-next { right: 20px; }
+
+  .lightbox .lb-content {
+    max-width: 92vw;
+    max-height: 82vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox .lb-content img,
+  .lightbox .lb-content video {
+    max-width: 92vw;
+    max-height: 82vh;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.5);
+  }
+
+  .lightbox .lb-caption {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: center;
+    max-width: 600px;
+  }
+
+  .lightbox .lb-counter {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  /* ── Empty State ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    color: var(--text-muted);
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  .empty-state .empty-icon { font-size: 40px; opacity: 0.3; }
+
+  /* ── Folder cards in grid ── */
+  .folder-card {
+    background: var(--bg-tertiary);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .folder-card:hover {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  .folder-card .folder-icon { font-size: 24px; }
+  .folder-card .folder-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+  .folder-card .folder-count { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    :root { --thumb-size: 160px; }
+  }
+
+  /* ── Loading Shimmer ── */
+  @keyframes shimmer {
+    0% { background-position: -200px 0; }
+    100% { background-position: 200px 0; }
+  }
+
+  .loading-shimmer {
+    background: linear-gradient(90deg, var(--bg-primary) 25%, var(--bg-tertiary) 50%, var(--bg-primary) 75%);
+    background-size: 400px 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* ── Scroll to top ── */
+  .scroll-top {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    color: var(--text-primary);
+    font-size: 16px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    transition: all 0.2s;
+  }
+
+  .scroll-top.visible { display: flex; }
+  .scroll-top:hover { background: var(--accent); }
+
+  /* ── Setup Modal ── */
+  .setup-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .setup-modal.hidden { display: none; }
+
+  .setup-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    max-width: 560px;
+    width: 90%;
+  }
+
+  .setup-box h2 {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 600;
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .setup-box p { font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px; }
+
+  .setup-box label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 6px; }
+
+  .setup-box input[type="text"] {
+    width: 100%;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 13px;
+    margin-bottom: 16px;
+    outline: none;
+  }
+
+  .setup-box input[type="text"]:focus { border-color: var(--accent); }
+
+  .setup-box .or-divider {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    margin: 12px 0;
+    position: relative;
+  }
+
+  .setup-box .or-divider::before,
+  .setup-box .or-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .setup-box .or-divider::before { left: 0; }
+  .setup-box .or-divider::after { right: 0; }
+
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 32px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 20px;
+  }
+
+  .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: var(--accent-glow); }
+  .drop-zone .drop-icon { font-size: 32px; margin-bottom: 8px; }
+
+  .setup-box .btn-primary {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    width: 100%;
+  }
+
+  .setup-box .btn-primary:hover { background: #3a6cef; }
+
+  .demo-note {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Setup Modal -->
+<div class="setup-modal" id="setupModal">
+  <div class="setup-box">
+    <h2>Cosmo-Specs <span style="color:var(--accent)">Viewer</span></h2>
+    <p>
+      Load your output figures by selecting folders from disk, or paste a path
+      if running via a local server. Supports PNG, MP4, and GIF files from
+      <code>figures/</code> and <code>QL-*/</code> directories.
+    </p>
+
+    <label>Option 1 — Select Folder(s)</label>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('folderInput').click()">
+      <div class="drop-icon">📂</div>
+      Drop folder here or click to browse
+      <input type="file" id="folderInput" webkitdirectory multiple style="display:none">
+    </div>
+
+    <div class="or-divider">or</div>
+
+    <label>Option 2 — Local base path (if served via http-server)</label>
+    <input type="text" id="basePathInput" placeholder="/path/to/pngs/" value="http://localhost:8877/python/plotting_scripts">
+
+    <button class="btn-primary" id="launchBtn">Launch Viewer</button>
+    <div class="demo-note">Tip: run <code>python -m http.server 8000</code> in your data directory, then use <code>http://localhost:8000</code> as base path.</div>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="logo">Cosmo<span>Specs</span></div>
+  <div class="breadcrumb" id="breadcrumb">
+    <span class="crumb active">root</span>
+  </div>
+  <div class="header-controls">
+    <input class="search-box" type="text" id="searchBox" placeholder="Filter files…">
+    <div class="sort-controls">
+      <span class="sort-label">Sort</span>
+      <select class="sort-select" id="sortSelect" onchange="onSortChange()">
+        <option value="filename">Filename</option>
+        <option value="csrun">CS Run</option>
+        <option value="experiment_name">Experiment (date)</option>
+        <option value="figure_type">Figure Type</option>
+      </select>
+      <button class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDir()" title="Toggle sort direction">↑</button>
+    </div>
+    <div class="view-toggle">
+      <button class="active" data-view="grid" onclick="setView('grid')">Grid</button>
+      <button data-view="list" onclick="setView('list')">List</button>
+    </div>
+    <span class="file-count" id="fileCount"></span>
+  </div>
+</header>
+
+<!-- Layout -->
+<div class="layout">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <span>Explorer</span>
+      <button class="folder-btn" onclick="collapseAll()">Collapse All</button>
+    </div>
+    <div class="tree-container" id="treeContainer"></div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main" id="mainContent">
+    <div class="empty-state">
+      <div class="empty-icon">🔭</div>
+      <div>No data loaded yet</div>
+    </div>
+  </main>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <button class="lb-close" onclick="closeLightbox()">&times;</button>
+  <button class="lb-nav lb-prev" onclick="navLightbox(-1)">&#8249;</button>
+  <button class="lb-nav lb-next" onclick="navLightbox(1)">&#8250;</button>
+  <div class="lb-content" id="lbContent"></div>
+  <div class="lb-caption" id="lbCaption"></div>
+  <div class="lb-counter" id="lbCounter"></div>
+</div>
+
+<!-- Scroll to top -->
+<button class="scroll-top" id="scrollTop" onclick="document.getElementById('mainContent').scrollTo({top:0})">↑</button>
+
+<script>
+// ─── State ───
+let fileTree = {};          // nested folder structure
+let allFiles = [];          // flat list of {path, name, folder, type}
+let currentPath = '';       // current folder path being viewed
+let currentView = 'grid';
+let currentSort = 'filename';  // filename | csrun | experiment_name | figure_type
+let currentSortDir = 'asc';   // asc | desc
+let currentFiles = [];      // files shown in current view
+let lightboxIndex = 0;
+let lightboxFiles = [];
+let basePath = '';
+let isLocalFiles = false;   // true if loaded via folder picker
+let localFileMap = {};      // path -> File object or ObjectURL
+const DEFAULT_BASE_PATH = 'http://localhost:8877/python/plotting_scripts';
+
+function readSetupConfig() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    autoload: params.get('autoload') === '1',
+    basePath: (params.get('basePath') || DEFAULT_BASE_PATH).replace(/\/$/, ''),
+    pngOnly: params.get('pngOnly') === '1'
+  };
+}
+
+// ─── Setup ───
+const folderInput = document.getElementById('folderInput');
+const dropZone = document.getElementById('dropZone');
+
+folderInput.addEventListener('change', (e) => {
+  loadLocalFiles(e.target.files);
+});
+
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  // handle DataTransferItemList for folder drops
+  const items = e.dataTransfer.items;
+  if (items) {
+    const entries = [];
+    for (const item of items) {
+      const entry = item.webkitGetAsEntry?.();
+      if (entry) entries.push(entry);
+    }
+    if (entries.length) {
+      readEntriesRecursive(entries).then(files => {
+        loadLocalFiles(files);
+      });
+      return;
+    }
+  }
+  loadLocalFiles(e.dataTransfer.files);
+});
+
+async function readEntriesRecursive(entries) {
+  const files = [];
+  async function readEntry(entry, path = '') {
+    if (entry.isFile) {
+      const file = await new Promise(r => entry.file(r));
+      Object.defineProperty(file, 'webkitRelativePath', { value: path + file.name });
+      files.push(file);
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      const subEntries = await new Promise(r => reader.readEntries(r));
+      for (const sub of subEntries) await readEntry(sub, path + entry.name + '/');
+    }
+  }
+  for (const e of entries) await readEntry(e);
+  return files;
+}
+
+document.getElementById('launchBtn').addEventListener('click', () => {
+  if (allFiles.length > 0) {
+    // already loaded via folder picker
+    finishSetup();
+  } else {
+    basePath = document.getElementById('basePathInput').value.replace(/\/$/, '');
+    isLocalFiles = false;
+    // For path-based mode, we need a manifest — try to fetch index
+    tryFetchManifest({ pngOnly: false });
+  }
+});
+
+function initializeSetup() {
+  const cfg = readSetupConfig();
+  const input = document.getElementById('basePathInput');
+  if (!input.value || input.value === '/path/to/pngs/') input.value = cfg.basePath;
+  if (cfg.autoload) {
+    basePath = cfg.basePath;
+    isLocalFiles = false;
+    tryFetchManifest({ silent: true, pngOnly: cfg.pngOnly });
+  }
+}
+
+function loadLocalFiles(fileList) {
+  const supported = /\.(png|jpg|jpeg|gif|mp4|webm|svg)$/i;
+  allFiles = [];
+  localFileMap = {};
+  const urlCache = {};
+
+  for (const file of fileList) {
+    const relPath = file.webkitRelativePath || file.name;
+    if (!supported.test(relPath)) continue;
+    const ext = relPath.split('.').pop().toLowerCase();
+    const type = ['mp4','webm'].includes(ext) ? 'video' : 'image';
+    const parts = relPath.split('/');
+    // Skip root folder name from webkitRelativePath
+    const cleanPath = parts.length > 1 ? parts.slice(1).join('/') : relPath;
+    const folder = cleanPath.includes('/') ? cleanPath.substring(0, cleanPath.lastIndexOf('/')) : '';
+    const name = parts[parts.length - 1];
+
+    allFiles.push({ path: cleanPath, name, folder, type, ext });
+    localFileMap[cleanPath] = file;
+  }
+
+  isLocalFiles = true;
+  if (allFiles.length) {
+    dropZone.innerHTML = `<div class="drop-icon">✅</div>${allFiles.length} files loaded`;
+  }
+}
+
+async function tryFetchManifest({ silent = false, pngOnly = false } = {}) {
+  // Try fetching a manifest.json, otherwise ask user to generate one
+  try {
+    const resp = await fetch(basePath + '/manifest.json');
+    if (resp.ok) {
+      const data = await resp.json();
+      const loaded = data.files || data;
+      allFiles = pngOnly
+        ? loaded.filter(f => (f.ext || '').toLowerCase() === 'png' || /\.png$/i.test(f.path || ''))
+        : loaded;
+      finishSetup();
+      return;
+    }
+  } catch {}
+
+  if (silent) return;
+
+  // Show instructions to generate manifest
+  alert(
+    'No manifest.json found at the base path.\n\n' +
+    'Generate one by running this in your data directory:\n\n' +
+    'python3 -c "\nimport json, os, pathlib\n' +
+    'exts = {\'.png\',\'.jpg\',\'.jpeg\',\'.gif\',\'.mp4\',\'.webm\',\'.svg\'}\n' +
+    'files = []\n' +
+    'for p in pathlib.Path(\'.\').rglob(\'*\'):\n' +
+    '    if p.suffix.lower() in exts:\n' +
+    '        ext = p.suffix[1:].lower()\n' +
+    '        t = \'video\' if ext in (\'mp4\',\'webm\') else \'image\'\n' +
+    '        folder = str(p.parent) if str(p.parent) != \'.\' else \'\'\n' +
+    '        files.append({\'path\':str(p),\'name\':p.name,\'folder\':folder,\'type\':t,\'ext\':ext})\n' +
+    'json.dump({\'files\':files},open(\'manifest.json\',\'w\'),indent=1)\n' +
+    'print(f\'{len(files)} files indexed\')\n"'
+  );
+}
+
+function finishSetup() {
+  document.getElementById('setupModal').classList.add('hidden');
+  buildTree();
+  navigateTo('');
+}
+
+// ─── File URL ───
+const objectURLCache = {};
+
+function getFileURL(file) {
+  if (isLocalFiles) {
+    if (!objectURLCache[file.path]) {
+      const f = localFileMap[file.path];
+      if (f) objectURLCache[file.path] = URL.createObjectURL(f);
+    }
+    return objectURLCache[file.path] || '';
+  }
+  return basePath + '/' + file.path;
+}
+
+// ─── Tree ───
+function buildTree() {
+  const tree = {};
+  for (const f of allFiles) {
+    if (!f.folder) continue;
+    const parts = f.folder.split('/');
+    let node = tree;
+    for (const p of parts) {
+      if (!node[p]) node[p] = {};
+      node = node[p];
+    }
+  }
+  fileTree = tree;
+  renderTree();
+}
+
+function renderTree() {
+  const container = document.getElementById('treeContainer');
+
+  // Count files per folder
+  function countFiles(path) {
+    return allFiles.filter(f => f.folder === path || f.folder.startsWith(path ? path + '/' : '')).length;
+  }
+
+  function renderNode(obj, parentPath, depth) {
+    let html = '';
+    const entries = Object.keys(obj).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    for (const key of entries) {
+      const fullPath = parentPath ? parentPath + '/' + key : key;
+      const children = obj[key];
+      const hasChildren = Object.keys(children).length > 0;
+      const count = countFiles(fullPath);
+
+      html += `<div class="tree-item ${currentPath === fullPath ? 'active' : ''}" data-path="${fullPath}" onclick="onTreeClick(event, '${fullPath}')">`;
+      if (hasChildren) {
+        html += `<span class="chevron">▶</span>`;
+      } else {
+        html += `<span style="width:12px"></span>`;
+      }
+      html += `<span class="icon">📁</span>`;
+      html += `<span class="label" title="${fullPath}">${key}</span>`;
+      html += `<span class="badge">${count}</span>`;
+      html += `</div>`;
+
+      if (hasChildren) {
+        html += `<div class="tree-children" data-parent="${fullPath}">`;
+        html += renderNode(children, fullPath, depth + 1);
+        html += `</div>`;
+      }
+    }
+    return html;
+  }
+
+  // Root item
+  const rootCount = allFiles.length;
+  let html = `<div class="tree-item ${currentPath === '' ? 'active' : ''}" data-path="" onclick="onTreeClick(event, '')">
+    <span style="width:12px"></span>
+    <span class="icon">🏠</span>
+    <span class="label">All Files</span>
+    <span class="badge">${rootCount}</span>
+  </div>`;
+
+  // Top-level folders that are direct (figures, QL-*)
+  html += renderNode(fileTree, '', 0);
+
+  container.innerHTML = html;
+}
+
+function onTreeClick(e, path) {
+  // Toggle children
+  const item = e.currentTarget;
+  const children = item.nextElementSibling;
+  if (children && children.classList.contains('tree-children')) {
+    children.classList.toggle('open');
+    item.classList.toggle('expanded');
+  }
+  navigateTo(path);
+}
+
+function collapseAll() {
+  document.querySelectorAll('.tree-children').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('expanded'));
+}
+
+// ─── Navigation ───
+function navigateTo(path) {
+  currentPath = path;
+
+  // Update sidebar active state
+  document.querySelectorAll('.tree-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.path === path);
+  });
+
+  // Expand parent tree items
+  if (path) {
+    const parts = path.split('/');
+    let cur = '';
+    for (const p of parts) {
+      cur = cur ? cur + '/' + p : p;
+      const childContainer = document.querySelector(`.tree-children[data-parent="${cur}"]`);
+      if (childContainer) childContainer.classList.add('open');
+      const parentItem = document.querySelector(`.tree-item[data-path="${cur}"]`);
+      if (parentItem) parentItem.classList.add('expanded');
+    }
+  }
+
+  updateBreadcrumb();
+  renderContent();
+}
+
+function updateBreadcrumb() {
+  const bc = document.getElementById('breadcrumb');
+  let html = `<span class="crumb ${currentPath === '' ? 'active' : ''}" onclick="navigateTo('')">root</span>`;
+  if (currentPath) {
+    const parts = currentPath.split('/');
+    let acc = '';
+    for (let i = 0; i < parts.length; i++) {
+      acc = acc ? acc + '/' + parts[i] : parts[i];
+      const isLast = i === parts.length - 1;
+      html += `<span class="sep">/</span>`;
+      html += `<span class="crumb ${isLast ? 'active' : ''}" onclick="navigateTo('${acc}')">${parts[i]}</span>`;
+    }
+  }
+  bc.innerHTML = html;
+}
+
+// ─── Sorting ───
+
+function onSortChange() {
+  currentSort = document.getElementById('sortSelect').value;
+  renderContent();
+}
+
+function toggleSortDir() {
+  currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+  const btn = document.getElementById('sortDirBtn');
+  btn.textContent = currentSortDir === 'asc' ? '↑' : '↓';
+  btn.classList.toggle('desc', currentSortDir === 'desc');
+  btn.title = currentSortDir === 'asc' ? 'Ascending (click to reverse)' : 'Descending (click to reverse)';
+  renderContent();
+}
+
+/**
+ * Natural-numeric comparator: splits strings into text/number chunks
+ * so "fig2" < "fig10" and "csrun_003" < "csrun_20".
+ */
+function natCompare(a, b) {
+  const re = /(\d+|\D+)/g;
+  const aParts = (a || '').match(re) || [''];
+  const bParts = (b || '').match(re) || [''];
+  for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+    const ap = aParts[i] || '';
+    const bp = bParts[i] || '';
+    const an = parseInt(ap, 10);
+    const bn = parseInt(bp, 10);
+    if (!isNaN(an) && !isNaN(bn)) {
+      if (an !== bn) return an - bn;
+    } else {
+      const cmp = ap.localeCompare(bp, undefined, { sensitivity: 'base' });
+      if (cmp !== 0) return cmp;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Extract sort keys from a file object based on the sort mode.
+ *
+ * Path convention assumed (flexible, best-effort extraction):
+ *   <csrun>/<experiment_name>/<figure_type>_<rest>.png
+ *   or flat filenames like: csrun001_20240315T120000_fig1_spectrum.png
+ *
+ * csrun:            first path segment or prefix before first '_'
+ * experiment_name:  datetime-like token (YYYYMMDD, YYYY-MM-DD, ISO-ish)
+ * figure_type:      "fig\d+" or "figure\d+" token
+ * filename:         the file name
+ */
+function extractSortKey(file, mode) {
+  const name = file.name;
+  const path = file.path;
+  const parts = path.split('/');
+
+  switch (mode) {
+
+    case 'csrun': {
+      // First folder segment is typically the csrun identifier
+      if (parts.length >= 2) return parts[0];
+      // Fallback: leading token from filename (up to first '_' or '.')
+      const m = name.match(/^([^_.\s]+)/);
+      return m ? m[1] : name;
+    }
+
+    case 'experiment_name': {
+      // Look for datetime-like tokens anywhere in the full path
+      // Patterns: 20240315T120000, 2024-03-15, 20240315_120000, 2024-03-15T12:00:00
+      const fullStr = path;
+
+      // ISO-ish with separators: 2024-03-15T12:00:00 or 2024-03-15_12-00-00
+      const isoMatch = fullStr.match(/(\d{4}[-_]?\d{2}[-_]?\d{2}[T_\- ]?\d{2}[-_:]?\d{2}[-_:]?\d{2})/);
+      if (isoMatch) return isoMatch[1].replace(/[-_:T ]/g, '');
+
+      // Compact: 20240315T120000 or 20240315_120000 or 20240315120000
+      const compactMatch = fullStr.match(/(\d{8}[T_]?\d{4,6})/);
+      if (compactMatch) return compactMatch[1].replace(/[T_]/g, '');
+
+      // Date only: 20240315 or 2024-03-15
+      const dateMatch = fullStr.match(/(\d{4}[-_]?\d{2}[-_]?\d{2})/);
+      if (dateMatch) return dateMatch[1].replace(/[-_]/g, '');
+
+      // No datetime found — fall back to full path for stable sort
+      return path;
+    }
+
+    case 'figure_type': {
+      // Extract "fig1", "fig02", "figure1", "figure12", etc. from filename
+      const figMatch = name.match(/(fig(?:ure)?[\s_-]?(\d+))/i);
+      if (figMatch) {
+        // Normalize: "fig" or "figure" prefix + zero-padded number
+        const prefix = figMatch[1].toLowerCase().startsWith('figure') ? 'figure' : 'fig';
+        const num = figMatch[2];
+        return prefix + '_' + num.padStart(6, '0');
+      }
+      // Fallback: filename
+      return name;
+    }
+
+    case 'filename':
+    default:
+      return name;
+  }
+}
+
+function sortFiles(files) {
+  const dir = currentSortDir === 'asc' ? 1 : -1;
+  return [...files].sort((a, b) => {
+    const ka = extractSortKey(a, currentSort);
+    const kb = extractSortKey(b, currentSort);
+    return dir * natCompare(ka, kb);
+  });
+}
+
+function truncate(str, max) {
+  return str.length > max ? str.slice(0, max) + '…' : str;
+}
+
+// ─── Rendering ───
+function renderContent() {
+  const main = document.getElementById('mainContent');
+  const query = document.getElementById('searchBox').value.toLowerCase();
+
+  // Get files in current folder (direct children only for non-root)
+  let files, subfolders;
+
+  if (currentPath === '') {
+    // Show root-level folders and root-level files
+    files = allFiles.filter(f => f.folder === '');
+    subfolders = Object.keys(fileTree).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  } else {
+    // Files directly in this folder
+    files = allFiles.filter(f => f.folder === currentPath);
+    // Direct subfolders
+    const parts = currentPath.split('/');
+    let node = fileTree;
+    for (const p of parts) { node = node?.[p]; }
+    subfolders = node ? Object.keys(node).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })) : [];
+  }
+
+  // Apply search filter
+  if (query) {
+    files = files.filter(f => f.name.toLowerCase().includes(query));
+    subfolders = subfolders.filter(f => f.toLowerCase().includes(query));
+  }
+
+  // Apply sorting
+  files = sortFiles(files);
+
+  currentFiles = files;
+  lightboxFiles = files;
+
+  // Update count
+  document.getElementById('fileCount').textContent = `${files.length} files`;
+
+  if (files.length === 0 && subfolders.length === 0) {
+    main.innerHTML = `<div class="empty-state"><div class="empty-icon">🔭</div><div>No files found in this folder</div></div>`;
+    return;
+  }
+
+  if (currentView === 'grid') {
+    renderGrid(main, subfolders, files);
+  } else {
+    renderList(main, subfolders, files);
+  }
+
+  // Lazy load images with IntersectionObserver
+  setupLazyLoad();
+}
+
+function renderGrid(main, subfolders, files) {
+  let html = '<div class="grid">';
+
+  // Subfolders
+  for (const sf of subfolders) {
+    const fullPath = currentPath ? currentPath + '/' + sf : sf;
+    const count = allFiles.filter(f => f.folder === fullPath || f.folder.startsWith(fullPath + '/')).length;
+    html += `<div class="folder-card" onclick="navigateTo('${fullPath}')">
+      <span class="folder-icon">📁</span>
+      <div>
+        <div class="folder-name">${sf}</div>
+        <div class="folder-count">${count} files</div>
+      </div>
+    </div>`;
+  }
+
+  // Files
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    const isVideo = f.type === 'video';
+    const sortKey = currentSort !== 'filename' ? extractSortKey(f, currentSort) : '';
+    const metaExtra = sortKey ? ` · <span style="color:var(--accent);opacity:0.7">${truncate(sortKey, 20)}</span>` : '';
+    html += `<div class="card" onclick="openLightbox(${i})">
+      <div class="thumb-wrapper">
+        ${isVideo
+          ? `<video data-src="${getFileURL(f)}" muted loop preload="none" class="lazy-video"><source type="video/${f.ext}"></video>`
+          : `<img data-src="${getFileURL(f)}" alt="${f.name}" class="lazy-img" loading="lazy">`
+        }
+        ${isVideo ? `<span class="media-badge">${f.ext.toUpperCase()}</span>` : ''}
+        <div class="placeholder loading-shimmer" style="position:absolute;inset:0;"></div>
+      </div>
+      <div class="card-info">
+        <div class="name" title="${f.name}">${f.name}</div>
+        <div class="meta">${f.ext.toUpperCase()}${f.folder ? ' · ' + f.folder.split('/').pop() : ''}${metaExtra}</div>
+      </div>
+    </div>`;
+  }
+
+  html += '</div>';
+  main.innerHTML = html;
+}
+
+function renderList(main, subfolders, files) {
+  let html = '<div class="list-view">';
+
+  for (const sf of subfolders) {
+    const fullPath = currentPath ? currentPath + '/' + sf : sf;
+    html += `<div class="list-row" onclick="navigateTo('${fullPath}')">
+      <div class="list-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center;">📁</div>
+      <span class="list-name">${sf}/</span>
+      <span class="list-type" style="color:var(--accent)">DIR</span>
+    </div>`;
+  }
+
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    const sortKey = currentSort !== 'filename' ? extractSortKey(f, currentSort) : '';
+    html += `<div class="list-row" onclick="openLightbox(${i})">
+      <div class="list-thumb">
+        ${f.type === 'image'
+          ? `<img data-src="${getFileURL(f)}" alt="" class="lazy-img" loading="lazy">`
+          : `<span style="font-size:16px">🎬</span>`}
+      </div>
+      <span class="list-name">${f.name}</span>
+      ${sortKey ? `<span class="list-type" style="color:var(--accent);opacity:0.6;width:120px;overflow:hidden;text-overflow:ellipsis" title="${sortKey}">${sortKey}</span>` : ''}
+      <span class="list-type">${f.ext}</span>
+    </div>`;
+  }
+
+  html += '</div>';
+  main.innerHTML = html;
+}
+
+// ─── Lazy Loading ───
+function setupLazyLoad() {
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        if (el.tagName === 'IMG' && el.dataset.src) {
+          el.src = el.dataset.src;
+          el.onload = () => {
+            const placeholder = el.parentElement?.querySelector('.placeholder');
+            if (placeholder) placeholder.remove();
+          };
+          el.onerror = () => {
+            const placeholder = el.parentElement?.querySelector('.placeholder');
+            if (placeholder) { placeholder.classList.remove('loading-shimmer'); placeholder.textContent = '⚠ Load error'; }
+          };
+          delete el.dataset.src;
+        } else if (el.tagName === 'VIDEO' && el.dataset.src) {
+          const source = el.querySelector('source');
+          if (source) source.src = el.dataset.src;
+          el.load();
+          el.onloadeddata = () => {
+            const placeholder = el.parentElement?.querySelector('.placeholder');
+            if (placeholder) placeholder.remove();
+          };
+          delete el.dataset.src;
+          // Play on hover
+          el.parentElement?.parentElement?.addEventListener('mouseenter', () => el.play());
+          el.parentElement?.parentElement?.addEventListener('mouseleave', () => { el.pause(); el.currentTime = 0; });
+        }
+        observer.unobserve(el);
+      }
+    }
+  }, { rootMargin: '200px' });
+
+  document.querySelectorAll('.lazy-img, .lazy-video').forEach(el => observer.observe(el));
+}
+
+// ─── View Toggle ───
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.view-toggle button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  renderContent();
+}
+
+// ─── Search ───
+document.getElementById('searchBox').addEventListener('input', () => renderContent());
+
+// ─── Lightbox ───
+function openLightbox(index) {
+  lightboxIndex = index;
+  lightboxFiles = currentFiles;
+  showLightboxContent();
+  document.getElementById('lightbox').classList.add('open');
+  document.addEventListener('keydown', lightboxKeyHandler);
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.removeEventListener('keydown', lightboxKeyHandler);
+  // Pause any playing video
+  const vid = document.querySelector('#lbContent video');
+  if (vid) vid.pause();
+}
+
+function navLightbox(dir) {
+  lightboxIndex = (lightboxIndex + dir + lightboxFiles.length) % lightboxFiles.length;
+  showLightboxContent();
+}
+
+function lightboxKeyHandler(e) {
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') navLightbox(-1);
+  if (e.key === 'ArrowRight') navLightbox(1);
+}
+
+function showLightboxContent() {
+  const f = lightboxFiles[lightboxIndex];
+  if (!f) return;
+  const url = getFileURL(f);
+  const lbContent = document.getElementById('lbContent');
+
+  if (f.type === 'video') {
+    lbContent.innerHTML = `<video src="${url}" controls autoplay loop style="max-width:92vw;max-height:82vh;border-radius:4px;box-shadow:0 4px 40px rgba(0,0,0,0.5)"></video>`;
+  } else {
+    lbContent.innerHTML = `<img src="${url}" alt="${f.name}" style="max-width:92vw;max-height:82vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 40px rgba(0,0,0,0.5)">`;
+  }
+
+  document.getElementById('lbCaption').textContent = f.path;
+  document.getElementById('lbCounter').textContent = `${lightboxIndex + 1} / ${lightboxFiles.length}`;
+}
+
+// ─── Scroll to top button ───
+document.getElementById('mainContent').addEventListener('scroll', (e) => {
+  document.getElementById('scrollTop').classList.toggle('visible', e.target.scrollTop > 400);
+});
+
+// ─── Close lightbox on background click ───
+document.getElementById('lightbox').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('lightbox')) closeLightbox();
+});
+
+initializeSetup();
+</script>
+</body>
+</html>
