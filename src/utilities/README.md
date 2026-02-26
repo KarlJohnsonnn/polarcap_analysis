@@ -1,5 +1,144 @@
 # Compute Fabric Utilities
 
+## HPC Resource Usage Philosophy
+
+HPC users usually follow one rule: **use only as many resources as the data and goal actually require**. But how should you know how much resources you need?
+
+1. Start with the smallest faithful version of the problem (reduced domain/time/diagnostics).
+2. Keep data lazy and chunked until you have reduced it.
+3. Compute only what you need for the next step (for example a histogram, not the full raw volume).
+4. Measure bottlenecks first; optimize second.
+5. Increase resources only after measurement shows a real need.
+
+This keeps workflows fast, stable, and fair for everyone sharing the cluster.
+
+### Plain-language meaning of common HPC terms
+
+- **Data movement**: copying large arrays between disk, RAM, workers, or nodes. This is often slower than math itself.
+- **Lazy array**: data is not loaded yet; Python stores a plan of operations first.
+- **Chunking**: splitting big arrays into smaller blocks so processing fits memory.
+- **Materialize**: actually load/compute the array now (for example with `.compute()` or `.values`).
+- **Scale up**: request more CPUs, RAM, or nodes.
+- **Profile**: measure where runtime is spent (CPU, memory, I/O, scheduler overhead).
+
+### Resource reduction checklist (recommended order)
+
+Before asking for bigger jobs:
+
+1. Increase stride/downsampling.
+2. Reduce histogram bin count.
+3. Process one run at a time.
+4. Save reduced intermediates to NetCDF/Zarr and reuse them.
+5. Switch to `float32` where scientific accuracy allows.
+
+### Why this matters in practice
+
+- Large jobs can fail from memory pressure even when CPU usage looks low.
+- Oversized allocations can waste queue time and reduce cluster availability for others.
+- A measured, reduced workflow is usually easier to debug, rerun, and reproduce.
+
+In short: **scale by evidence, not by guesswork**.
+
+
+
+## User Manual: Working with Large NetCDF Files (1.6 TB class)
+
+This section is a step-by-step operating guide for large `xarray`/`dask` workflows.
+
+### 1) Scope and risk
+
+For datasets with dimensions like `time=229, z=100, y=146, x=186, bin=66`:
+
+- one `float64` variable with `time,z,y,x` is about `4.6 GiB`
+- one `float64` variable with `time,z,y,x,bin` is about `305 GiB`
+
+Implication: full in-memory operations are unsafe unless you have very large allocations.
+
+### 2) Pre-run checklist
+
+Before running expensive cells read the following checklist. A detailed explanation for each item is provided below.
+
+1. Keep the dataset lazy (do not eagerly load full variables).
+2. Select only required variables.
+3. Cast diagnostic fields to `float32` when scientific precision allows.
+4. Define a downsampling stride for diagnostics.
+5. Open the Dask dashboard.
+
+### 3) Required coding pattern
+
+Use this pattern as default for diagnostics and figure generation:
+
+```python
+mod = ds[['qfw', 'qw', 'qv', 'qc']].astype('float32')
+sample = mod.isel(
+    time=slice(None, None, 8),
+    altitude=slice(None, None, 4),
+    latitude=slice(None, None, 8),
+    longitude=slice(None, None, 8),
+)
+```
+
+#### Prohibited pattern (common crash source)
+
+```python
+mod = ds[['qfw', 'qw', 'qv', 'qc']].persist()
+arr = mod['qfw'].values
+```
+
+Do not use `.values` on large lazy arrays before heavy reduction.
+
+### 4) Histogram workflow for large files
+
+1. Estimate bin edges from sampled data.
+2. Compute histograms on sampled data first.
+3. Compute only reduced intermediates.
+4. Save reduced outputs for reuse, best if in Zarr format.
+
+Example:
+
+```python
+import dask                                       # pip install dask
+from dask.diagnostics import ProgressBar          # pip install dask-diagnostics
+from xhistogram.xarray import histogram as xhist  # pip install xhistogram
+# use only 1/2 of the datas resolution, where slice(start_index, end_index, step) in this example the value of 2 is the stride 
+small = mod.isel(
+    time=slice(None, None, 2),
+    altitude=slice(None, None, 2),
+    latitude=slice(None, None, 2),
+    longitude=slice(None, None, 2),
+)
+h = xhist(small['qfw'], small['qw'], bins=[xbins, ybins])
+delayed = h.to_zarr(path='histogram.zarr', compute=False)
+with ProgressBar():
+    result = dask.compute(delayed)
+```
+
+### 5) Resource escalation procedure
+
+Follow this order before requesting more memory/workers:
+
+1. Increase stride/downsampling.
+2. Reduce histogram bins (example: `96 -> 64 -> 48`).
+3. Process one model simulation run at a time.
+4. Cache reduced products to NetCDF/Zarr.
+5. Scale cluster resources only if full-resolution output is required.
+
+### 6) Dashboard operation guide
+
+Monitor these panels during execution:
+
+- **Task Stream**: confirms tasks are being completed.
+- **Worker Memory**: detects memory pressure and spill behavior.
+- **Progress**: confirms percent completion advances.
+- **Profile**: identifies dominant compute hotspots.
+
+Interpretation:
+
+- Steady progress with stable memory: execution is healthy, even if runtime is several minutes.
+- Flat progress + repeated near-limit memory/spill: stop and increase stride/reduce bins.
+
+## Helper Functions for Local and HPC Workflows
+
 Machine-specific compute helpers are centralized in `utilities.compute_fabric`.
 
 This module unifies:
