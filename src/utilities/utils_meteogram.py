@@ -18,7 +18,7 @@ from io import StringIO
 # Add path to utils
 import sys
 sys.path.append('/work/bb1262/user/schimmel/cosmo-specs-torch/PaperCode/polarcap1')
-from utils import cmap_new_timeheight, load_holimo_data, tools
+from utilities import tools
 
 
 # Dask configuration
@@ -450,7 +450,7 @@ def plot_cosmo_specs_meteogram(ds_M_list, norms=None, plt_style='seaborn-v0_8-pa
                             'linewidths': 1,
                             'alpha': 0.9,}
 
-    pmesh_kwargs = {    'cmap': cmap_new_timeheight,
+    pmesh_kwargs = {    'cmap': 'jet',
                         'add_colorbar': False}
 
     contour_text_kwargs = dict( boxstyle="round,pad=0.2",

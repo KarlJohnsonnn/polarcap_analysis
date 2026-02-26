@@ -8,31 +8,15 @@
 """
 
 import os
-import os.path as osp
-from platform import mac_ver
 import sys
 import glob
 
-sys.path.append('python/utils')
 import xarray as xr
 xr.set_options(keep_attrs=True)
 import numpy as np
 
-
 import tobac
-import tobac.testing
-
-import datetime
-import json
-
-import utils.namelist_metadata as nml
-
-from pathlib import Path
-
-import dask
-from dask.distributed import Client
-
-is_notebook = 'ipykernel_launcher' in sys.argv[0]
+import utilities.namelist_metadata as nml
 
 # ############################################################
 # BEGIN PLOT FCNs
@@ -711,6 +695,8 @@ def process_segmentation(data_3D, common_vars, add_time=True, extend_time=30):
 
 
 def load_grid_data(metadata_file) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None, np.ndarray | None, xr.Dataset | None]:
+    import json
+    from pathlib import Path
     try:
         # Load metadata and extract grid info
         with open(metadata_file) as f:
@@ -750,6 +736,8 @@ def load_grid_data(metadata_file) -> tuple[np.ndarray | None, np.ndarray | None,
 
 
 def get_domain_bounds_from_meta(meta_file):
+    import json
+    from datetime import datetime
     """
     Get domain bounds from metadata.
     
