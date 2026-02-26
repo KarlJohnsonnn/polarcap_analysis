@@ -1,14 +1,9 @@
-from __future__ import annotations
+"""Compatibility wrapper for runtime environment helpers.
 
-import os
-import platform
+Canonical implementation lives in `utilities.compute_fabric`.
+"""
 
+from utilities.compute_fabric import in_slurm_allocation, is_server
 
-def is_server() -> bool:
-    """Return True when running in server/HPC-like environments."""
-    if os.getenv("JUPYTERHUB_API_URL") or os.getenv("JUPYTERHUB_USER"):
-        return True
-    if os.getenv("SLURM_JOB_ID"):
-        return True
-    return platform.system() != "Darwin"
+__all__ = ["is_server", "in_slurm_allocation"]
 

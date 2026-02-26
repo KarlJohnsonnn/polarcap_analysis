@@ -1,6 +1,11 @@
-from utilities.slurm import (
+from utilities.compute_fabric import (
     allocate_resources,
     calculate_optimal_scaling,
+    is_server,
+    in_slurm_allocation,
+    recommend_target_chunk_mb,
+    auto_chunk_dataset,
+    describe_chunk_plan,
 )
 
 from utilities.model_helpers import (
@@ -88,9 +93,6 @@ from utilities.style_profiles import (
 
 from utilities.plume_loader import (
     load_plume_path_runs,
-)
-from utilities.runtime_env import (
-    is_server,
 )
 # from utilities.namelist_metadata import (
 #     MetadataManager, 
