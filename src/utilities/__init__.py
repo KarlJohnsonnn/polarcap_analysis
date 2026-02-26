@@ -89,6 +89,9 @@ from utilities.style_profiles import (
 from utilities.plume_loader import (
     load_plume_path_runs,
 )
+from utilities.runtime_env import (
+    is_server,
+)
 # from utilities.namelist_metadata import (
 #     MetadataManager, 
 #     update_dataset_metadata, 

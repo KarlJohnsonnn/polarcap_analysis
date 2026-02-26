@@ -22,9 +22,10 @@ It keeps only manuscript-relevant plotting paths for strong-precip diagnostics a
 ## Run Order
 
 1. Open `strong_precip_plot_workflow.ipynb`.
-2. Update the run-config cell (`EXPERIMENTS`, `RUN_ROOT`, `OUTPUT_DIR`, time windows).
-3. Run cells top-to-bottom.
-4. Verify figures are written to `figures/`.
+2. Ensure `REMOTE_COSMO_SPECS_RUN_OUTPUT` is exported in your shell rc file (`~/.zshrc` local or `~/.bashrc` server).
+3. Update the run-config cell (`EXPERIMENTS`, `OUTPUT_DIR`, time windows) if needed.
+4. Run cells top-to-bottom.
+5. Verify figures are written to `figures/`.
 
 ## Output Naming
 

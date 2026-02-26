@@ -25,7 +25,7 @@ This repo bundles:
 ## Quick start
 
 1. Create/activate your analysis environment.
-2. Add this repo root to `PYTHONPATH` (or install as editable package later).
+2. Run one-time notebook bootstrap setup: `bash scripts/ipython_startup/install.sh`.
 3. Run notebooks from `notebooks/` using kernels that include dependencies from `src/utilities`.
 
 ## Notes
