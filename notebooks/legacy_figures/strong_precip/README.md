@@ -39,3 +39,9 @@ The notebook writes standardized names:
 
 - The workflow uses local relative output paths only.
 - Heavy data loading is lazy with dask-backed xarray operations.
+
+## Performance and Compute Diagnostics
+
+For reusable Dask/SLURM diagnostics and scaling guidance, see:
+
+- `src/utilities/README.md`
