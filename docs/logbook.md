@@ -76,3 +76,21 @@ Saved: fig-comparison-c-threshold-occurrence-200x160.png
 ### Result
 
 - FoO panel now uses consistent log-diameter binning and a single combined observational reference curve, improving interpretability and reducing mission-fragmented visual noise.
+
+## 2026-02-27: Figure 11 layout and FoO panel refinements
+
+### Scope
+
+- Final layout and styling for `figure11_plume_path_plot_clean_symlog_with_zoom_panel_hist.png`: despined axes, single HOLIMO missions legend, FoO/concentration panel with max-amplitude markers and simplified legend.
+
+### Decisions made
+
+- **Despined axes:** Removed top and right spines from both pcolormesh panels (`ax_main`); removed top and left spines from the histogram panel (`ax_hist`) so the right-side y-axis reads cleanly. Keeps focus on data and reduces visual clutter.
+- **HOLIMO missions legend on one panel only:** Added `add_holimo_legend` to `plot_plume_path_sum` and pass `add_holimo_legend=(i == 0)` in the panel loop so the “HOLIMO missions” legend appears only on the first (symlog) panel; the zoomed elapsed-time panel has no duplicate legend.
+- **Max-amplitude markers on FoO panel:** Short horizontal dashed lines at the maximum of each curve (model and obs), drawn to the right of the peak over ~12% of the log x-span, with the numeric value annotated at the end of the segment (e.g. 6.19, 9.48). Makes peak values readable without cluttering the legend.
+- **Legend without stats:** FoO/concentration legend shows only “COSMO-SPECS” and “HOLIMO”; mean/std/max were removed from the legend text and are conveyed by the max-amplitude annotations instead.
+- **Absolute vs relative mode:** The existing `absolute_mode` switch is unchanged: time-mean concentration (absolute) or FoO % (relative), with axis titles and units set accordingly.
+
+### Result
+
+- Figure 11 has a consistent despined look, a single HOLIMO legend on the symlog panel, and a clear FoO/concentration comparison with peak values on the plot and a minimal legend.
