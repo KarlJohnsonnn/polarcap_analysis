@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import matplotlib as mpl
+import numpy as np
 
 
 BASE_STYLE = {
@@ -74,4 +75,19 @@ def get_style(kind: str) -> dict:
 
 def use_style(kind: str):
     return mpl.rc_context(get_style(kind))
+
+
+def format_elapsed_minutes_tick(x: float, span: float, *, zero_if_close: bool = False) -> str:
+    """
+    Format elapsed-time tick labels for minute/hour axes.
+
+    - Under 1 minute: one decimal without trailing zeros
+    - Up to 60 minutes: integer minutes
+    - Above 60 minutes span: hours with one decimal and "h" suffix
+    """
+    if zero_if_close and np.isclose(x, 0.0):
+        return "0"
+    if x < 1:
+        return f"{x:.1f}".rstrip("0").rstrip(".")
+    return f"{x:.0f}" if span <= 60 else f"{x/60:.1f}h"
 

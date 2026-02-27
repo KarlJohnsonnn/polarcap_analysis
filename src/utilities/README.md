@@ -226,3 +226,55 @@ cluster, client = allocate_resources(
 - Use larger chunks while keeping memory pressure stable.
 - Cache reduced intermediates (Zarr/NetCDF) when iterating on plots.
 - SLURM startup overhead can dominate small workloads; local mode is often faster for quick iterations.
+
+## Generic Dataset Slicer
+
+For local condensed-data workflows, use the generic slicer helpers in `utilities.data_slicer`.
+
+### Supported slicing keys
+
+- `time`
+- `lat` aliases to `latitude` or `y`
+- `lon` aliases to `longitude` or `x`
+- `alt` aliases to `altitude` or `z`
+- `diameter` aliases to `diameter` or `bin`
+
+### Supported values
+
+- scalar (single point/index)
+- tuple `(start, end)` for bounded range
+- `slice(start, end, step)`
+- explicit list of values/indices
+
+### Example: slice in-memory
+
+```python
+from utilities import slice_dataset
+
+slice_cfg = {
+    "time": ("2023-01-25T10:35:00", "2023-01-25T11:35:00"),
+    "lat": (47.03, 47.11),
+    "lon": (7.80, 7.92),
+    "alt": (1000.0, 2200.0),
+    "diameter": (1.0, 2000.0),
+}
+
+ds_slice, meta = slice_dataset(ds, slice_cfg, strict=True)
+print(meta["shape_before"])
+print(meta["shape_after"])
+print(meta["effective_bounds"])
+```
+
+### Example: write intermediate Zarr
+
+```python
+from utilities import slice_dataset_to_zarr
+
+ds_slice, meta = slice_dataset_to_zarr(
+    ds,
+    slice_cfg,
+    out_path="data/processed/intermediate/local_slice.zarr",
+    overwrite=True,
+)
+print(meta["zarr_path"])
+```
