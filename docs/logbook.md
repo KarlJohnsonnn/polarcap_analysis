@@ -40,8 +40,9 @@ The new literature strengthens the narrative: (1) AgI nucleation is now understo
 
 ### Key corrections
 
-- **Notebook 03 (INF comparison):** The initial implementation incorrectly computed the model INF by taking `ICNC / (ICNC + CDNC)`. CDNC represents background cloud droplets, NOT the unactivated seeding aerosol particles. Since the unactivated AgI tracer (`ninp`) is not available in the processed data, I rewrote the notebook to plot the theoretical activation parameterization (used by the model) against the field data for a proper scientific comparison.
-- **Notebook 02 (WBF depletion):** The initial implementation used `nw` (cloud droplet number concentration) to calculate the relative LWC change. WBF depletion is a mass-transfer process. I fixed this by using the `qw` (liquid water mass mixing ratio) variable to correctly compute the relative LWC mass depletion, matching the exact style of Omanovic 2025.
+- **Notebook 01 (Growth rates):** Fixed a NumPy broadcasting error by explicitly enforcing `.transpose('time', 'cell', 'diameter')` before extracting the `nf` arrays and ensuring operations on `calculate_mean_diameter` matched the last axis correctly.
+- **Notebook 02 (WBF depletion):** The initial implementation used `nw` (cloud droplet number concentration) to calculate the relative LWC change. WBF depletion is a mass-transfer process. I fixed this by using the `qw` (liquid water mass mixing ratio) variable to correctly compute the relative LWC mass depletion, matching the exact style of Omanovic 2025. Also resolved `axis=1` percentile computation errors by enforcing a `('time', 'cell')` transposition on bulk variables.
+- **Notebook 03 (INF comparison):** The initial implementation incorrectly computed the model INF by taking `ICNC / (ICNC + CDNC)`. CDNC represents background cloud droplets, NOT the unactivated seeding aerosol particles. Since the unactivated AgI tracer (`ninp`) is not available in the processed data, I rewrote the notebook to plot the theoretical activation parameterization (used by the model) against the field data for a proper scientific comparison. Ensured bulk arrays transpose correctly to `('time', 'cell')` before value extraction.
 
 ---
 
