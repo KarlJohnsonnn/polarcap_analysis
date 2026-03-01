@@ -1,5 +1,20 @@
 # Logbook
 
+## 2026-02-28: Resolved comparison notebook issues and implemented Korolev WBF regime
+
+### Scope
+
+- Investigated and resolved broadcasting and masking issues in notebooks `01-growth-rate-sensitivity.ipynb` and `02-lagrangian-icnc-lwc-comparison.ipynb`.
+- Analyzed `CLOUDLAB/Omanovic_etal_2024/korolev.py`.
+- Implemented notebook `04-korolev-wbf-comparison.ipynb` to apply the Korolev and Mazin (2003) formulation to COSMO-SPECS data, comparing theoretical critical updraft velocities ($u_{zi}$, $u_{zw}$) against actual model updraft ($w$) to classify and plot WBF regime frequencies.
+
+### Key decisions and fixes
+
+- **Notebook 01 & 02 Fixes:** The `calculate_mean_diameter` helper function was returning a `MaskedArray` containing zeros where data was absent. Assigning this directly into standard `np.zeros` arrays caused the mask to be lost and `0.0` values to propagate, leading to `np.nanmin` returning `0.0` or causing subsequent `ValueError` during shape broadcasting across the (time, cell) matrix. Rewrote the array operation into a robust local block calculating the number-weighted mean (`num / den`) using `np.where` with `np.nan` fill values, entirely side-stepping the masked array limitations. Notebook 03 had already been fixed and didn't exhibit any similar output errors.
+- **Korolev Implementation (Notebook 04):** Extracted `temp`, `rho`, `p0`, `pp`, `qv`, `icnc`, `cdnc`, `qi`, `qc`, and `wt` from the integrated dataset. Carefully aligned units: `icnc` and `cdnc` converted from per-liter/per-cm³ to per-$m^3$, and `qi`/`qc` converted from $g/L$ or $g/m^3$ to $kg/kg$ (divided by air density). Passed the aligned inputs into the exact `korolev()` function from Omanovic et al. Computed $u_{zi}$ and $u_{zw}$ and created masks for WBF (`wc < w < wi`), Mixed-Phase Growth (`w > wi`), and Evaporation (`w < wc`). Plotted ensemble average frequencies over elapsed time to enable direct visual comparison with Omanovic 2024/2025.
+
+---
+
 ## 2026-02-28: Extended literature review + CLOUDLAB code deep-dive
 
 ### Scope
