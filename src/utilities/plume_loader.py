@@ -128,4 +128,3 @@ def load_plume_path_runs(
             cs_run_datasets[label] = run_datasets
 
     return cs_run_datasets
-
