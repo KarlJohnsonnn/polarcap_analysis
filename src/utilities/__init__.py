@@ -41,6 +41,7 @@ from utilities.holimo_helpers import (
     rebin_logspace_bins,
     time_frames_plume,
     time_frame_tbs,
+    prepare_holimo_for_overlay,
 )
 
 from utilities.namelist_metadata import (
@@ -92,9 +93,16 @@ from utilities.style_profiles import (
     format_elapsed_minutes_tick,
 )
 
-from utilities.plume_loader import (
-    load_plume_path_runs,
+from utilities.plume_path_plot import (
+    _assign_elapsed_time,
+    _prepare_da,
+    plot_plume_path_sum,
+    build_common_xlim,
+    diagnostics_table,
+    compute_holimo_elapsed_anchors,
 )
+
+from utilities.plume_loader import load_plume_path_runs
 
 from utilities.data_slicer import (
     normalize_slice_dict,

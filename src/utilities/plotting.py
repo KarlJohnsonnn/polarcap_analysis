@@ -148,9 +148,9 @@ def create_new_jet2(n_colors=128):
     ])
     return mcolors.ListedColormap(cmap_new_timeheight_np2[::-1])
 
-def create_new_jet3(n_colors=128):
+def create_new_jet3(n_colors=256):
     ice_colors = cmaps.ice(np.linspace(1, 0.5, 32))
-    bk_colors  = cmaps.BkBlAqGrYeOrReViWh200(np.linspace(0.1, 0.9, 256))
+    bk_colors  = cmaps.BkBlAqGrYeOrReViWh200(np.linspace(0.1, 0.9, n_colors))
     transition = np.linspace(ice_colors[-1], bk_colors[0], 16)[1:-1]
     return mcolors.ListedColormap(np.vstack([ice_colors, transition, bk_colors]))
 

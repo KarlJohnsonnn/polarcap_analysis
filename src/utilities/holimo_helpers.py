@@ -368,6 +368,33 @@ def rebin_logspace_bins(
     return ds_out
 
 
+def prepare_holimo_for_overlay(
+    holimo_path: str,
+    time_window: Tuple[np.datetime64, np.datetime64],
+    *,
+    resample_s: int = 10,
+    smoothing_time_bins: int = 8,
+    smoothing_diameter_bins: int = 0,
+    min_coverage_frac: float = 0.01,
+    expected_dt_s: float = 1,
+) -> xr.Dataset:
+    """Load HOLIMO, slice time, convert diameter to µm, resample, mask by coverage, smooth. For plume-path overlay."""
+    ds, _lbb, _cbb = load_and_prepare_holimo(holimo_path)
+    ds = ds.sel(time=slice(*time_window)).assign_coords(diameter=ds.diameter * 1e6)
+    min_samples = max(1, int(round(resample_s / expected_dt_s * min_coverage_frac)))
+    ds_mean = ds.resample(time=f"{int(resample_s)}s").mean()
+    count_vars = [v for v, da in ds.data_vars.items() if "time" in da.dims and np.issubdtype(da.dtype, np.number)]
+    coverage = ds[count_vars].resample(time=f"{resample_s}s").count().to_array("var")
+    reduce_dims = [d for d in coverage.dims if d not in ("time", "var")]
+    if reduce_dims:
+        coverage = coverage.min(dim=reduce_dims)
+    valid = (coverage >= min_samples).all("var")
+    ds_out = ds_mean.where(valid).rolling(time=smoothing_time_bins, center=True, min_periods=2).mean()
+    if smoothing_diameter_bins > 1:
+        ds_out = ds_out.rolling(diameter=smoothing_diameter_bins, center=True, min_periods=2).mean()
+    return ds_out
+
+
 def check_rebinned_data_structure(ds: xr.Dataset, suffix: str = "_rebinned") -> None:
     """Debug helper to check structure of rebinned data."""
     print("=== Rebinned Data Structure Check ===")
