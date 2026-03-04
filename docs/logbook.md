@@ -1,5 +1,56 @@
 # Logbook
 
+## 2026-03-04: Meteogram pipeline overhaul and quicklook notebook
+
+### Scope
+
+- Performance-profiled the original `00-prepM.py` script that concatenates per-experiment meteogram NetCDF files into a Zarr store; identified seven major bottlenecks and implemented a replacement pipeline.
+- Created `src/utilities/meteogram_io.py` as a reusable library, eliminating the dependency on the old `scripts/meteogram2zarr/utils_meteogram.py`.
+- Created `scripts/meteogram2zarr/01-prepM-fast.py` as the new lean CLI entry point (~80 lines of core logic).
+- Created `notebooks/meteograms/01-quicklook-nw-nf.ipynb` for rapid visual inspection of processed meteogram Zarr stores.
+
+### Key decisions and findings
+
+- **Engine auto-detection:** Local files turned out to be classic NetCDF-3 (not HDF5-backed NetCDF-4). Implemented `_detect_nc_engine()` which inspects magic bytes to select `h5netcdf` (GIL-free, for NetCDF-4) or `netcdf4` (for classic). This prevents the `OSError: file signature not found` that appeared on local data.
+- **Abandoned `open_mfdataset`:** Replaced with per-file `xr.open_dataset` plus a single `xr.concat` along the `expname` dimension. This avoids hidden overhead from inference of compatible coordinates and provides direct control over preprocessing.
+- **Abandoned region-write strategy:** Initial plan used streaming `region` writes to a pre-allocated Zarr store, but `xarray` + `zarr` v3 raised `ValueError` on coordinate variables lacking the `expname` dimension. Replaced with a simpler build-then-write approach.
+- **Zarr v2 format forced:** `xarray` (v2025.4.0) and `zarr` (v3.1.5) have incompatible codec APIs for v3 format (`numcodecs.Blosc` vs `zarr.codecs.BloscCodec`). Pinning `zarr_format=2` in `to_zarr()` with `numcodecs.Blosc(cname="zstd")` resolved the `TypeError` and `AttributeError` on round-trip read.
+- **Time padding for short experiments:** `_preprocess_station()` pads files with fewer time steps to `max_time` with NaN fill values, verified with `nan_frac` diagnostics.
+- **Debug mode fix:** `discover_meteogram_files()` in debug mode was incorrectly slicing the number of *stations* per experiment to 2 instead of limiting the number of *experiments*. Fixed to preserve all stations (3 in the Eriswil domain) while only keeping the first 2 experiments.
+
+### Quicklook notebook
+
+- `01-quicklook-nw-nf.ipynb`: **n_stations × 2** grid of NW (droplet) and NF (ice crystal) time–height cross-sections using `xarray.plot.pcolormesh`.
+- Top panel shows domain surface height from extPar (`HSURF`) via `pcolormesh` with `terrain` colormap, horizontally centered, with station locations marked as ⊕ symbols.
+- Single shared colorbar for all NW/NF panels; colour limits from 2nd/98th percentile across both fields.
+- Horizontal colorbar for the surface height map to avoid pulling the map off-center.
+
+### Files added/modified
+
+- `src/utilities/meteogram_io.py` — new: `discover_meteogram_files`, `get_max_timesteps`, `get_variable_names`, `_detect_nc_engine`, `_preprocess_station`, `_open_experiment`, `build_meteogram_zarr`, `add_coords_and_metadata`.
+- `src/utilities/__init__.py` — exports for the new meteogram API.
+- `scripts/meteogram2zarr/01-prepM-fast.py` — new CLI script replacing `00-prepM.py`.
+- `notebooks/meteograms/01-quicklook-nw-nf.ipynb` — new quicklook notebook.
+
+---
+
+## 2026-03-04: Repository housekeeping
+
+### Scope
+
+- Reorganised notebooks: moved deprecated top-level notebooks to `notebooks/prior_versions/`.
+- Consolidated plume_path notebooks: added `02-growth_rate_analysis.ipynb`, renamed `04_compare…` → `04-compare…` for consistent naming, updated `01` and `03`.
+- Updated `notebooks/cloudlab_comparison/01-growth-rate-sensitivity.ipynb`.
+- Updated `src/utilities/README.md`.
+- Updated `article_draft/PolarCAP` submodule pointer.
+
+### Files moved/deleted
+
+- `notebooks/{01-Generate_Tobac…, 03-Top+Side_View…, 04-Merged…, 04-time-height-spectra…, 05-Visualise-strong-precip}` → `notebooks/prior_versions/`
+- `notebooks/growth_rate_analysis.ipynb` and `notebooks/plume_path_plot_clean.ipynb` — removed (superseded by plume_path versions).
+
+---
+
 ## 2026-02-28: Resolved comparison notebook issues and implemented Korolev WBF regime
 
 ### Scope
