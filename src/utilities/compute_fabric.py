@@ -4,6 +4,7 @@ This module centralizes:
 - Runtime environment detection (`is_server`, SLURM checks)
 - Dask chunk-size heuristics (`auto_chunk_dataset`)
 - SLURM-backed Dask cluster helpers (`allocate_resources`)
+- Setting up Dask dashboard
 """
 
 from __future__ import annotations
@@ -48,6 +49,7 @@ def in_slurm_allocation() -> bool:
 
 
 def _local_available_memory_bytes() -> int:
+    """Return available physical memory in bytes, with a safe 8 GB fallback."""
     if psutil is not None:
         return int(psutil.virtual_memory().available)
     if hasattr(os, "sysconf") and "SC_PAGE_SIZE" in os.sysconf_names and "SC_PHYS_PAGES" in os.sysconf_names:
@@ -56,6 +58,11 @@ def _local_available_memory_bytes() -> int:
 
 
 def _dask_worker_memory_bytes() -> int | None:
+    """Return the smallest per-worker memory limit from the active Dask cluster.
+
+    Returns ``None`` when no distributed client is reachable or no memory
+    limits are configured, so callers can fall back to local memory.
+    """
     if get_client is None:
         return None
     try:
@@ -74,7 +81,20 @@ def recommend_target_chunk_mb(
     max_chunk_mb: int = 512,
     memory_fraction: float = 0.12,
 ) -> int:
-    """Estimate a robust chunk target (MB) from worker/local memory."""
+    """Return a chunk target (MB) clamped to ``[min_chunk_mb, max_chunk_mb]``.
+
+    Queries the active Dask cluster's per-worker memory limit first; falls back
+    to the local machine's available RAM when no cluster is reachable.
+
+    Parameters
+    ----------
+    min_chunk_mb:
+        Lower bound on the returned chunk size.
+    max_chunk_mb:
+        Upper bound on the returned chunk size.
+    memory_fraction:
+        Fraction of total available memory to target per chunk (0.01–0.8).
+    """
     if min_chunk_mb <= 0 or max_chunk_mb <= 0:
         raise ValueError("Chunk bounds must be positive.")
     if min_chunk_mb > max_chunk_mb:
@@ -88,6 +108,7 @@ def recommend_target_chunk_mb(
 
 
 def _pick_reference_var(ds: xr.Dataset) -> xr.DataArray:
+    """Return the data variable with the most dimensions and largest size."""
     if not ds.data_vars:
         raise ValueError("Dataset has no data variables.")
     return max(ds.data_vars.values(), key=lambda da: (da.ndim, da.size))
@@ -99,6 +120,24 @@ def _balanced_chunk_sizes(
     itemsize: int,
     prefer_dims: Iterable[str],
 ) -> dict[str, int]:
+    """Return chunk sizes per dimension clamped to ``[1, dim_sizes[d]]``.
+
+    Dimensions are grown in priority order (``prefer_dims`` first, then the
+    remainder) by repeatedly doubling each chunk size until the target element
+    count would be exceeded.  After the doubling pass the leading preferred
+    dimension is widened linearly to consume any remaining budget.
+
+    Parameters
+    ----------
+    dim_sizes:
+        Mapping of dimension name → full extent.
+    target_chunk_bytes:
+        Desired uncompressed chunk size in bytes.
+    itemsize:
+        Bytes per array element (e.g. 4 for float32, 8 for float64).
+    prefer_dims:
+        Dimension names to grow first; dims absent from ``dim_sizes`` are ignored.
+    """
     dims = [d for d in prefer_dims if d in dim_sizes] + [d for d in dim_sizes if d not in set(prefer_dims)]
     chunk = {d: 1 for d in dims}
     max_sizes = {d: max(1, int(dim_sizes[d])) for d in dims}
@@ -137,7 +176,29 @@ def auto_chunk_dataset(
     memory_fraction: float = 0.12,
     prefer_dims: tuple[str, ...] = ("time", "altitude", "latitude", "longitude", "diameter"),
 ) -> tuple[xr.Dataset, dict[str, int]]:
-    """Rechunk dataset with machine-aware default chunk sizes."""
+    """Rechunk a dataset with machine-aware balanced chunk sizes.
+
+    Selects the reference variable (largest-dimensioned), derives a byte budget
+    via ``recommend_target_chunk_mb``, and delegates to ``_balanced_chunk_sizes``
+    to compute per-dimension chunk sizes that respect ``prefer_dims`` priority.
+    Returns the rechunked dataset together with the chunk dictionary applied.
+
+    Parameters
+    ----------
+    ds:
+        Input dataset to rechunk.
+    target_chunk_mb:
+        Override the automatic chunk-size estimate (MB); derived from available
+        memory when ``None``.
+    min_chunk_mb:
+        Passed to ``recommend_target_chunk_mb`` when ``target_chunk_mb`` is not set.
+    max_chunk_mb:
+        Passed to ``recommend_target_chunk_mb`` when ``target_chunk_mb`` is not set.
+    memory_fraction:
+        Passed to ``recommend_target_chunk_mb`` when ``target_chunk_mb`` is not set.
+    prefer_dims:
+        Dimensions to fill first during chunk-size allocation.
+    """
     ref = _pick_reference_var(ds)
     itemsize = max(1, int(ref.dtype.itemsize))
     target_mb = target_chunk_mb or recommend_target_chunk_mb(
@@ -156,7 +217,15 @@ def auto_chunk_dataset(
 
 
 def describe_chunk_plan(ds: xr.Dataset, chunk_dict: dict[str, int]) -> str:
-    """Return a short human-readable summary of a chunk strategy."""
+    """Return a single-line summary of chunk size (MB), count, and dims.
+
+    Parameters
+    ----------
+    ds:
+        Dataset whose dimension sizes are used for the calculation.
+    chunk_dict:
+        Chunk sizes per dimension as returned by ``auto_chunk_dataset``.
+    """
     ref = _pick_reference_var(ds)
     elems = 1
     for d in ref.dims:
@@ -175,7 +244,24 @@ def calculate_optimal_scaling(
     n_stations: int,
     debug_mode: bool = False,
 ) -> tuple[int, int, float, int, str]:
-    """Estimate SLURM scaling settings from workload dimensions."""
+    """Return ``(n_nodes, n_cpu, memory_gb, n_workers, walltime)`` for SLURM.
+
+    Scales resources in four tiers based on
+    ``n_time_steps × n_experiments × n_stations``, with additional boosts for
+    large experiment counts (>50) and long time series (>1000 steps).
+    Prints a summary of the workload analysis and chosen settings.
+
+    Parameters
+    ----------
+    n_time_steps:
+        Number of time steps in the workload.
+    n_experiments:
+        Number of parallel experiments/ensemble members.
+    n_stations:
+        Number of station or grid-point locations.
+    debug_mode:
+        If ``True``, return minimal single-node settings for quick testing.
+    """
     if debug_mode:
         return 1, 64, 32, 2, "00:10:00"
 
@@ -221,10 +307,36 @@ def allocate_resources(
     account: str = "bb1376",
     python: str = "/home/b/b382237/.conda/envs/pcpaper_env/bin/python",
     name: str = "dask_cluster",
-):
-    """Create and return `(cluster, client)` for a SLURM-backed Dask cluster.
+) -> tuple:
+    """Return ``(cluster, client)`` for a SLURM-backed Dask cluster.
 
-    Parameters keep backward compatibility with existing notebooks/scripts.
+    Configures a ``SLURMCluster`` with memory-management settings tuned for
+    large array workloads (spill/target disabled, terminate at 95 %), submits
+    ``n_jobs`` SLURM nodes, and prints SSH port-forwarding instructions for the
+    Dask dashboard.
+
+    Parameters
+    ----------
+    n_cpu:
+        CPUs (cores) per SLURM node; also used as memory in GB when ``m=0``.
+    n_jobs:
+        Number of SLURM nodes / workers to request.
+    m:
+        Memory per node in GB. Defaults to ``n_cpu`` GB when 0.
+    n_threads_per_process:
+        OMP/MKL/BLAS thread count per Dask worker process.
+    port:
+        Dask dashboard port, forwarded via SSH tunnel.
+    part:
+        SLURM partition (queue) name.
+    walltime:
+        SLURM walltime string (``"HH:MM:SS"``).
+    account:
+        SLURM billing account.
+    python:
+        Absolute path to the Python interpreter used by Dask workers.
+    name:
+        Dask cluster/job name visible in SLURM and the dashboard.
     """
     if SLURMCluster is None or Client is None:
         raise ImportError("SLURMCluster/Client unavailable. Install dask-jobqueue and dask[distributed].")
@@ -286,6 +398,7 @@ def allocate_resources(
     dashboard_address = cluster.scheduler_address
     remote_dashboard = f"http://{dashboard_address.split('//')[-1].split(':')[0]}:{port}"
     print(f"Remote dashboard address: {remote_dashboard}")
+    print(f"Setup ssh port forwarding: ssh -L {port}:{dashboard_address.split('//')[-1].split(':')[0]}:{port} username@levante.dkrz.de")
     print(f"Local dashboard address: http://localhost:{port}")
     return cluster, client
 

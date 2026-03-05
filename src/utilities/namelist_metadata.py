@@ -47,8 +47,8 @@ def _find_utils_dir():
     """Automatically find the utils directory relative to this file."""
     current_file = Path(__file__).resolve()
 
-    # If this file is already in utils/, return its parent
-    if current_file.parent.name == "utils":
+    # If this file is already in utils/ or utilities/, return its parent
+    if current_file.parent.name in ("utils", "utilities"):
         return current_file.parent
 
     # Otherwise, look for utils/ in the current directory tree

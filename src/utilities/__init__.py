@@ -91,6 +91,15 @@ from utilities.style_profiles import (
     get_style,
     use_style,
     format_elapsed_minutes_tick,
+    MM,
+    SINGLE_COL_IN,
+    FULL_COL_IN,
+    MAX_H_IN,
+    PUBLICATION_RCPARAMS,
+    apply_publication_style,
+    save_fig,
+    PROC_COLORS,
+    proc_color,
 )
 
 from utilities.plume_path_plot import (

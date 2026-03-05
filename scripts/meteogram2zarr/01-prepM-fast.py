@@ -63,7 +63,11 @@ def main():
         print(f"{'*' * 50}\nDEBUG MODE ACTIVE\n{'*' * 50}")
 
     # paths
-    root_dir = "/Users/schimmel/data/cosmo-specs/meteograms/"
+    # Determine root_dir based on environment (server vs local)
+    if os.path.exists("/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output/"):
+        root_dir = "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output/"
+    else:
+        root_dir = "/Users/schimmel/data/cosmo-specs/meteograms/"
     data_dir = f"{root_dir}/{args.cs_run}/"
     meta_file = f"{data_dir}/{args.cs_run}.json"
 

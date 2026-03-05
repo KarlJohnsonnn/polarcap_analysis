@@ -23,6 +23,14 @@
 - `src/utilities/style_profiles.py` — `DEPOSITION_NUCLEATION` in `PROC_COLORS`.
 - `docs/logbook.md` — this entry.
 
+### Additional changes committed (full session)
+
+- **Meteogram notebooks:** `00-quicklook-tend-flux-timeseries.ipynb` (new), `01-quicklook-nw-nf.ipynb` (updated), `02-quicklook-nw-nf-nc.ipynb` (new), `03-process-dominance.ipynb` (new), `04-spectra-thd.ipynb` (new).
+- **Plume path:** `01-plot-plume-path-sum.ipynb`, `02-growth_rate_analysis.ipynb`, `03-plot-psd-waterfall.ipynb` (updates); `plume_path/output/tables/figure13_psd_stats_20251129231107.tex` (updated).
+- **Pipeline:** `scripts/meteogram2zarr/01-prepM-fast.py` (updates).
+- **Utilities:** `src/utilities/__init__.py`, `meteogram_io.py`, `compute_fabric.py`, `namelist_metadata.py` (updates).
+- **Docs:** `docs/specs_params_and_variables.md` (new) — COSMO-SPECS dimensions, parameters, and variable specs (e.g. deposition deponf/depoqf vs deponi/depoqia).
+
 ---
 
 ## 2026-03-04: Meteogram pipeline overhaul and quicklook notebook

@@ -223,8 +223,8 @@ def _compute_bin_coords(n_bins: int = 66, n_max: float = 2.0,
     j0w = (n_max - 1.0) / np.log(2.0)
     m_edges = m0w * np.exp(np.arange(n_bins + 1) / j0w)
     r_edges = np.cbrt(m_edges / fact)
-    m_cen = 0.5 * (m_edges[1:] + m_edges[:-1])
-    r_cen = 0.5 * (r_edges[1:] + r_edges[:-1])
+    m_cen = np.sqrt(m_edges[1:] * m_edges[:-1])   # geometric mean (log-spaced grid)
+    r_cen = np.cbrt(m_cen / fact)
     return m_edges, m_cen, r_edges, r_cen
 
 
@@ -269,8 +269,14 @@ def add_coords_and_metadata(
     try:
         from utilities.namelist_metadata import update_dataset_metadata
         ds = update_dataset_metadata(ds)
-    except Exception:
-        pass
+        # strip attrs that are not zarr-serialisable (e.g. cmap arrays)
+        for vname in ds.data_vars:
+            for key in list(ds[vname].attrs):
+                val = ds[vname].attrs[key]
+                if isinstance(val, np.ndarray) or (hasattr(val, '__len__') and not isinstance(val, (str, list))):
+                    ds[vname].attrs.pop(key)
+    except Exception as exc:
+        print(f"[meteogram_io] metadata enrichment skipped: {exc}")
 
     return ds
 
@@ -367,7 +373,7 @@ def build_meteogram_zarr(
     # 3. Assign coordinates and metadata
     # -----------------------------------------------------------
     experiments_da = xr.DataArray(
-        np.array(expnames, dtype="U"), dims="expname",
+        np.array(expnames, dtype="S"), dims="expname",
         attrs={"long_name": "Experiment name"},
     )
     station_ids_da = xr.DataArray(
