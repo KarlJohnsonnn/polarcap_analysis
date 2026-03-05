@@ -1,5 +1,30 @@
 # Logbook
 
+## 2026-03-05: Process budget notebook (05) — multi-exp/station, display names, immersion freezing
+
+### Scope
+
+- **Notebook `05-process-budget.ipynb`**: plot selection for multiple experiments and stations without re-running from the top; process display names (condensation vs deposition); immersion freezing visible in both liquid sinks and ice sources; summary table by station and optional stat selection; base64 image outputs removed.
+- **Style/utilities**: `DEPOSITION_NUCLEATION` added to `PROC_COLORS` in `style_profiles.py` for deposition-nucleation (aerosol→ice) when present in data.
+
+### Key changes
+
+- **Plot selection:** `PLOT_EXP_IDS` and `PLOT_STN_IDS` in Configuration; "Build rates for selection" cell builds `rates_by_exp` for each selected experiment. View cells loop over (exp, station) when `rates_by_exp` exists; single-exp fallback when not.
+- **Process labels:** `PROCESS_DISPLAY_NAMES` and `get_process_display_name(grp, spectrum)` so liquid/ice views show "Condensational growth (liq)", "Depositional growth (ice)", "Deposition (on ice)". Legend uses (process, spectrum) for distinct labels. Optional `DEPOSITION_NUCLEATION` (deponi/depoqia) when present in Zarr.
+- **Immersion freezing:** Model outputs it as liquid loss (W) only. Ice budget now includes the ice-gain side (`rates_N_ice["IMMERSION_FREEZING"] = -rates_N_liq["IMMERSION_FREEZING"]`) so it appears in Ice – Sources after seeding; unchanged in Liquid – Sinks.
+- **View A:** Stacked area liquid/ice with mode `fraction` | `rate`; sinks left (inverted x), sources right; time in minutes since seeding start.
+- **View B:** Single figure, 4×2 (Liquid N/Q, Ice N/Q × Sinks | Sources), sinks left with inverted x-axis.
+- **Summary table:** `budget_summary(..., station_ids=None, stat_names=None, spectrum=None)` prints four tables (Mean, Mean(+), Mean(-), %pos) with stations as columns; `BUDGET_STAT_NAMES` and `stat_names` kwarg to choose which tables to print; display names when `spectrum` is set.
+- **Notebook hygiene:** All base64 image outputs stripped from cells to avoid truncation and reduce file size.
+
+### Files modified
+
+- `notebooks/meteograms/05-process-budget.ipynb` — plot selection, display names, immersion freezing in ice, budget table by station/stat_names, header updated, image outputs removed.
+- `src/utilities/style_profiles.py` — `DEPOSITION_NUCLEATION` in `PROC_COLORS`.
+- `docs/logbook.md` — this entry.
+
+---
+
 ## 2026-03-04: Meteogram pipeline overhaul and quicklook notebook
 
 ### Scope
