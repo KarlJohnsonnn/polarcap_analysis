@@ -121,9 +121,9 @@ ENERGY_PROCESSES: frozenset[str] = frozenset({
     "CONDENSATION", "DEPOSITION", "MELTING", "REFREEZING",
     "IMMERSION_FREEZING", "HOMOGENEOUS_FREEZING", "CONTACT_FREEZING",
 })
-# Split for different visual cues: release (e.g. condensation, freezing, riming) vs consume (e.g. melting).
+# Split for different visual cues: release (e.g. condensation, freezing) vs consume (e.g. melting).
 HEAT_RELEASE_PROCESSES: frozenset[str] = frozenset({
-    "CONDENSATION", "DEPOSITION", "REFREEZING", "RIMING",
+    "CONDENSATION", "DEPOSITION", "REFREEZING",
     "IMMERSION_FREEZING", "HOMOGENEOUS_FREEZING", "CONTACT_FREEZING",
 })
 HEAT_CONSUME_PROCESSES: frozenset[str] = frozenset({"MELTING"})

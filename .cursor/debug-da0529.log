@@ -1,0 +1,2 @@
+{"sessionId": "da0529", "hypothesisId": "A", "message": "after sources loop", "data": {"axes_0_0_ylim": [0.0, 1.0], "axes_0_1_ylim": [0.0, 1.0]}, "timestamp": 1772747940024.0798}
+{"sessionId": "da0529", "hypothesisId": "A", "message": "after sinks loop", "data": {"axes_0_0_ylim": [0.0, 1.0], "axes_1_0_ylim": [-1.0, 0.0]}, "timestamp": 1772747940061.149}
