@@ -13,6 +13,7 @@ from typing import Any
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.ticker import FuncFormatter
 
 BASE_STYLE = {
     "font.size": 15.5,
@@ -115,6 +116,18 @@ PROC_COLORS: dict[str, str] = {
     "REFREEZING": "#b5e0f0",
 }
 
+# Processes that release or consume latent heat (Energy); used for hatching in View A.
+ENERGY_PROCESSES: frozenset[str] = frozenset({
+    "CONDENSATION", "DEPOSITION", "MELTING", "REFREEZING",
+    "IMMERSION_FREEZING", "HOMOGENEOUS_FREEZING", "CONTACT_FREEZING",
+})
+# Split for different visual cues: release (e.g. condensation, freezing, riming) vs consume (e.g. melting).
+HEAT_RELEASE_PROCESSES: frozenset[str] = frozenset({
+    "CONDENSATION", "DEPOSITION", "REFREEZING", "RIMING",
+    "IMMERSION_FREEZING", "HOMOGENEOUS_FREEZING", "CONTACT_FREEZING",
+})
+HEAT_CONSUME_PROCESSES: frozenset[str] = frozenset({"MELTING"})
+
 
 STYLE_REGISTRY = {
     "timeseries": STYLE_TIMESERIES,
@@ -157,6 +170,22 @@ def save_fig(
 def proc_color(name: str) -> str:
     """Return hex color for process name (Okabe–Ito); fallback #333333 if unknown."""
     return PROC_COLORS.get(name, "#333333")
+
+
+def log_axis_formatter() -> FuncFormatter:
+    """Format log-scale axis ticks for masses/concentrations.
+    Values with |log10(x)| > 5 are shown as $10^{n}$; others as compact decimal (<1) or integer (>=1).
+    """
+    def _fmt(x: float, _) -> str:
+        if x <= 0 or not np.isfinite(x):
+            return ""
+        n = int(round(np.log10(x)))
+        if abs(n) > 5:
+            return rf"$10^{{{n}}}$"
+        if x < 1:
+            return f"{x:.3f}".rstrip("0").rstrip(".")
+        return f"{x:.0f}"
+    return FuncFormatter(_fmt)
 
 
 def format_elapsed_minutes_tick(x: float, span: float, *, zero_if_close: bool = False) -> str:
