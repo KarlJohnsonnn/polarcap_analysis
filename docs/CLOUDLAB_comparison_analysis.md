@@ -200,17 +200,17 @@ Documentation of analysis types, processing steps, and similarities between Pola
 
 Aligned with article red line: *Lagrangian, process-resolved ice growth in seeded stratus*.
 
-1. **`notebooks/cloudlab_comparison/01-growth-rate-sensitivity.ipynb`**
+1. **`notebooks/06-growth-rate-benchmark.ipynb`**
    - Adopt Omanovic 2025 ventilation × capacity sensitivity matrix approach.
    - Compare bin-resolved growth rates from COSMO-SPECS with their bulk-tuned values.
    - Show that SBM naturally captures the spread without ad-hoc tuning.
 
-2. **`notebooks/cloudlab_comparison/02-lagrangian-icnc-lwc-comparison.ipynb`**
+2. **`notebooks/archive/02-lagrangian-icnc-lwc-comparison.ipynb`** (archived)
    - Replicate Omanovic 2025 f05/f12 style: ICNC + relative ΔLWC time series along trajectories.
    - Overlay COSMO-SPECS, ICON (Omanovic 2025 data if available), and HOLIMO.
    - Highlight differences in WBF efficiency between bulk and spectral-bin.
 
-3. **`notebooks/cloudlab_comparison/03-inf-model-vs-field.ipynb`**
+3. **`notebooks/archive/03-inf-model-vs-field.ipynb`** (archived)
    - Compare model-derived nucleated fractions with Miller 2025 field INFs.
    - Scatter plot: model INF vs observed INF per mission, colored by temperature.
    - Adopt Miller fig4 residual analysis style.

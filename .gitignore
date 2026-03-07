@@ -1,13 +1,15 @@
 # OS
-.DS_Store
+**/.DS_Store
 
 # Python cache
-__pycache__/
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
 .pytest_cache/
 .mypy_cache/
+**/.cursor/
+
 
 # Notebook runtime files
 .ipynb_checkpoints/
@@ -18,7 +20,7 @@ venv/
 env/
 
 # Local editor
-.vscode/
+**/.vscode/
 .idea/
 
 # Temporary outputs
@@ -26,14 +28,22 @@ tmp/
 logs/
 
 # NetCDF data files
-*.nc
-*.png
+**/*.nc
+**/*.png
+**/*.zarr
+**/*.csv
+**/*.pdf
+
+# log files
+**/*.log
+
 
 # Project data (kept local; publish via Zenodo)
-data/processed/*
-data/observations/holimo_data/*
+**/processed/*
+**/observations/holimo_data/*
 !data/processed/README.md
 !data/observations/holimo_data/README.md
 
 # ignore all processed data files
 scripts/processing_chain/processed/*
+scripts/meteogram2zarr

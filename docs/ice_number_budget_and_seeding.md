@@ -127,7 +127,7 @@ Both can be important for total ice number after 12:30 but are **not** the mecha
 
 ## Appendix A. Notebook 05-process-budget: investigation text for markdown cells
 
-The notebook **`notebooks/meteograms/05-process-budget.ipynb`** implements this investigation. The narrative (main question, View A/B interpretation, answers for Ice Number / Ice Mass / Liquid) is embedded in the notebook’s markdown cells. If you need to **re-apply** this text (e.g. after clearing cells or using another copy of the notebook), use the sections below. If the notebook fails to save or open due to truncated outputs, use **Kernel → Restart & Clear Output** (or **Edit → Clear All Outputs**), then save.
+The notebook **`notebooks/05-process-budget.ipynb`** implements this investigation. The narrative (main question, View A/B interpretation, answers for Ice Number / Ice Mass / Liquid) is embedded in the notebook’s markdown cells. If you need to **re-apply** this text (e.g. after clearing cells or using another copy of the notebook), use the sections below. If the notebook fails to save or open due to truncated outputs, use **Kernel → Restart & Clear Output** (or **Edit → Clear All Outputs**), then save.
 
 ### A.1. First cell (after the title) – add after "Disentangles which..."
 

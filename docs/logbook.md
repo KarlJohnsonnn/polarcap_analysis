@@ -1,5 +1,19 @@
 # Logbook
 
+## 2026-03-07: Archive obsolete notebooks and scripts
+
+Moved obsolete notebooks and scripts to `notebooks/archive/obsolete/` so active thematic dirs only contain in-use material. Stopped tracking `processed/` (already gitignored; removed stray manifest). Docs updated to point to archive paths for 02/03 cloudlab comparison notebooks.
+
+- **cloudlab_comparison:** check_units.py, patch.py, run_all.py, 02-lagrangian-icnc-lwc-comparison.ipynb, 03-inf-model-vs-field.ipynb → archive/obsolete/cloudlab_comparison/
+- **meteograms:** 00-quicklook-tend-flux-timeseries.ipynb, 03-process-dominance.ipynb, 04-spectra-thd.ipynb → archive/obsolete/meteograms/
+- **plume_path:** 02-growth_rate_analysis.ipynb, 04-compare_two_runs_diagnostics.ipynb → archive/obsolete/plume_path/
+- **process_rates:** 02-quicklook-nw-nf-nc.ipynb, 03-process-dominance.ipynb → archive/obsolete/process_rates/
+- **scripts:** meteogram2zarr/ → archive/obsolete/scripts/meteogram2zarr/ (pipeline superseded by scripts/processing_chain and src/utilities/meteogram_io.py)
+- **processed:** removed from Git index (manifest was tracked; **/processed/* remains in .gitignore)
+- **Docs:** CLOUDLAB_comparison_analysis.md now references archive paths for 02 and 03. Added notebooks/README.md and archive/obsolete/README.md. .gitignore: scripts/meteogram2zarr.
+
+---
+
 ## 2026-03-05: Process budget notebook (05) — multi-exp/station, display names, immersion freezing
 
 ### Scope
@@ -19,7 +33,7 @@
 
 ### Files modified
 
-- `notebooks/meteograms/05-process-budget.ipynb` — plot selection, display names, immersion freezing in ice, budget table by station/stat_names, header updated, image outputs removed.
+- `notebooks/05-process-budget.ipynb` — plot selection, display names, immersion freezing in ice, budget table by station/stat_names, header updated, image outputs removed.
 - `src/utilities/style_profiles.py` — `DEPOSITION_NUCLEATION` in `PROC_COLORS`.
 - `docs/logbook.md` — this entry.
 
@@ -40,7 +54,7 @@
 - Performance-profiled the original `00-prepM.py` script that concatenates per-experiment meteogram NetCDF files into a Zarr store; identified seven major bottlenecks and implemented a replacement pipeline.
 - Created `src/utilities/meteogram_io.py` as a reusable library, eliminating the dependency on the old `scripts/meteogram2zarr/utils_meteogram.py`.
 - Created `scripts/meteogram2zarr/01-prepM-fast.py` as the new lean CLI entry point (~80 lines of core logic).
-- Created `notebooks/meteograms/01-quicklook-nw-nf.ipynb` for rapid visual inspection of processed meteogram Zarr stores.
+- Created `notebooks/01-cloud-field-overview.ipynb` for rapid visual inspection of processed meteogram Zarr stores.
 
 ### Key decisions and findings
 
@@ -63,7 +77,7 @@
 - `src/utilities/meteogram_io.py` — new: `discover_meteogram_files`, `get_max_timesteps`, `get_variable_names`, `_detect_nc_engine`, `_preprocess_station`, `_open_experiment`, `build_meteogram_zarr`, `add_coords_and_metadata`.
 - `src/utilities/__init__.py` — exports for the new meteogram API.
 - `scripts/meteogram2zarr/01-prepM-fast.py` — new CLI script replacing `00-prepM.py`.
-- `notebooks/meteograms/01-quicklook-nw-nf.ipynb` — new quicklook notebook.
+- `notebooks/01-cloud-field-overview.ipynb` — new quicklook notebook.
 
 ---
 
@@ -73,7 +87,7 @@
 
 - Reorganised notebooks: moved deprecated top-level notebooks to `notebooks/prior_versions/`.
 - Consolidated plume_path notebooks: added `02-growth_rate_analysis.ipynb`, renamed `04_compare…` → `04-compare…` for consistent naming, updated `01` and `03`.
-- Updated `notebooks/cloudlab_comparison/01-growth-rate-sensitivity.ipynb`.
+- Updated `notebooks/06-growth-rate-benchmark.ipynb`.
 - Updated `src/utilities/README.md`.
 - Updated `article_draft/PolarCAP` submodule pointer.
 
@@ -230,7 +244,7 @@ Saved: fig-comparison-c-threshold-occurrence-200x160.png
 
 ### Scope
 
-- Revisited FoO histogram construction in `notebooks/plume_path/01-plot-plume-path-sum.ipynb` with explicit model/observation diameter handling for log-spaced bins.
+- Revisited FoO histogram construction in `notebooks/03-plume-lagrangian-evolution.ipynb` with explicit model/observation diameter handling for log-spaced bins.
 - Simplified right-panel comparison to one model curve and one combined HOLIMO observational curve across all seeding missions.
 
 ### Decisions made
