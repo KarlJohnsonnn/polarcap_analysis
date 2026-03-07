@@ -9,7 +9,7 @@ from utilities.compute_fabric import (
 )
 
 from utilities.model_helpers import (
-    calculate_supersaturation_ice, 
+    calculate_supersaturation_ice,
     calculate_supersaturation_water,
     calculate_bulk_timeseries,
     get_closest_station_to_coordinates,
@@ -32,17 +32,19 @@ from utilities.model_helpers import (
     fetch_meteogram_data,
     extract_segmented_tracks_fast,
     make_3d_preprocessor,
-
 )
 
-from utilities.holimo_helpers import (
-    load_and_prepare_holimo,
-    rebin_timeseries,
-    rebin_logspace_bins,
-    time_frames_plume,
-    time_frame_tbs,
-    prepare_holimo_for_overlay,
-)
+try:
+    from utilities.holimo_helpers import (
+        load_and_prepare_holimo,
+        rebin_timeseries,
+        rebin_logspace_bins,
+        time_frames_plume,
+        time_frame_tbs,
+        prepare_holimo_for_overlay,
+    )
+except ImportError:
+    pass  # holimo requires colormaps; processing_chain scripts work without it
 
 from utilities.namelist_metadata import (
     MetadataManager,
@@ -51,67 +53,94 @@ from utilities.namelist_metadata import (
     get_process_groups,
     metadata_manager,
 )
-from utilities.plotting import (
-    make_pastel,
-    create_new_jet,
-    create_new_jet2,
-    create_new_jet3,
-    create_fade_cmap,
-    plot_2d_model_and_holimo_bulk_timeseries,
-    make_bulk_figure,
-    setup_bulk_axes,
-    plot_1d_model_bulk_ts,
-    new_jet,
-    new_jet2,
-    new_fjet,
-    new_fjet2,
-    new_jet3,
-    new_fjet3,
-    plot_holimo_bulk_ts,
-    add_grouped_legends,
-    print_reduction_history,
-    plot_3d_col_wrap,
-    fmt_title,
-    get_extpar_data,
-    find_nearest_grid_point,
-    get_unique_meteogram_locations,
-    print_meteogram_list,
-    logscale_FacetGrid,
-    set_name_tick_params,
-    add_ruler,
 
+try:
+    from utilities.plotting import (
+        make_pastel,
+        create_new_jet,
+        create_new_jet2,
+        create_new_jet3,
+        create_fade_cmap,
+        plot_2d_model_and_holimo_bulk_timeseries,
+        make_bulk_figure,
+        setup_bulk_axes,
+        plot_1d_model_bulk_ts,
+        new_jet,
+        new_jet2,
+        new_fjet,
+        new_fjet2,
+        new_jet3,
+        new_fjet3,
+        plot_holimo_bulk_ts,
+        add_grouped_legends,
+        print_reduction_history,
+        plot_3d_col_wrap,
+        fmt_title,
+        get_extpar_data,
+        find_nearest_grid_point,
+        get_unique_meteogram_locations,
+        print_meteogram_list,
+        logscale_FacetGrid,
+        set_name_tick_params,
+        add_ruler,
+    )
+    from utilities.style_profiles import (
+        BASE_STYLE,
+        STYLE_TIMESERIES,
+        STYLE_2D,
+        STYLE_HIST,
+        STYLE_REGISTRY,
+        get_style,
+        use_style,
+        format_elapsed_minutes_tick,
+        MM,
+        SINGLE_COL_IN,
+        FULL_COL_IN,
+        MAX_H_IN,
+        PUBLICATION_RCPARAMS,
+        apply_publication_style,
+        save_fig,
+        PROC_COLORS,
+        proc_color,
+    )
+    from utilities.plume_path_plot import (
+        _assign_elapsed_time,
+        _prepare_da,
+        plot_plume_path_sum,
+        build_common_xlim,
+        diagnostics_table,
+        compute_holimo_elapsed_anchors,
+    )
+    from utilities.plume_loader import load_plume_path_runs
+except ImportError:
+    pass  # plotting/colormaps optional; processing_chain works without them
+
+from utilities.processing_metadata import (
+    find_repo_root,
+    git_head,
+    provenance_attrs,
+    add_provenance_to_dataset,
+    normalize_attrs_for_zarr,
 )
-
-from utilities.style_profiles import (
-    BASE_STYLE,
-    STYLE_TIMESERIES,
-    STYLE_2D,
-    STYLE_HIST,
-    STYLE_REGISTRY,
-    get_style,
-    use_style,
-    format_elapsed_minutes_tick,
-    MM,
-    SINGLE_COL_IN,
-    FULL_COL_IN,
-    MAX_H_IN,
-    PUBLICATION_RCPARAMS,
-    apply_publication_style,
-    save_fig,
-    PROC_COLORS,
-    proc_color,
+from utilities.tracking_pipeline import (
+    prep_tobac_input,
+    RunContext,
+    discover_3d_runs,
+    run_tobac_tracking,
+    extract_segmented_tracks_paths,
+    run_plume_path_extraction,
+    DEFAULT_TRACER_SPECS,
+    DEFAULT_EXTRACTION_TYPES,
 )
-
-from utilities.plume_path_plot import (
-    _assign_elapsed_time,
-    _prepare_da,
-    plot_plume_path_sum,
-    build_common_xlim,
-    diagnostics_table,
-    compute_holimo_elapsed_anchors,
+from utilities.process_rates import (
+    PHYSICS_GROUPS,
+    build_proc_vars,
+    build_rates,
+    build_spectral_rates,
+    build_rates_dataset,
+    build_rates_for_experiments,
+    get_process_display_name,
 )
-
-from utilities.plume_loader import load_plume_path_runs
 
 from utilities.data_slicer import (
     normalize_slice_dict,
