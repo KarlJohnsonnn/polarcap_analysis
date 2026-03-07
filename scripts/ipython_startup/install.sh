@@ -59,7 +59,7 @@ if [[ -n "${CS_RUNS_DIR_VALUE:-}" ]]; then
     echo "\n ***DONE WITH 0 ERRORS***"
 else
     echo "CS_RUNS_DIR was not set (processing_chain scripts will use --root or their own defaults)."
-    echo "\n --- SOMETHING WENT WRONG ---"."
+    echo "\n --- SOMETHING WENT WRONG ---."
     echo "Please check the output of the install script and try again."
     exit 1
 fi
