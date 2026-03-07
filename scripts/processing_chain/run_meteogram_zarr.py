@@ -26,8 +26,6 @@ if _src.is_dir() and str(_src) not in sys.path:
 if str(_script_dir) not in sys.path:
     sys.path.insert(0, str(_script_dir))
 
-import xarray as xr
-
 from utilities.meteogram_io import (
     discover_meteogram_files,
     get_max_timesteps,
