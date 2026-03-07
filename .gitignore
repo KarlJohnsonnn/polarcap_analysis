@@ -34,3 +34,6 @@ data/processed/*
 data/observations/holimo_data/*
 !data/processed/README.md
 !data/observations/holimo_data/README.md
+
+# ignore all processed data files
+scripts/processing_chain/processed/*

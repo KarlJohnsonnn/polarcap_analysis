@@ -5,6 +5,8 @@
 
 model_data_root: "${CS_RUNS_DIR}"  # expanded via os.path.expandvars; or use absolute path
 output_root: "processed"
+# Ensemble run ID validation: regex pattern for --cs-run (default below)
+cs_run_pattern: "^cs-eriswil__\\d{8}_\\d{6}$"
 # cs_run: "cs-eriswil__20260123_180947"
 domain: "50x40"
 run_lv1a_tracking: true
