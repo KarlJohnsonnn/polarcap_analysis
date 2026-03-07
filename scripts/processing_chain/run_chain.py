@@ -57,7 +57,7 @@ def _load_config(path: Path | None) -> dict:
     with open(path) as f:
         if path.suffix in (".yaml", ".yml"):
             try:
-                import yaml
+                import yaml  # type: ignore[import-untyped]
                 return yaml.safe_load(f) or {}
             except ImportError:
                 return {}
