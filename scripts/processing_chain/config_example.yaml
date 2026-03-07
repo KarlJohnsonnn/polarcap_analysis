@@ -1,0 +1,18 @@
+# Example config for processing_chain (YAML). Not required; CLI flags override.
+# Paths can be absolute or relative to cwd.
+# model_data_root defaults to environment variable CS_RUNS_DIR if set (directory
+# containing RUN_ERISWILL_200x160x100/, RUN_ERISWILL_50x42x100/, etc.).
+
+model_data_root: "${CS_RUNS_DIR}"  # expanded via os.path.expandvars; or use absolute path
+output_root: "processed"
+# cs_run: "cs-eriswil__20260123_180947"
+domain: "50x40"
+flare_idx: 0
+ref_idx: 0
+threshold: 1.0e-12
+run_lv1a_tracking: true
+run_lv1b_paths: true
+run_lv2_meteogram: true
+run_lv3_rates: true
+overwrite: false
+debug: false
