@@ -22,9 +22,16 @@ Examples:
   compress_nc.sh compress . test_datall_cs-eriswil__20260304_110254.tar.zst
   compress_nc.sh extract my_run.tar.zst .                # extract to current dir
   compress_nc.sh extract test_datall_cs-eriswil__20260304_110254.tar.zst /tmp/out
+  compress_nc.sh --overwrite compress . my_run.tar.zst   # overwrite existing archive
+  compress_nc.sh -f extract my_run.tar.zst /tmp/out      # overwrite existing files in dir
 
 Options:
-  -h, --help    show this help
+  -h, --help       show this help
+  -f, --overwrite  overwrite existing archive (compress) or files (extract)
+
+Env (for large data / SLURM):
+  PV_INTERVAL=1    pv update interval (seconds); use 1 for steady progress on big archives
+  Use compress_nc_slurm.sh to queue compression on Levante.
 EOF
 }
 
@@ -50,12 +57,20 @@ _count_files() {
 cmd_compress() {
     local dir="${1:-.}" archive="${2:-}"
     [[ -z "$archive" ]] && archive="nc_$(date +%Y%m%d_%H%M%S).tar.zst"
+    local archive_path="$archive"
+    [[ "$archive" != /* ]] && archive_path="$dir/$archive"
+    [[ -f "$archive_path" ]] && [[ -z "${OVERWRITE:-}" ]] && \
+        { echo "Archive exists: $archive_path (use --overwrite)" >&2; exit 1; }
     local n=$(_count_files "$dir") total=$(_get_total_bytes "$dir")
     [[ "$n" -eq 0 ]] && { echo "No M_*.nc or 3D_*.nc in $dir" >&2; exit 1; }
     echo "Compressing $n files ($(_fmt_size "$total")) -> $archive"
+    local zstd_opts=(-T0 -9 -o "$archive")
+    [[ -n "${OVERWRITE:-}" ]] && zstd_opts=(-T0 -9 -f -o "$archive")
+    local pv_opts="-s $total"
+    [[ -n "${PV_INTERVAL:-}" ]] && pv_opts="$pv_opts -i ${PV_INTERVAL}"
     (cd "$dir" && shopt -s nullglob && \
         tar -cf - ${NC_GLOB_METE} ${NC_GLOB_3D} | \
-        (command -v pv &>/dev/null && [[ "$total" -gt 0 ]] && pv -s "$total" || cat) | zstd -9 -o "$archive")
+        (command -v pv &>/dev/null && [[ "$total" -gt 0 ]] && pv $pv_opts || cat) | zstd -T0 "${zstd_opts[@]}")
     echo "Done: $archive"
 }
 
@@ -65,11 +80,14 @@ cmd_extract() {
     local size=$(stat -f%z "$archive" 2>/dev/null || stat -c%s "$archive" 2>/dev/null || echo 0)
     echo "Extracting $archive -> $dir"
     mkdir -p "$dir"
-    (command -v pv &>/dev/null && [[ "$size" -gt 0 ]] && pv "$archive" || cat "$archive") | zstd -d | tar -xf - -C "$dir"
+    local k=""
+    [[ -z "${OVERWRITE:-}" ]] && k="-k"
+    (command -v pv &>/dev/null && [[ "$size" -gt 0 ]] && pv ${PV_INTERVAL:+-i "$PV_INTERVAL"} "$archive" || cat "$archive") | zstd -T0 -d | tar $k -xf - -C "$dir"
     echo "Done."
 }
 
 main() {
+    while [[ "${1:-}" == "-f" || "${1:-}" == "--overwrite" ]]; do OVERWRITE=1; shift; done
     local cmd="${1:-}"
     shift || true
     [[ "$cmd" == "-h" || "$cmd" == "--help" ]] && { usage; exit 0; }

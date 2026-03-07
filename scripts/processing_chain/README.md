@@ -50,6 +50,19 @@ python run_lv3.py --cs-run cs-eriswil__20260123_180947 --out processed
 - By default, existing outputs are **not** overwritten. Use `--overwrite` to recompute.
 - Use `--skip-tracking`, `--skip-meteogram`, `--skip-lv3` in `run_chain.py` to run only later stages.
 
+**Compress M_*.nc and 3D_*.nc (large data on server):**
+```bash
+# Interactive (local or login node)
+./compress_nc.sh compress /path/to/ensemble_output nc_run.tar.zst
+PV_INTERVAL=1 ./compress_nc.sh compress .   # progress updates every 1s
+
+# SLURM job on Levante (queue compression for large datasets)
+sbatch compress_nc_slurm.sh /path/to/ensemble_output nc_run.tar.zst
+sbatch compress_nc_slurm.sh .   # dir=., auto archive name
+COMPRESS_NC_OVERWRITE=1 sbatch compress_nc_slurm.sh . my_run.tar.zst
+```
+Logs: `logs/<jobid>.out`, `logs/<jobid>.err`. Edit `#SBATCH` in `compress_nc_slurm.sh` for account, time, memory.
+
 ## Metadata and provenance
 
 All written datasets receive global attributes: `stage`, `processing_level`, `created_utc`, `git_commit`, `git_commit_short`, `cs_run`, `exp_label` (where applicable), `input_files` (or summary). Variable and coordinate attributes (units, long_name, description) are set from `metadata_config.json` and pipeline conventions.
