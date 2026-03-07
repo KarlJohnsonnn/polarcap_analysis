@@ -40,7 +40,7 @@ def parse_args():
     p.add_argument("-r", "--cs-run", required=True,
                    help="Run ID (e.g. cs-eriswil__YYYYMMDD_HHMMSS)")
     p.add_argument("--root", default=None,
-                   help="Root dir containing RUN_ERISWILL_*/ensemble_output/ (default: $CS_RUNS_DIR if set)")
+                   help="Root: either RUN_ERISWILL_*x100/ parent, or flat meteogram root with <cs_run>/ subdirs")
     p.add_argument("--out", default="processed", help="Output root; <out>/<cs_run>/lv2_meteogram/")
     p.add_argument("-d", "--debug", action="store_true", help="Small subset, no SLURM")
     p.add_argument("-s", "--slurm", action="store_true", help="Use SLURM/Dask cluster")
@@ -57,18 +57,31 @@ def main():
     debug_flag = "_dbg" if debug_mode else ""
 
     runs_root = get_runs_root(args.root)
-    if runs_root:
-        root_dir = resolve_ensemble_output(runs_root, args.cs_run)
+    if not runs_root:
+        print("Set CS_RUNS_DIR or pass --root (model data root or meteogram root).", file=sys.stderr)
+        sys.exit(1)
+    root_dir = resolve_ensemble_output(runs_root, args.cs_run)
+    if root_dir is not None:
         data_dir = f"{root_dir.rstrip(os.sep)}/{args.cs_run}/"
     else:
-        _legacy = "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output"
-        root_dir = _legacy if os.path.exists(_legacy) else os.path.expanduser("~/data/cosmo-specs/meteograms/")
-        data_dir = f"{root_dir.rstrip(os.sep)}/{args.cs_run}/"
+        # Fallback: flat meteogram root (run dirs directly under root, e.g. .../meteograms/<cs_run>/)
+        flat_run = Path(runs_root) / args.cs_run
+        if flat_run.is_dir() and (flat_run / f"{args.cs_run}.json").is_file():
+            data_dir = f"{flat_run}{os.sep}"
+        else:
+            print(
+                f"No RUN_ERISWILL_*x100/ensemble_output under {runs_root} and no {args.cs_run}/ with run JSON there.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     meta_file = f"{data_dir}/{args.cs_run}.json"
+    if not os.path.isfile(meta_file):
+        print(f"Run metadata not found: {meta_file}", file=sys.stderr)
+        sys.exit(1)
     file_dict = discover_meteogram_files(data_dir, dbg=debug_mode)
     if not file_dict:
-        print(f"No meteogram files in {data_dir}; check --root and --cs-run")
+        print(f"No meteogram files in {data_dir}; check --root and --cs-run", file=sys.stderr)
         sys.exit(1)
     max_time = get_max_timesteps(file_dict)
     sample_file = next(iter(file_dict.values()))[0]

@@ -48,20 +48,31 @@ def main():
         cs_run = args.cs_run or "unknown"
     else:
         if not args.cs_run:
-            print("Provide --cs-run or --zarr")
+            print("Provide --cs-run or --zarr", file=sys.stderr)
             sys.exit(1)
         cs_run = args.cs_run
         out_root = Path(args.out) / cs_run / "lv2_meteogram"
+        if not out_root.is_dir():
+            print(f"LV2 directory not found: {out_root}", file=sys.stderr)
+            sys.exit(1)
         candidates = sorted(out_root.glob("Meteogram_*.zarr"))
         if not candidates:
-            print(f"No Zarr under {out_root}")
+            print(f"No Zarr under {out_root}", file=sys.stderr)
             sys.exit(1)
-        zarr_path = candidates[-1]
+        # Prefer non-debug Zarr when both exist
+        non_dbg = [c for c in candidates if "_dbg" not in c.name]
+        zarr_path = non_dbg[-1] if non_dbg else candidates[-1]
 
     print(f"Opening Zarr: {zarr_path}")
     ds = xr.open_zarr(str(zarr_path))
     n_exp = ds.sizes.get("expname", 0)
+    if n_exp == 0:
+        print("Zarr has no experiments (expname size 0); nothing to process.", file=sys.stderr)
+        sys.exit(1)
     exp_ids = args.exp_ids if args.exp_ids is not None else list(range(n_exp))
+    if not exp_ids:
+        print("No experiment indices to process (--exp-ids empty or none).", file=sys.stderr)
+        sys.exit(1)
     try:
         config = __import__("utilities.namelist_metadata", fromlist=["metadata_manager"]).metadata_manager.config
     except Exception:

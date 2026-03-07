@@ -86,6 +86,14 @@ class RunContext:
         }
 
 
+def _is_flare(meta: Dict[str, Any], exp_name: str) -> bool:
+    """True if experiment is marked as flare in run JSON; False if missing or not flare."""
+    try:
+        return bool(meta.get(exp_name, {}).get("INPUT_ORG", {}).get("sbm_par", {}).get("lflare", False))
+    except Exception:
+        return False
+
+
 def discover_3d_runs(
     model_data_root: str,
     domain_xy: str,
@@ -104,9 +112,11 @@ def discover_3d_runs(
     with open(json_files[0]) as f:
         meta = json.load(f)
     exp_names = [p.split("/")[-1].split("_")[-1].split(".")[0] for p in filelist_3d]
-    flare_names = [e for e in exp_names if meta[e]["INPUT_ORG"]["sbm_par"]["lflare"]]
-    ref_names = [e for e in exp_names if not meta[e]["INPUT_ORG"]["sbm_par"]["lflare"]]
+    flare_names = [e for e in exp_names if _is_flare(meta, e)]
+    ref_names = [e for e in exp_names if not _is_flare(meta, e)]
     if not flare_names or not ref_names:
+        return None
+    if flare_idx >= len(flare_names) or ref_idx >= len(ref_names):
         return None
     flare_exp_name = flare_names[flare_idx]
     ref_exp_name = ref_names[ref_idx]
@@ -115,6 +125,7 @@ def discover_3d_runs(
     domain_str = meta[flare_exp_name].get("domain", "")
     resolution = "400m" if "50x40" in domain_str else "100m"
     resolution_deg = 0.004 if "50x40" in domain_str else 0.001
+    flare_hight = meta.get(flare_exp_name, {}).get("INPUT_ORG", {}).get("flare_sbm", {}).get("flare_hight", 1)
     return RunContext(
         cs_run=cs_run,
         domain_xy=domain_xy,
@@ -130,7 +141,7 @@ def discover_3d_runs(
         threshold=threshold,
         resolution=resolution,
         resolution_deg=resolution_deg,
-        flare_alt_idx=-meta[flare_exp_name]["INPUT_ORG"]["flare_sbm"]["flare_hight"],
+        flare_alt_idx=-int(flare_hight),
     )
 
 

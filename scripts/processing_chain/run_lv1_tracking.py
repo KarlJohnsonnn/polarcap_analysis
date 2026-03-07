@@ -52,14 +52,14 @@ def main():
     args = parse_args()
     root = get_runs_root(args.root)
     if not root:
-        print("Set CS_RUNS_DIR or pass --root")
+        print("Set CS_RUNS_DIR or pass --root", file=sys.stderr)
         sys.exit(1)
     ctx = discover_3d_runs(
         root, args.domain, args.cs_run,
         flare_idx=args.flare_idx, ref_idx=args.ref_idx, threshold=args.threshold,
     )
     if ctx is None:
-        print("No flare/ref pair found; check --root, --cs-run, --domain")
+        print("No flare/ref pair found; check --root, --cs-run, --domain (and --flare-idx/--ref-idx if multiple)", file=sys.stderr)
         sys.exit(1)
     out_root = Path(args.out) / args.cs_run
     lv1_tracking_dir = out_root / "lv1_tracking"

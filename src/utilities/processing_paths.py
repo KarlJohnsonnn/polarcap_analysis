@@ -16,12 +16,11 @@ def get_runs_root(root: str | None = None) -> str | None:
     return os.environ.get("CS_RUNS_DIR") or None
 
 
-def resolve_ensemble_output(runs_root: str, cs_run: str) -> str:
-    """Find ensemble_output dir under runs_root. Prefer one containing cs_run."""
+def resolve_ensemble_output(runs_root: str, cs_run: str) -> str | None:
+    """Find ensemble_output dir under runs_root. Prefer one containing cs_run. None if not found."""
     base = Path(runs_root)
     if not base.is_dir():
-        return str(base / "RUN_ERISWILL_50x42x100" / "ensemble_output")
-
+        return None
     best = None
     for cand in sorted(base.glob("RUN_ERISWILL_*x100")):
         ens = cand / "ensemble_output"
@@ -30,4 +29,4 @@ def resolve_ensemble_output(runs_root: str, cs_run: str) -> str:
                 return str(ens)
             if best is None:
                 best = ens
-    return str(best) if best else str(base / "RUN_ERISWILL_50x42x100" / "ensemble_output")
+    return str(best) if best else None
