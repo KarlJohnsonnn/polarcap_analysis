@@ -60,6 +60,7 @@ Optional YAML/JSON config via `--config` (e.g. `config_example.yaml`). Keys: `mo
 
 ## Library modules
 
+- `src/utilities/processing_paths.py`: get_runs_root, resolve_ensemble_output.
 - `src/utilities/processing_metadata.py`: git commit, provenance_attrs, Zarr-safe attr normalization.
 - `src/utilities/tracking_pipeline.py`: RunContext, discover_3d_runs, prep_tobac_input, run_tobac_tracking, extract_segmented_tracks_paths, run_plume_path_extraction.
 - `src/utilities/process_rates.py`: PHYSICS_GROUPS, build_proc_vars, build_rates, build_spectral_rates, build_rates_dataset, build_rates_for_experiments.

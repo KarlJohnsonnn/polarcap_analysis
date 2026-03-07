@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- **`_paths.py`** → `src/utilities/processing_paths.py` – Path resolution moved into utilities for reuse by notebooks and other scripts.
+
 ## [0.1.1] - 2025-03-06
 
 ### Removed
@@ -17,7 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **`_paths.py`** – Shared path resolution
+- **`src/utilities/processing_paths.py`** – Shared path resolution
   - `get_runs_root(root)` – Resolves model data root from `--root` or `$CS_RUNS_DIR`
   - `resolve_ensemble_output(runs_root, cs_run)` – Finds `RUN_ERISWILL_*x100/ensemble_output` under root, preferring one containing `cs_run`
 

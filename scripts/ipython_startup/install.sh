@@ -5,6 +5,15 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 STARTUP_DIR="${IPYTHONDIR:-$HOME/.ipython}/profile_default/startup"
 STARTUP_FILE="$STARTUP_DIR/10-polarcap-startup.py"
 
+# Prompt for COSMO-SPECS runs root (used by processing_chain and notebooks as CS_RUNS_DIR)
+echo "COSMO-SPECS runs root should point to a directory containing subdirs like:"
+echo "  RUN_ERISWILL_200x160x100/  RUN_ERISWILL_50x42x100/"
+read -r -p "Enter path for CS_RUNS_DIR (or leave empty to skip): " CS_RUNS_DIR_VALUE
+CS_RUNS_DIR_ESC=""
+if [[ -n "${CS_RUNS_DIR_VALUE:-}" ]]; then
+    CS_RUNS_DIR_ESC=$(printf '%s' "$CS_RUNS_DIR_VALUE" | sed 's/\\/\\\\/g; s/"/\\"/g; s/'"'"'/\\'"'"'/g')
+fi
+
 mkdir -p "$STARTUP_DIR"
 
 cat > "$STARTUP_FILE" <<EOF
@@ -16,6 +25,17 @@ import os
 import sys
 from pathlib import Path
 
+EOF
+
+if [[ -n "$CS_RUNS_DIR_ESC" ]]; then
+    cat >> "$STARTUP_FILE" <<INNER
+# Set by install.sh: root of COSMO-SPECS runs (RUN_ERISWILL_*/ensemble_output/...)
+os.environ.setdefault("CS_RUNS_DIR", "$CS_RUNS_DIR_ESC")
+
+INNER
+fi
+
+cat >> "$STARTUP_FILE" <<EOF
 REPO_ROOT = Path(os.environ.get("POLARCAP_REPO_ROOT", r"$REPO_ROOT")).expanduser().resolve()
 SRC_DIR = REPO_ROOT / "src"
 if SRC_DIR.is_dir() and str(SRC_DIR) not in sys.path:
@@ -34,3 +54,8 @@ EOF
 
 echo "Installed: $STARTUP_FILE"
 echo "Restart Jupyter kernels to activate. is_server() is available globally."
+if [[ -n "${CS_RUNS_DIR_VALUE:-}" ]]; then
+    echo "CS_RUNS_DIR set to: $CS_RUNS_DIR_VALUE"
+else
+    echo "CS_RUNS_DIR was not set (processing_chain scripts will use --root or their own defaults)."
+fi

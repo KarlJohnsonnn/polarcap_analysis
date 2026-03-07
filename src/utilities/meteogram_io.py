@@ -16,7 +16,7 @@ import os
 import shutil
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, Any
 
 import numpy as np
 import xarray as xr
@@ -310,6 +310,7 @@ def build_meteogram_zarr(
     target_station_chunk: int = 5,
     compression_level: int = 3,
     debug_mode: bool = False,
+    global_attrs: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Build a Zarr store from per-experiment meteogram NetCDF files.
 
@@ -396,6 +397,10 @@ def build_meteogram_zarr(
 
     ds_all = add_coords_and_metadata(ds_all, meta_file=meta_file,
                                      station_coords=station_coords)
+
+    if global_attrs:
+        for k, v in global_attrs.items():
+            ds_all.attrs[k] = v
 
     encoding = _zarr_encoding(ds_all, compression_level)
 
