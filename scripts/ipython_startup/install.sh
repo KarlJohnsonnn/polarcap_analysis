@@ -56,6 +56,10 @@ echo "Installed: $STARTUP_FILE"
 echo "Restart Jupyter kernels to activate. is_server() is available globally."
 if [[ -n "${CS_RUNS_DIR_VALUE:-}" ]]; then
     echo "CS_RUNS_DIR set to: $CS_RUNS_DIR_VALUE"
+    echo "\n ***DONE WITH 0 ERRORS***"
 else
     echo "CS_RUNS_DIR was not set (processing_chain scripts will use --root or their own defaults)."
+    echo "\n --- SOMETHING WENT WRONG ---"."
+    echo "Please check the output of the install script and try again."
+    exit 1
 fi

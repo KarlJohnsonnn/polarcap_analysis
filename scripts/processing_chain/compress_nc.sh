@@ -35,10 +35,11 @@ Env (for large data / SLURM):
 EOF
 }
 
-# Total bytes of M_*.nc and 3D_*.nc in dir (nullglob: only existing files)
+# Total bytes of M_*.nc and 3D_*.nc in dir (nullglob: only existing files; ls with no args lists ., so use set --)
 _get_total_bytes() {
     local dir="$1"
-    (cd "$dir" && shopt -s nullglob && ls -lq ${NC_GLOB_METE} ${NC_GLOB_3D} 2>/dev/null | awk '{s+=$5} END {print s+0}')
+    (cd "$dir" && shopt -s nullglob && set -- ${NC_GLOB_METE} ${NC_GLOB_3D} && \
+        [ $# -eq 0 ] && echo 0 || ls -lq "$@" 2>/dev/null | awk '{s+=$5} END {print s+0}')
 }
 
 # Human-readable size (portable fallback when numfmt missing)
@@ -48,10 +49,10 @@ _fmt_size() {
         awk -v b="$b" 'BEGIN{if(b>=1073741824)printf "%.1f GiB",b/1073741824;else if(b>=1048576)printf "%.1f MiB",b/1048576;else if(b>=1024)printf "%.1f KiB",b/1024;else printf "%d B",b}'
 }
 
-# Count matching files (nullglob: only existing files)
+# Count matching files (nullglob: only existing files; ls with no args lists ., so use set --)
 _count_files() {
     local dir="$1"
-    (cd "$dir" && shopt -s nullglob && ls ${NC_GLOB_METE} ${NC_GLOB_3D} 2>/dev/null | wc -l | tr -d ' ')
+    (cd "$dir" && shopt -s nullglob && set -- ${NC_GLOB_METE} ${NC_GLOB_3D} && echo $#)
 }
 
 cmd_compress() {
@@ -68,9 +69,16 @@ cmd_compress() {
     [[ -n "${OVERWRITE:-}" ]] && zstd_opts=(-T0 -9 -f -o "$archive")
     local pv_opts="-s $total"
     [[ -n "${PV_INTERVAL:-}" ]] && pv_opts="$pv_opts -i ${PV_INTERVAL}"
-    (cd "$dir" && shopt -s nullglob && \
-        tar -cf - ${NC_GLOB_METE} ${NC_GLOB_3D} | \
-        (command -v pv &>/dev/null && [[ "$total" -gt 0 ]] && pv $pv_opts || cat) | zstd -T0 "${zstd_opts[@]}")
+    # Build file list in main shell (avoids pipeline subshell glob expansion issues with paths containing spaces)
+    workdir=$(cd "$dir" && pwd)
+    saved_cwd=$(pwd)
+    cd "$workdir" || { echo "Cannot cd to $dir" >&2; exit 1; }
+    shopt -s nullglob
+    files=(${NC_GLOB_METE} ${NC_GLOB_3D})
+    [[ ${#files[@]} -eq 0 ]] && { cd "$saved_cwd"; echo "No files to archive in $workdir" >&2; exit 1; }
+    tar -cf - "${files[@]}" | \
+        (command -v pv &>/dev/null && [[ "$total" -gt 0 ]] && pv $pv_opts || cat) | zstd "${zstd_opts[@]}"
+    cd "$saved_cwd"
     echo "Done: $archive"
 }
 
@@ -99,3 +107,4 @@ main() {
 }
 
 main "$@"
+
