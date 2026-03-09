@@ -8,7 +8,7 @@ For legacy analysis and prior versions, see the [archive](archive/README.md).
 
 ## Step 0 -- The Processing Chain
 
-Before running these notebooks, you must generate the intermediate data products (Level 1-3). The analysis depends on these aggregated files rather than raw 5D model output. 
+Before running these notebooks, you must generate the intermediate data products (Level 1-3). The analysis depends on those rather than raw 5D model output. 
 👉 **[Go to the Processing Chain](../scripts/processing_chain/README.md)** to generate the required `LV1` and `LV2` data.
 
 ---
