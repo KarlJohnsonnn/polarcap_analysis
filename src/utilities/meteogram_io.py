@@ -220,7 +220,7 @@ def _compute_bin_coords(n_bins: int = 66, n_max: float = 2.0,
     """Mass/radius bin edges and centres (COSMO-SPECS defaults)."""
     fact = rhow * 4.0 / 3.0 * np.pi
     m0w = fact * r_min ** 3
-    j0w = (n_max - 1.0) / np.log(2.0)
+    j0w = (n_max - 1.0) / np.log(2.0)  # natural logarithm
     m_edges = m0w * np.exp(np.arange(n_bins + 1) / j0w)
     r_edges = np.cbrt(m_edges / fact)
     m_cen = np.sqrt(m_edges[1:] * m_edges[:-1])   # geometric mean (log-spaced grid)
