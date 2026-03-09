@@ -1,0 +1,118 @@
+#!/bin/ksh
+
+#-----------------------------------------------------------------------------
+#SBATCH --job-name=run_ERISWILL
+#SBATCH --partition=compute
+#SBATCH --nodes=1
+#SBATCH --time=08:00:00
+#SBATCH --account=bb1262
+#SBATCH --output=%j.out
+#SBATCH --error=%j.err
+#SBATCH --mem=0
+
+#-----------------------------------------------------------------------------
+# Environment:
+#-----------------------------------------------------------------------------
+# limit stacksize ... adjust to your programs need
+ulimit -s 204800
+ulimit -c 0
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/sw/spack-levante/netcdf-fortran-4.5.3-k6xq5g/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/sw/spack-levante/netcdf-c-4.8.1-2k3cmu/lib
+
+export OMP_NUM_THREADS=1
+export OMP_SCHEDULE=dynamic,1
+export OMP_DYNAMIC="false"
+export OMP_STACKSIZE=200M
+#
+export SLURM_DIST_PLANESIZE="8"
+export KMP_AFFINITY="granularity=fine,scatter"
+export KMP_LIBRARY="turnaround"
+export KMP_KMP_SETTINGS="1"
+export OMP_WAIT_POLICY="active"
+export KMP_WARNINGS="0"
+export MKL_ENABLE_INSTRUCTIONS="AVX2"
+export MKL_DEBUG_CPU_TYPE="5"
+export KMP_LIBRARY="turnaround"
+export KMP_AFFINITY="granularity=fine,scatter"
+export OMPI_MCA_osc="pt2pt"
+export OMPI_MCA_pml="ucx"
+export OMPI_MCA_btl="self"
+export OMPI_MCA_coll="^hcoll,ml"
+export OMPI_MCA_io="romio321"
+export UCX_TLS="self,sm,dc_mlx5,dc_x"
+export UCX_UNIFIED_MODE="y"
+
+# --------------------------
+# number of cpus
+# --------------------------
+NTASKS=256
+
+#important:
+#if you modify the the number of NTASKS you have to modify this also in
+#INPUT_ORG_${CASE} for nprocx and nprocy (NTASKS = nprocx * nprocy )
+
+rm YU*
+
+# --------------------------
+# DOMAIN SIZE
+# --------------------------
+
+#CASE='200x160xZ'
+#CASE='122x112'
+#CASE='42x32'
+#CASE="12x12"
+CASE="50x40xZ"
+if [[ $CASE = '12x12' ]]; then
+	NTASKS=16
+fi
+echo "CASE: " $CASE
+cp -p INPUT_FILES/INPUT_DYN_${CASE} INPUT_DYN
+cp -p INPUT_FILES/INPUT_IO_${CASE} INPUT_IO
+cp -p INPUT_FILES/INPUT_ORG_${CASE} INPUT_ORG
+cp -p INPUT_FILES/INPUT_DIA_${CASE} INPUT_DIA
+
+outputname_3D="3D_$(date +"%Y%m%d%H%M%S")"
+outputname_MG="_$(printf "%02d" $RUN_COUNTER)_${outputname_3D#3D_}"
+
+# Replace parameters in INPUT_ORG_$DOMAIN using consistent -E syntax
+#sed -i -E "s/(outputname *=).*/\1 $outputname_3D/"  "INPUT_ORG"
+#sed -i -E "s/_[0-9]{2}_[0-9]{14}/$outputname_MG/g"  "INPUT_DIA"
+
+echo "FORTRAN NAMELISTS BELOW" 
+echo ""
+echo "INPUT_ORG:" 
+cat INPUT_ORG
+echo "INPUT_DIA:" 
+cat INPUT_DIA 
+echo "INPUT_PHY:" 
+cat INPUT_PHY 
+echo "INPUT_IO:" 
+cat INPUT_IO 
+echo "INPUT_IDEAL:" 
+cat INPUT_IDEAL 
+echo "INPUT_DYN:" 
+cat INPUT_DYN 
+
+
+# ---------------------------
+# how to start the specs model
+# ---------------------------
+#echo ${SLURM_JOB_NUM_NODES:=1}
+#echo ${SLURM_JOB_CPUS_PER_NODE%%\(*}
+no_of_nodes=${SLURM_JOB_NUM_NODES:=1}
+
+mpi_procs_pernode=$((${SLURM_JOB_CPUS_PER_NODE%%\(*} / 1 / $OMP_NUM_THREADS))
+#num_tasks=${NTASKS}
+num_tasks=$((no_of_nodes * mpi_procs_pernode))
+# echo ${SLURM_JOB_NUM_NODES:-1}
+# echo $((no_of_nodes * mpi_procs_pernode))
+# echo ${mpi_procs_pernode}
+# echo ${num_task}
+START="srun -l --kill-on-bad-exit=1 --nodes=${SLURM_JOB_NUM_NODES:-1} --hint=nomultithread --distribution=block:cyclic:block --cpu-bind=v,cores --ntasks=${num_tasks} --ntasks-per-node=${mpi_procs_pernode} --cpus-per-task=1"
+
+MODEL="${PWD}/psbm_fd4_levante"
+
+date
+${START} ${MODEL} # > out.txt 2>&1
+date
