@@ -51,19 +51,7 @@ python run_lv3_analysis.py --cs-run cs-eriswil__20260123_180947 --out processed
 - Use `--skip-tracking`, `--skip-meteogram`, `--skip-lv3` in `run_chain.py` to run only later stages.
 - Use `--dry-run` to print commands without executing (useful to check config and paths).
 
-**Compress M_*.nc and 3D_*.nc (large data on server):**
-```bash
-# Interactive (local or login node)
-./compress_nc.sh compress /path/to/ensemble_output nc_run.tar.zst
-PV_INTERVAL=1 ./compress_nc.sh compress .   # progress updates every 1s
-
-# SLURM job on Levante (queue compression for large datasets)
-# Submit from scripts/processing_chain/ so both compress_nc.sh and compress_nc_slurm.sh are found
-cd scripts/processing_chain && sbatch compress_nc_slurm.sh /path/to/ensemble_output nc_run.tar.zst
-cd scripts/processing_chain && sbatch compress_nc_slurm.sh .   # dir=., auto archive name
-COMPRESS_NC_OVERWRITE=1 sbatch compress_nc_slurm.sh . my_run.tar.zst
-```
-Logs: `logs_compress_nc/<jobid>.out`, `logs_compress_nc/<jobid>.err`. Edit `#SBATCH` in `compress_nc_slurm.sh` for account, time, memory.
+**Compress M_*.nc and 3D_*.nc:** See `scripts/nc_compression/` for `compress_nc.sh` and SLURM usage.
 
 ## Metadata and provenance
 

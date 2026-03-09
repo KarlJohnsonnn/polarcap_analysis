@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- **Compression** – Moved to `scripts/nc_compression/`: `compress_nc.sh`, `compress_nc_slurm.sh`. Processing chain README now points to that directory.
 - **`_paths.py`** → `src/utilities/processing_paths.py` – Path resolution moved into utilities for reuse by notebooks and other scripts.
 
 ## [0.1.1] - 2025-03-06

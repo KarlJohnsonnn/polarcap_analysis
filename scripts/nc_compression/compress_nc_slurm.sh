@@ -2,8 +2,8 @@
 # SLURM job script to run compress_nc.sh on Levante (or similar).
 # Submit from the server where data lives; use for large datasets.
 #
-# Usage (submit from scripts/processing_chain/ so compress_nc.sh is found):
-#   cd scripts/processing_chain && sbatch compress_nc_slurm.sh [dir] [archive]
+# Usage (submit from scripts/nc_compression/ so compress_nc.sh is found):
+#   cd scripts/nc_compression && sbatch compress_nc_slurm.sh [dir] [archive]
 #   sbatch compress_nc_slurm.sh /path/to/ensemble_output/ensemble_01 nc_run01.tar.zst
 #   sbatch compress_nc_slurm.sh .    # default dir=., archive=nc_YYYYMMDD_HHMMSS.tar.zst
 #
@@ -26,7 +26,7 @@
 
 #-----------------------------------------------------------------------------
 # SLURM copies the script to spool; use SLURM_SUBMIT_DIR (cwd when sbatch ran) to find compress_nc.sh.
-# Submit from scripts/processing_chain/:  cd scripts/processing_chain && sbatch compress_nc_slurm.sh ...
+# Submit from scripts/nc_compression/:  cd scripts/nc_compression && sbatch compress_nc_slurm.sh ...
 SCRIPT_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 DATA_DIR="${COMPRESS_NC_DIR:-${1:-.}}"
 ARCHIVE="${COMPRESS_NC_ARCHIVE:-${2:-}}"
