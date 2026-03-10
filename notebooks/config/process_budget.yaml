@@ -40,7 +40,12 @@ size_ranges:
     stop: 66
     label: "Precipitation Range"
     tag: "precbb"
+  ALLBB:
+    start: 0
+    stop: 66
+    label: "All Range"
+    tag: "allbb"
 
 plotting:
-  active_range_key: "CRYBB"
-  plot_range_keys: ["AERLBB", "CRYBB", "PRECBB"]
+  active_range_key: "ALLBB"
+  plot_range_keys: ["CRYBB", "ALLBB"] # "AERLBB", "CRYBB", "PRECBB", "ALLBB"
