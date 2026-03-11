@@ -65,7 +65,11 @@ def classify_tendency(varname: str) -> Optional[Tuple[str, str, str, str]]:
 
 
 def build_proc_vars(ds: xr.Dataset) -> Dict[str, Dict[str, Dict[str, List[str]]]]:
-    """Build proc_vars[group][kind][spectrum] = [varnames] from SUM_* variables."""
+    """Build proc_vars[group][kind][spectrum] = [varnames] from SUM_* variables.
+
+    SUM_* in the meteogram Zarr are accumulated tendencies; rates (fluxes) are
+    computed on the fly via tendency_to_rate in bulk_rate/spectral_rate.
+    """
     sum_vars = sorted(v for v in ds.data_vars if v.startswith("SUM_"))
     proc_vars: Dict[str, Dict[str, Dict[str, List[str]]]] = {}
     for sv in sum_vars:
@@ -81,6 +85,42 @@ def build_proc_vars(ds: xr.Dataset) -> Dict[str, Dict[str, Dict[str, List[str]]]
     return proc_vars
 
 
+def tendency_to_rate(
+    da: xr.DataArray,
+    time_dim: str = "time",
+) -> xr.DataArray:
+    """Compute rate (flux) from accumulated tendency: rate = d(tendency)/dt.
+
+    Meteogram Zarr stores SUM_* as accumulated tendencies. The instantaneous rate is
+    CONDN = (SUM_COND(t_{n+1}) - SUM_COND(t_n)) / (t_{n+1} - t_n). Uses forward
+    difference for all steps; first and last time steps are preserved so that rate exists
+    at seeding start and at the end (first step uses interval [t0,t1], last step uses [t_{N-2},t_{N-1}]).
+    Output has the same time dimension as the input.
+    """
+    if time_dim not in da.dims:
+        return da
+    t = da[time_dim]
+    n = da.sizes[time_dim]
+    if n < 2:
+        return da
+    dt_fwd = t.diff(dim=time_dim).astype("timedelta64[s]").astype(float)
+    diff_fwd = da.diff(dim=time_dim)
+    rate_mid = diff_fwd / dt_fwd  # length n-1, valid at t[1], t[2], ..., t[n-1]
+    # First step: rate at t[0] = (SUM[1]-SUM[0])/dt so seeding start has a rate
+    rate_first = (da.isel({time_dim: 1}) - da.isel({time_dim: 0})) / dt_fwd.isel({time_dim: 0})
+    rate_first = rate_first.expand_dims({time_dim: 1}).assign_coords({time_dim: t.isel({time_dim: [0]})})
+    # Last step: rate at t[n-1] = (SUM[n-1]-SUM[n-2])/dt (backward diff)
+    rate_last = (da.isel({time_dim: -1}) - da.isel({time_dim: -2})) / dt_fwd.isel({time_dim: -1})
+    rate_last = rate_last.expand_dims({time_dim: 1}).assign_coords({time_dim: t.isel({time_dim: [n - 1]})})
+    if n == 2:
+        rate = xr.concat([rate_first, rate_last], dim=time_dim)
+    else:
+        # Middle: t[1]..t[n-2] (drop last from rate_mid to avoid duplicate with rate_last)
+        rate_mid_mid = rate_mid.isel({time_dim: slice(0, -1)})
+        rate = xr.concat([rate_first, rate_mid_mid, rate_last], dim=time_dim)
+    return rate
+
+
 def bulk_rate(
     ds_exp: xr.Dataset,
     rho: Optional[xr.DataArray],
@@ -88,8 +128,10 @@ def bulk_rate(
     bin_slice: Union[slice, Tuple[int, Optional[int]]],
     kind: str = "N",
 ) -> xr.DataArray:
-    """Sum a SUM_ variable over bin_slice, convert to display units."""
+    """Sum a SUM_ variable over bin_slice, convert to display units. Uses tendency_to_rate for SUM_*."""
     data = ds_exp[varname]
+    if varname.startswith("SUM_"):
+        data = tendency_to_rate(data, time_dim="time")
     if "bins" in data.dims:
         if isinstance(bin_slice, tuple):
             data = data.isel(bins=slice(bin_slice[0], bin_slice[1])).sum(dim="bins")
@@ -106,8 +148,10 @@ def spectral_rate(
     varname: str,
     kind: str = "N",
 ) -> xr.DataArray:
-    """Return full bin-resolved rate in display units."""
+    """Return full bin-resolved rate in display units. Uses tendency_to_rate for SUM_*."""
     data = ds_exp[varname]
+    if varname.startswith("SUM_"):
+        data = tendency_to_rate(data, time_dim="time")
     if rho is not None:
         data = data * rho * _CONV[kind]
     return data
@@ -353,10 +397,10 @@ def build_rates_for_experiments(
             "spec_rates_Q_W": build_spectral_rates(ds_exp, rho, proc_vars, "Q", spectrum="W"),
             "spec_rates_Q_F": build_spectral_rates(ds_exp, rho, proc_vars, "Q", spectrum="F"),
         }
-        if "IMMERSION_FREEZING" in R["rates_N_liq"]:
-            R["rates_N_ice"]["IMMERSION_FREEZING"] = -R["rates_N_liq"]["IMMERSION_FREEZING"]
-        if "IMMERSION_FREEZING" in R["rates_Q_liq"]:
-            R["rates_Q_ice"]["IMMERSION_FREEZING"] = -R["rates_Q_liq"]["IMMERSION_FREEZING"]
+        # if "IMMERSION_FREEZING" in R["rates_N_liq"]:
+        #     R["rates_N_ice"]["IMMERSION_FREEZING"] = -R["rates_N_liq"]["IMMERSION_FREEZING"]
+        # if "IMMERSION_FREEZING" in R["rates_Q_liq"]:
+        #     R["rates_Q_ice"]["IMMERSION_FREEZING"] = -R["rates_Q_liq"]["IMMERSION_FREEZING"]
         rates_by_exp[eid] = R
         rates_ds_by_exp[eid] = build_rates_dataset(R, eid, ds_exp=ds_exp, config=config, repo_root=repo_root)
     return rates_by_exp, rates_ds_by_exp

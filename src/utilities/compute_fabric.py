@@ -12,6 +12,7 @@ from __future__ import annotations
 import math
 import os
 import platform
+import shutil
 from typing import Iterable
 
 import dask
@@ -23,9 +24,10 @@ except Exception:  # pragma: no cover
     psutil = None
 
 try:
-    from dask.distributed import Client, get_client
+    from dask.distributed import Client, LocalCluster, get_client
 except Exception:  # pragma: no cover
     Client = None
+    LocalCluster = None
     get_client = None
 
 try:
@@ -308,12 +310,11 @@ def allocate_resources(
     python: str = "/home/b/b382237/.conda/envs/pcpaper_env/bin/python",
     name: str = "dask_cluster",
 ) -> tuple:
-    """Return ``(cluster, client)`` for a SLURM-backed Dask cluster.
+    """Return ``(cluster, client)`` for a Dask cluster (SLURM on HPC, local otherwise).
 
-    Configures a ``SLURMCluster`` with memory-management settings tuned for
-    large array workloads (spill/target disabled, terminate at 95 %), submits
-    ``n_jobs`` SLURM nodes, and prints SSH port-forwarding instructions for the
-    Dask dashboard.
+    When ``sbatch`` is not in PATH (e.g. laptop/Mac), returns a local cluster so
+    the same code runs without SLURM. On HPC, configures a ``SLURMCluster``
+    with memory-management settings tuned for large array workloads.
 
     Parameters
     ----------
@@ -338,15 +339,37 @@ def allocate_resources(
     name:
         Dask cluster/job name visible in SLURM and the dashboard.
     """
-    if SLURMCluster is None or Client is None:
-        raise ImportError("SLURMCluster/Client unavailable. Install dask-jobqueue and dask[distributed].")
+    if Client is None or LocalCluster is None:
+        raise ImportError("Dask distributed unavailable. Install dask[distributed].")
     if n_threads_per_process <= 0:
         raise ValueError("n_threads_per_process must be >= 1.")
+
+    memory_per_node_gb = n_cpu if m == 0 else m
+
+    # Use local cluster when sbatch is not available (e.g. laptop, Mac).
+    if shutil.which("sbatch") is None:
+        n_workers = min(n_cpu, os.cpu_count() or 4)
+        memory_limit = f"{memory_per_node_gb}GB" if memory_per_node_gb <= 512 else "512GB"
+        cluster = LocalCluster(
+            n_workers=n_workers,
+            threads_per_worker=1,
+            memory_limit=memory_limit,
+            dashboard_address=f":{port}" if port else None,
+            name=name,
+        )
+        client = Client(cluster)
+        print("sbatch not found — using local Dask cluster.")
+        print(f"Workers: {n_workers}, memory limit: {memory_limit}")
+        if port:
+            print(f"Local dashboard: http://localhost:{port}")
+        return cluster, client
+
+    if SLURMCluster is None:
+        raise ImportError("SLURMCluster unavailable. Install dask-jobqueue for HPC.")
 
     cores_per_node = n_cpu
     processes_per_node = max(1, n_cpu // n_threads_per_process)
     n_nodes = n_jobs
-    memory_per_node_gb = n_cpu if m == 0 else m
 
     dask.config.set(
         {

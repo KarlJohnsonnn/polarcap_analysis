@@ -780,9 +780,6 @@ def logscale_FacetGrid(
     return f, ax_plot
 
 
-
-
-
 def get_extpar_data(extpar_file):
     """Load and process ExtPar data."""
     data_extpar = xr.open_mfdataset(extpar_file, chunks='auto')

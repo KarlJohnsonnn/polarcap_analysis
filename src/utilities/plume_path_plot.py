@@ -253,8 +253,8 @@ def _apply_x_axis_log(ax, xlim, da):
 
 def _apply_x_axis_symlog(ax, xlim, da, reapply_linscale=0.01):
     x_max = float((xlim[1] - xlim[0]) / np.timedelta64(1, "m")) if xlim else float(np.nanmax(da.time_elapsed.values)) if "time_elapsed" in da.coords else 1.0
-    x_max = max(x_max, 0.1)
-    span = x_max - 0.1
+    x_max = max(x_max, 1)
+    span = x_max - 1
     major_locs = _plume_path_major_locs_from_span(span)
     ticks = np.array([0.0] + [v for v in major_locs if v <= x_max])
     ax.set_xscale("symlog", linthresh=0.1, linscale=reapply_linscale)
@@ -363,15 +363,15 @@ def plot_plume_path_sum(
             t0 = xlim[0] if xlim is not None else da.time.min().values
             da = _assign_elapsed_time(da, t0)
             if x_axis_fmt == "log":
-                da = da.assign_coords(time_elapsed=("time", np.where(da.time_elapsed.values <= 0, 0.1, da.time_elapsed.values)))
+                da = da.assign_coords(time_elapsed=("time", np.where(da.time_elapsed.values <= 0, 1, da.time_elapsed.values)))
             if x_axis_fmt == "symlog":
                 collapse_dims = [d for d in da.dims if d != "time"]
                 valid = da.sum(dim=collapse_dims, skipna=True) > 0 if collapse_dims else da > 0
                 valid_times = da.time_elapsed.where(valid, drop=True)
                 if valid_times.size:
                     first_valid = float(valid_times.min().values)
-                    if 0.1 < first_valid <= 0.1 + 10.0 / 60.0:
-                        elapsed_shift = first_valid - 0.1
+                    if 1 < first_valid <= 1 + 10.0 / 60.0:
+                        elapsed_shift = first_valid - 1
                         shifted = da.time_elapsed.values - elapsed_shift
                         da = da.assign_coords(time_elapsed=("time", np.where(shifted < 0, 0.0, shifted)))
                 if panel_shift > 0:
@@ -421,7 +421,7 @@ def plot_plume_path_sum(
                 dt_min = (da_obs.time - da_obs.time[0]).values / np.timedelta64(1, "m")
                 elapsed = anchor + dt_min
                 if x_axis_fmt == "log":
-                    elapsed = np.where(elapsed <= 0, 0.1, elapsed)
+                    elapsed = np.where(elapsed <= 0, 1, elapsed)
                 elif x_axis_fmt == "symlog":
                     elapsed = np.where(elapsed - elapsed_shift - panel_shift < 0, 0.0, elapsed - elapsed_shift - panel_shift)
                 da_obs = da_obs.assign_coords(time_elapsed=("time", elapsed))

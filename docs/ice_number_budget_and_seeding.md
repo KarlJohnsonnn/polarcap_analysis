@@ -1,9 +1,11 @@
 # Ice Number Budget and Seeding-Flare Ice Formation in COSMO-SPECS
-
+#### TODO: rewrite the section for computing the tendencies into a latex section for the appendix of our article @article_draft/PolarCAP/ 
 **Purpose:** The main question is **which processes contribute the most to ice crystal number growth and mass growth**. This document explains how to answer it using the COSMO-SPECS tendency decomposition, and how to interpret the terms correctly—especially the role of condensation (redistribution vs growth) and seeding (immersion freezing).  
 **Source:** COSMO-SPECS core (`LM/specs/core`).
 
 **Why CONDNFROD was checked:** In the meteogram process-fraction plots (View A: stacked-area “Liquid & ice process fractions” at stations S0, S1, S2, etc.), **CONDENSATION** (dark blue) appears as a large source on the **Ice Number sources** axis (fraction 0–1), especially after seeding (t > 0). That suggests condensation is adding ice crystal number—but physically, depositional growth adds mass to existing particles and should not create new ones. The variable **CONDNFROD** is the ice-number tendency associated with the condensation/deposition step, so it was unclear whether that non-zero “condensation” contribution in the plot could mean real new ice or something else (e.g. bin reclassification). The source code was therefore inspected to determine **what CONDNFROD actually includes**. The result: CONDNFROD is purely **bin reclassification** (sum over bins = 0). So the dark-blue “condensation” share in the **Ice Number** sources panel is **redistribution of existing ice between size bins**, not nucleation. Any net increase in total ice number must come from other terms (e.g. IMMERN, DEPON); see Section 2.
+
+**Roadmap:** Section 1 introduces the assembled tendency equations and notation. Section 2 clarifies why the condensation term in the ice-number budget is redistribution only. Sections 3-6 then interpret which processes actually create or remove ice, how flare seeding enters the system, and how to rank contributions in practice.
 
 ---
 
@@ -15,102 +17,360 @@ Ice particle number tendency (frozen drops, `NFROD`) is assembled in `cloudxd.f9
 DNFROD = (CONDNFROD + KOLLNFROD + KOLLNFRODI + KOLLNFROD_INS + knf + IMMERN + DEPON + HOMN + dnfmelt) × DELTAT
 ```
 
-To answer **which processes contribute most to ice number and mass growth** (Section 3b), we need to know which terms **create** new ice and which only **redistribute** existing particles or act as sinks. The following sections set that up.
+In the notation of Section 1b, this is \(\Delta N_f = \Delta t\,\sum \dot{n}_f^{\mathrm{process}}\), with \(\dot{n}_f^{\mathrm{cond}}\) redistribution-only (sum over bins = 0). To answer **which processes contribute most to ice number and mass growth** (Section 3b), we therefore need the full set of process-wise rates and a clear interpretation of which terms are true sources, sinks, or only bin transfers.
 
 ---
 
-## 2. CONDNFROD: redistribution only (no new particles)
+## 1b. Complete tendency formulas (cloudxd.f90)
 
-**CONDNFROD** is the ice number tendency from the condensation/deposition and bin-shift part of the microphysics. Its name can suggest “condensation adding ice number,” but in the source it does **not** create new particles.
+All hydrometeor and aerosol tendency equations are assembled in `cloudxd.f90` (main loop over bins `JJ`, `II`). Each increment is **rate × DELTAT**. **Number** concentration rates use \(\dot{n}\) (e.g. \(\dot{n}_f^{\mathrm{imm}} = \mathrm{d}N_f/\mathrm{d}t|_{\mathrm{imm}}\)); **mass** mixing-ratio rates use \(\dot{q}\) (e.g. \(\dot{q}_w^{\mathrm{cond}} = \mathrm{d}Q_w/\mathrm{d}t|_{\mathrm{cond}}\)). Subscripts identify the affected reservoir; superscripts identify the process.
 
-**In the condensation step** (`cond_mixxd.f90`): Only **mass** tendencies are set from vapor depositing onto existing ice (`CONDQFROD`, `CONDQWFROD`). Number is explicitly left unchanged:
+### Notation
+
+**State variables (subscripts: phase; superscripts: constituent)**  
+Rates use the same index as the state variable: \(\dot{n}_w\), \(\dot{q}_w\) (droplet), \(\dot{n}_f\), \(\dot{q}_f\) (frozen), etc. Because \(\dot{n}\) already means number rate and \(\dot{q}\) already means mass rate, the subscript only tracks the reservoir, not N or Q again.
+
+| Symbol | Meaning | Code name |
+|--------|--------|-----------|
+| \(N_w\) | Droplet number concentration | NW |
+| \(Q_w\) | Droplet mass mixing ratio (total) | QW |
+| \(Q_s^w\) | Soluble aerosol mass in droplets | QS |
+| \(Q_a^w\) | Insoluble aerosol mass in droplets | QA |
+| \(N_f\) | Frozen-drop (ice) number concentration | NFROD |
+| \(Q_f\) | Frozen-drop total mass mixing ratio | QFROD |
+| \(Q_i^f\) | Solid ice mass in frozen drops | QSFROD |
+| \(Q_a^f\) | Aerosol mass in frozen drops | QAFROD |
+| \(Q_w^f\) | Liquid-shell mass on frozen drops | QWFROD |
+| \(N_\mathrm{ins}\) | Interstitial insoluble number | NWINS |
+| \(Q_\mathrm{ins}\) | Interstitial insoluble mass | QAINS |
+| \(n_\mathrm{inp}\) | INP number (per temperature bin) | ninp |
+
+**Process superscripts for tendency rates \(\dot{n}\) (number) and \(\dot{q}\) (mass)**
+
+| Superscript | Process | Examples (code) |
+|-------------|---------|------------------|
+| <span style="color:#0072B2">\(\mathrm{cond}\)</span> | <span style="color:#0072B2">Condensation / deposition + bin shift</span> | CONDN, CONDQ, CONDNFROD, CONDQFROD |
+| <span style="color:#E69F00">\(\mathrm{coll}\)</span> | <span style="color:#E69F00">Liquid–liquid collision</span> | KOLLN, KOLLQ |
+| <span style="color:#CC79A7">\(\mathrm{coll},f\)</span> | <span style="color:#CC79A7">Liquid–ice collision (riming; drop side)</span> | KOLLNI, KOLLQI |
+| <span style="color:#999999">\(\mathrm{coll},\mathrm{ins}\)</span> | <span style="color:#999999">Liquid–insoluble collision (contact)</span> | KOLLN_INS, KOLLQ_INS |
+| <span style="color:#999999">\(\mathrm{coll},f\) (on \(N_f,Q_f\))</span> | <span style="color:#999999">Liquid–ice → ice (contact/riming)</span> | KOLLNFROD, KOLLQFROD |
+| <span style="color:#999999">\(\mathrm{coll},fi\)</span> | <span style="color:#999999">Contact freezing (liquid–ice → ice)</span> | KOLLNFRODI, KOLLQFRODI |
+| <span style="color:#999999">\(\mathrm{coll},\mathrm{ins}\) (on \(N_f\))</span> | <span style="color:#999999">Liquid–INS → ice</span> | KOLLNFROD_INS, … |
+| <span style="color:#D55E00">\(\mathrm{coll},ff\)</span> | <span style="color:#D55E00">Ice–ice collision</span> | knf, kqf, kqwf, kqsf, kqaf |
+| <span style="color:#F0E442">\(\mathrm{brea}\)</span> | <span style="color:#F0E442">Breakup</span> | BREAN, BREAQ |
+| <span style="color:#009E73">\(\mathrm{imm}\)</span> | <span style="color:#009E73">Immersion freezing</span> | IMMERN, IMMERQ |
+| <span style="color:#56B4E9">\(\mathrm{hom}\)</span> | <span style="color:#56B4E9">Homogeneous freezing</span> | HOMN, HOMQ |
+| <span style="color:#6A3D9A">\(\mathrm{dep}\)</span> | <span style="color:#6A3D9A">Deposition nucleation</span> | DEPON, DEPOQ, DEPOS, DEPOA |
+| <span style="color:#8c564b">\(\mathrm{melt}\)</span> | <span style="color:#8c564b">Melting (ice → liquid)</span> | dnfmelt, dqfmelt; dnwmelt, dqwmelt |
+| <span style="color:#b5e0f0">\(\mathrm{frz}\)</span> | <span style="color:#b5e0f0">Refreezing (liquid shell on ice)</span> | dqffrier |
+| <span style="color:#9E77B5">\(\mathrm{dep},\mathrm{ins}\)</span> | <span style="color:#9E77B5">Deposition on interstitial</span> | deponi, depoqia |
+| <span style="color:#333333">\(\mathrm{flare}\)</span> | <span style="color:#333333">Flare source</span> | FLARE_DNW, FLARE_DQW, … |
+
+So \(\dot{n}_f^{\mathrm{imm}}\) = IMMERN and \(\dot{q}_w^{\mathrm{cond}}\) = CONDQ. In general, per-bin increments are \(\Delta N = \Delta t\,\sum \dot{n}^{\mathrm{process}}\) and \(\Delta Q = \Delta t\,\sum \dot{q}^{\mathrm{process}}\).
+
+**Process colors (same as notebook `05-process-budget` View A)**  
+The colors below match `utilities.style_profiles.PROC_COLORS` (Okabe–Ito palette), so the formulas and stacked-area plot can be read together:
+
+<span style="color:#0072B2">■</span> cond · <span style="color:#E69F00">■</span> coll · <span style="color:#CC79A7">■</span> coll,f (riming) · <span style="color:#999999">■</span> coll,fi / coll,ins (ice) · <span style="color:#D55E00">■</span> coll,ff · <span style="color:#F0E442">■</span> brea · <span style="color:#009E73">■</span> imm · <span style="color:#56B4E9">■</span> hom · <span style="color:#6A3D9A">■</span> dep · <span style="color:#8c564b">■</span> melt · <span style="color:#b5e0f0">■</span> frz · <span style="color:#9E77B5">■</span> dep,ins · <span style="color:#333333">■</span> flare
+
+---
+
+### Liquid droplet number \(N_w\) and mass \(Q_w\)
+
+$$
+\Delta N_w = \Delta t\,\bigl(
+  \dot{n}_w^{\mathrm{cond}} + \dot{n}_w^{\mathrm{coll}} + \dot{n}_w^{\mathrm{coll},f} + \dot{n}_w^{\mathrm{coll},\mathrm{ins}}
+  + \dot{n}_w^{\mathrm{brea}} - \dot{n}_w^{\mathrm{imm}} - \dot{n}_w^{\mathrm{hom}}
+  + \dot{n}_w^{\mathrm{melt}} + \dot{n}_w^{\mathrm{flare}}
+\bigr)
+$$
+
+$$
+\Delta Q_w = \Delta t\,\bigl(
+  \dot{q}_w^{\mathrm{cond}} + \dot{q}_w^{\mathrm{coll}} + \dot{q}_w^{\mathrm{coll},f} + \dot{q}_w^{\mathrm{coll},\mathrm{ins}}
+  + \dot{q}_w^{\mathrm{brea}} - \dot{q}_w^{\mathrm{imm}} - \dot{q}_w^{\mathrm{hom}}
+  + \dot{q}_w^{\mathrm{melt}} + \dot{q}_w^{\mathrm{flare}}
+\bigr)
+$$
+
+If \(\texttt{idepo} \ge 101\) (Diehl–Mitra 2015 deposition): subtract \(\Delta t\cdot \dot{n}_w^{\mathrm{dep}}\) from \(\Delta N_w\) and \(\Delta t\cdot \dot{q}_w^{\mathrm{dep}}\) from \(\Delta Q_w\).
+
+### Liquid soluble / insoluble aerosol in droplets (\(Q_s^w\), \(Q_a^w\))
+
+$$
+\Delta Q_s^w = \Delta t\,\bigl(
+  \dot{q}_{s^w}^{\mathrm{cond}} + \dot{q}_{s^w}^{\mathrm{coll}} + \dot{q}_{s^w}^{\mathrm{coll},f} + \dot{q}_{s^w}^{\mathrm{coll},\mathrm{ins}}
+  + \dot{q}_{s^w}^{\mathrm{brea}} - \dot{q}_{s^w}^{\mathrm{imm}} - \dot{q}_{s^w}^{\mathrm{hom}}
+  + \dot{q}_{s^w}^{\mathrm{melt}} + \dot{q}_{s^w}^{\mathrm{flare}}
+\bigr)
+$$
+
+$$
+\Delta Q_a^w = \Delta t\,\bigl(
+  \dot{q}_{a^w}^{\mathrm{cond}} + \dot{q}_{a^w}^{\mathrm{coll}} + \dot{q}_{a^w}^{\mathrm{coll},f} + \dot{q}_{a^w}^{\mathrm{coll},\mathrm{ins}}
+  + \dot{q}_{a^w}^{\mathrm{brea}} - \dot{q}_{a^w}^{\mathrm{imm}} - \dot{q}_{a^w}^{\mathrm{hom}}
+  + \dot{q}_{a^w}^{\mathrm{melt}} + \dot{q}_{a^w}^{\mathrm{flare}}
+\bigr)
+$$
+
+If \(\texttt{idepo} \ge 101\): subtract \(\Delta t\cdot \dot{q}_{s^w}^{\mathrm{dep}}\) from \(\Delta Q_s^w\) and \(\Delta t\cdot \dot{q}_{a^w}^{\mathrm{dep}}\) from \(\Delta Q_a^w\).
+
+### Ice (frozen drop) number \(N_f\) and masses \(Q_f\), \(Q_i^f\), \(Q_a^f\), \(Q_w^f\)
+
+$$
+\Delta N_f = \Delta t\,\bigl(
+  \dot{n}_f^{\mathrm{cond}} + \dot{n}_f^{\mathrm{coll},f} + \dot{n}_f^{\mathrm{coll},fi} + \dot{n}_f^{\mathrm{coll},\mathrm{ins}}
+  + \dot{n}_f^{\mathrm{coll},ff} + \dot{n}_f^{\mathrm{imm}} + \dot{n}_f^{\mathrm{dep}} + \dot{n}_f^{\mathrm{hom}} + \dot{n}_f^{\mathrm{melt}}
+\bigr)
+$$
+
+*Color-coded (same as View A):*  
+Δ*N*<sub>f</sub> = Δ*t* · ( <span style="color:#0072B2">*ṅ*<sub>f</sub><sup>cond</sup></span> + <span style="color:#999999">*ṅ*<sub>f</sub><sup>coll,f</sup></span> + <span style="color:#999999">*ṅ*<sub>f</sub><sup>coll,fi</sup></span> + <span style="color:#999999">*ṅ*<sub>f</sub><sup>coll,ins</sup></span> + <span style="color:#D55E00">*ṅ*<sub>f</sub><sup>coll,ff</sup></span> + <span style="color:#009E73">*ṅ*<sub>f</sub><sup>imm</sup></span> + <span style="color:#6A3D9A">*ṅ*<sub>f</sub><sup>dep</sup></span> + <span style="color:#56B4E9">*ṅ*<sub>f</sub><sup>hom</sup></span> + <span style="color:#8c564b">*ṅ*<sub>f</sub><sup>melt</sup></span> )
+
+$$
+\Delta Q_f = \Delta t\,\bigl(
+  \dot{q}_f^{\mathrm{cond}} + \dot{q}_f^{\mathrm{coll},f} + \dot{q}_f^{\mathrm{coll},fi} + \dot{q}_f^{\mathrm{coll},\mathrm{ins}}
+  + \dot{q}_f^{\mathrm{coll},ff} + \dot{q}_f^{\mathrm{imm}} + \dot{q}_f^{\mathrm{dep}} + \dot{q}_f^{\mathrm{hom}}
+  + \dot{q}_f^{\mathrm{melt}} + \dot{q}_f^{\mathrm{frz}}
+\bigr)
+$$
+
+*Color-coded:*  
+Δ*Q*<sub>f</sub> = Δ*t* · ( <span style="color:#0072B2">*q̇*<sub>f</sub><sup>cond</sup></span> + <span style="color:#999999">*q̇*<sub>f</sub><sup>coll,f</sup></span> + <span style="color:#999999">*q̇*<sub>f</sub><sup>coll,fi</sup></span> + <span style="color:#999999">*q̇*<sub>f</sub><sup>coll,ins</sup></span> + <span style="color:#D55E00">*q̇*<sub>f</sub><sup>coll,ff</sup></span> + <span style="color:#009E73">*q̇*<sub>f</sub><sup>imm</sup></span> + <span style="color:#6A3D9A">*q̇*<sub>f</sub><sup>dep</sup></span> + <span style="color:#56B4E9">*q̇*<sub>f</sub><sup>hom</sup></span> + <span style="color:#8c564b">*q̇*<sub>f</sub><sup>melt</sup></span> + <span style="color:#b5e0f0">*q̇*<sub>f</sub><sup>frz</sup></span> )
+
+$$
+\Delta Q_i^f = \Delta t\,\bigl(
+  \dot{q}_{i^f}^{\mathrm{cond}} + \dot{q}_{i^f}^{\mathrm{coll},f} + \dot{q}_{i^f}^{\mathrm{coll},fi} + \dot{q}_{i^f}^{\mathrm{coll},\mathrm{ins}}
+  + \dot{q}_{i^f}^{\mathrm{coll},ff} + \dot{q}_{i^f}^{\mathrm{imm}} + \dot{q}_{i^f}^{\mathrm{dep}} + \dot{q}_{i^f}^{\mathrm{hom}} + \dot{q}_{i^f}^{\mathrm{melt}}
+\bigr)
+$$
+
+$$
+\Delta Q_a^f = \Delta t\,\bigl(
+  \dot{q}_{a^f}^{\mathrm{cond}} + \dot{q}_{a^f}^{\mathrm{coll},f} + \dot{q}_{a^f}^{\mathrm{coll},fi} + \dot{q}_{a^f}^{\mathrm{coll},\mathrm{ins}}
+  + \dot{q}_{a^f}^{\mathrm{coll},ff} + \dot{q}_{a^f}^{\mathrm{imm}} + \dot{q}_{a^f}^{\mathrm{dep}} + \dot{q}_{a^f}^{\mathrm{hom}} + \dot{q}_{a^f}^{\mathrm{melt}}
+\bigr)
+$$
+
+$$
+\Delta Q_w^f = \Delta t\,\bigl(
+  \dot{q}_{w^f}^{\mathrm{cond}} + \dot{q}_{w^f}^{\mathrm{coll},f} + \dot{q}_{w^f}^{\mathrm{coll},\mathrm{ins}}
+  + \dot{q}_{w^f}^{\mathrm{coll},ff} + \dot{q}_{w^f}^{\mathrm{imm}} + \dot{q}_{w^f}^{\mathrm{dep}} + \dot{q}_{w^f}^{\mathrm{hom}} + \dot{q}_{w^f}^{\mathrm{melt}}
+\bigr)
+$$
+
+Note: \(\dot{n}_f^{\mathrm{cond}}\) (CONDNFROD) sums to zero over all bins (redistribution only); see Section 2.
+
+### Interstitial insoluble aerosol (\(N_\mathrm{ins}\), \(Q_\mathrm{ins}\))
+
+$$
+\Delta N_\mathrm{ins}(i_\mathrm{ins}, i_t) = \Delta t\,\bigl(
+  \dot{n}_\mathrm{ins}^{\mathrm{coll}} + \dot{n}_\mathrm{ins}^{\mathrm{dep},\mathrm{ins}} + \dot{n}_\mathrm{ins}^{\mathrm{flare}}
+\bigr)
+$$
+
+$$
+\Delta Q_\mathrm{ins}(i_\mathrm{ins}, i_t) = \Delta t\,\bigl(
+  \dot{q}_\mathrm{ins}^{\mathrm{coll}} + \dot{q}_\mathrm{ins}^{\mathrm{dep},\mathrm{ins}} + \dot{q}_\mathrm{ins}^{\mathrm{flare}}
+\bigr)
+$$
+
+Indices: \(i_\mathrm{ins} = 1,\ldots,\texttt{SIMAX}\), \(i_t = 1,\ldots,\texttt{ITMAX}\).
+
+### INP number tendency
+
+$$
+\Delta n_\mathrm{inp}(i_T) = \Delta t \cdot \dot{n}_\mathrm{inp}^{\mathrm{imm}}(i_T)
+$$
+
+\(i_T = 1,\ldots,\texttt{NINPmax}\); \(\dot{n}_\mathrm{inp}^{\mathrm{imm}}\) is the sink of INP by immersion freezing (code: imfrni).
+
+### Code mapping (symbol → Fortran)
+
+| \(\dot{n}\) / \(\dot{q}\) symbol | Code name |
+|--------------|-----------|
+| <span style="color:#0072B2">\(\dot{n}_w^{\mathrm{cond}}\), \(\dot{q}_w^{\mathrm{cond}}\), \(\dot{q}_{s^w}^{\mathrm{cond}}\), \(\dot{q}_{a^w}^{\mathrm{cond}}\)</span> | CONDN, CONDQ, CONDS, CONDA |
+| <span style="color:#0072B2">\(\dot{n}_f^{\mathrm{cond}}\), \(\dot{q}_f^{\mathrm{cond}}\), \(\dot{q}_{i^f}^{\mathrm{cond}}\), \(\dot{q}_{a^f}^{\mathrm{cond}}\), \(\dot{q}_{w^f}^{\mathrm{cond}}\)</span> | CONDNFROD, CONDQFROD, CONDSFROD, CONDAFROD, CONDQWFROD |
+| <span style="color:#E69F00">\(\dot{n}^{\mathrm{coll}}\), \(\dot{q}^{\mathrm{coll}}\) (liquid)</span> | KOLLN, KOLLQ, KOLLS, KOLLA |
+| <span style="color:#CC79A7">\(\dot{n}^{\mathrm{coll},f}\), \(\dot{q}^{\mathrm{coll},f}\) (liquid)</span> | KOLLNI, KOLLQI, KOLLSI, KOLLAI |
+| <span style="color:#999999">\(\dot{n}^{\mathrm{coll},\mathrm{ins}}\), \(\dot{q}^{\mathrm{coll},\mathrm{ins}}\) (liquid)</span> | KOLLN_INS, KOLLQ_INS, KOLLS_INS, KOLLA_INS |
+| <span style="color:#999999">\(\dot{n}_f^{\mathrm{coll},f}\), \(\dot{q}_f^{\mathrm{coll},f}\), …</span> | KOLLNFROD, KOLLQFROD, KOLLSFROD, KOLLAFROD; kollqwf |
+| <span style="color:#999999">\(\dot{n}_f^{\mathrm{coll},fi}\), \(\dot{q}_f^{\mathrm{coll},fi}\), …</span> | KOLLNFRODI, KOLLQFRODI, … |
+| <span style="color:#999999">\(\dot{n}_f^{\mathrm{coll},\mathrm{ins}}\), \(\dot{q}_f^{\mathrm{coll},\mathrm{ins}}\), …</span> | KOLLNFROD_INS, KOLLQFROD_INS, … |
+| <span style="color:#D55E00">\(\dot{n}_f^{\mathrm{coll},ff}\), \(\dot{q}_f^{\mathrm{coll},ff}\), \(\dot{q}_{w^f}^{\mathrm{coll},ff}\), …</span> | knf, kqf, kqwf, kqsf, kqaf |
+| <span style="color:#F0E442">\(\dot{n}^{\mathrm{brea}}\), \(\dot{q}^{\mathrm{brea}}\)</span> | BREAN, BREAQ, BREAS, BREAA |
+| <span style="color:#009E73">\(\dot{n}^{\mathrm{imm}}\), \(\dot{q}^{\mathrm{imm}}\)</span> | IMMERN, IMMERQ, IMMERS, IMMERA |
+| <span style="color:#56B4E9">\(\dot{n}^{\mathrm{hom}}\), \(\dot{q}^{\mathrm{hom}}\)</span> | HOMN, HOMQ, HOMS, HOMA |
+| <span style="color:#6A3D9A">\(\dot{n}^{\mathrm{dep}}\), \(\dot{q}^{\mathrm{dep}}\)</span> | DEPON, DEPOQ, DEPOS, DEPOA |
+| <span style="color:#8c564b">\(\dot{n}_f^{\mathrm{melt}}\), \(\dot{n}_w^{\mathrm{melt}}\), \(\dot{q}_f^{\mathrm{melt}}\), \(\dot{q}_{w^f}^{\mathrm{melt}}\), \(\dot{q}_w^{\mathrm{melt}}\), …</span> | dnfmelt, dqfmelt, dqfwmelt, dnwmelt, dqwmelt, … |
+| <span style="color:#b5e0f0">\(\dot{q}_f^{\mathrm{frz}}\)</span> | dqffrier |
+| <span style="color:#9E77B5">\(\dot{n}_\mathrm{ins}^{\mathrm{dep},\mathrm{ins}}\), \(\dot{q}_\mathrm{ins}^{\mathrm{dep},\mathrm{ins}}\)</span> | deponi, depoqia |
+| <span style="color:#333333">\(\dot{n}^{\mathrm{flare}}\), \(\dot{q}^{\mathrm{flare}}\)</span> | FLARE_DNW, FLARE_DQW, FLARE_DQS, FLARE_DQA, FLARE_DNI, FLARE_DQIA |
+
+Source: `cloudxd.f90` (tendency assembly and meteogram sums in the lower part of the file).
+
+---
+
+## 2. Interpretation note: condensation is not the seeding mechanism
+
+For the seeding question, **CONDNFROD** is an important cautionary term, but it is not the main story. The main scientific question is not whether condensation redistributes ice between bins; it is **which processes create new ice after seeding, and which processes then grow that ice mass**.
+
+The key source-code result remains:
+
+- In `cond_mixxd.f90`, depositional growth changes **mass** tendencies (`CONDQFROD`, `CONDQWFROD`) but leaves ice number unchanged:
 
 ```fortran
 CONDNFROD(JJ,II) = 0.D0
 ```
 
-**In the bin-shift step** (`COND_SHIFTxd`): The routine takes the updated mass per bin and, via the **Linear Discrete Method (LDM)**, reclassifies particles into the correct mass bins. It keeps total number unchanged (`NWneu = NW(JJ,II,IP)` in the source bin) and only moves number between bins. After the shift it overwrites CONDNFROD:
+- In `COND_SHIFTxd`, the model then reclassifies particles between mass bins and overwrites the number tendency with a **bin-shift** term:
 
 ```fortran
 CONDN(JJ,II) = (NWver(JJ,II) - NW(JJ,II,IP)) / DELTAT
 ```
 
-So CONDNFROD is the **per-bin number tendency from reclassification**: some bins gain particles (positive), others lose (negative). **Sum over all bins = 0**—no creation or destruction.
-
-**Takeaway:** For **total** ice number, CONDNFROD contributes nothing. Any net increase must come from other terms (nucleation, collisions, etc.). In spectral or per-bin budgets, CONDNFROD can be non-zero; do not interpret it as a nucleation source.
-
-**How this affects ranking process contributions (Section 3b):** When you rank which processes contribute most to **ice number** growth, treat CONDNFROD as **zero** for the total (it’s redistribution only). For **ice mass**, the condensation tendencies CONDQFROD and CONDQWFROD are also overwritten in `COND_SHIFTxd`: what you get in the output is **growth + shift combined** per bin (depositional mass growth plus reclassification). You can still use that as the single “condensation/deposition” contribution when ranking. If you ever need to separate **growth-only** from **shift-only** for mass (e.g. to isolate the depositional growth parameterisation), you would need the model to write out the mass tendencies **before** the call to COND_SHIFTxd (e.g. CONDQFROD_GROWTH, CONDQWFROD_GROWTH), or an approximate post-processing from spectral tendencies and concentrations.
+So **CONDNFROD** is redistribution only: it can be large in spectral budgets, but its sum over all bins is zero and it does **not** nucleate new ice. For the seeding storyline, this term should therefore be treated as an **interpretation guardrail**, not as a dominant physical pathway.
 
 ---
 
-## 3. Processes that create or destroy ice number
+## 3. Process taxonomy for seeding experiments
 
-| Term | Role | Creates/destroys? | Relevant for flare? |
-|------|------|--------------------|----------------------|
-| **IMMERN** | Immersion freezing (droplets freeze via INP) | Yes (source) | **Yes** — uses **ninp** |
-| **DEPON** | Deposition nucleation (new ice from vapor) | Yes (source) | No (uses NWINS or NW,QW) |
-| **HOMN** | Homogeneous freezing | Yes (source) | No |
-| **knf** | Ice–ice collision (shattering, etc.) | Can be + or − | No |
-| **KOLLNFROD*** | Liquid–ice collision | Yes | Indirect |
-| **dnfmelt** | Ice melt | Sink (negative) | No |
-| **CONDNFROD** | Bin reclassification after growth | **No** — sum = 0 | No |
+For the seeding experiments it is useful to separate five process classes:
 
-So for **“where does extra ice number come from after seeding?”** the main **nucleation** terms are **IMMERN** (flare-driven) and **DEPON** (environment-driven).
+| Class | Physical role | Main terms | Interpretation for seeding |
+|------|------|------|------|
+| **Reservoir preparation** | Adds or prepares INP / aerosol / droplets that later participate in freezing | `flare_burn`, `inp_parxd_flare`, `ninp` | Sets up the seeding perturbation |
+| **Primary ice initiation** | Creates new ice number from aerosol/INP activation | `IMMERN`, `DEPON`, `HOMN` | This is the key class for identifying the dominant nucleation pathway |
+| **Freezing conversion / transfer** | Converts existing droplets into frozen particles after collision/contact processes | `KOLLNFROD`, `KOLLNFRODI`, `KOLLNFROD_INS` | Can add ice number, but usually as a secondary pathway after reservoirs already exist |
+| **Post-initiation growth** | Grows the mass of already existing ice | `CONDQFROD`, `CONDQWFROD`, `DEPOQ`, `KOLLQFROD*`, `kqf`, `dqffrier` | Dominates mass growth rather than first activation |
+| **Redistribution / sinks** | Moves particles between bins or removes them | `CONDNFROD`, `dnfmelt`, `dqfmelt`, `dqfwmelt`, negative collision terms | Needed for interpretation, but not the primary seeding signal |
 
----
-
-## 3b. Which processes contribute most to ice number and mass growth?
-
-**Main question:** Which processes contribute the most to ice crystal number growth and mass growth? That is exactly what the tendency decomposition is for: the terms in the DNFROD and DQFROD equations are the process-wise contributions. Ranking them (by magnitude, summed over bins and possibly over time) tells you what drives net ice number and mass change.
-
-**What you need to rank process contributions**  
-You need the **process tendency terms** (the rates that go into DNFROD and DQFROD), not only the **state** (concentrations). Spectral number and mass concentrations (NF, NW, QF, QW, QFW, QWA, QFA, etc.) tell you *how much* is in each bin; to answer “which process contributes most to growth” you need the **rates** from each process (e.g. IMMERN, DEPON, CONDNFROD, KOLLNFROD, … for number; IMMERQ, DEPOQ, CONDQFROD, … for mass). Those are the terms that sum to DNFROD and DQFROD.
-
-**How spectral concentrations help**  
-They help for consistency (e.g. Δ(sum NF) vs sum of DNFROD), for forming totals when you have spectral tendencies (sum over bins), and for per-bin attribution. They do **not** replace the need for tendency terms: “X% from immersion, Y% from deposition” comes from the **rates**, not from NF/QF alone.
-
-**Practical recipe to rank process contributions**
-
-1. **Get the process tendency terms** that feed into DNFROD (number) and DQFROD (mass)—e.g. from the same fields used in the View A stacked-area plot or from the model’s tendency output.
-2. **Sum each term over all bins** (and over your time window if you want time-integrated contribution).  
-   - **Ice number:** Treat **CONDNFROD** as **zero** when computing *total* number growth (Section 2: it’s redistribution only; sum over bins = 0).  
-   - **Ice mass:** Use the “condensation” term (CONDQFROD/CONDQWFROD) as the single deposition/growth contribution; in current output it is **growth + shift combined** (Section 2). If you need growth-only vs shift-only for mass, you would need the model to output the mass tendencies before the call to COND_SHIFTxd, or an approximate post-processing from spectral tendencies and concentrations.
-3. **Rank** the summed terms by absolute value (or by signed value for sources vs sinks). The largest terms are the main contributors to ice number growth and mass growth in that period.
-
-So: to know which processes contribute most to growth you need the **process tendency terms** (the rates). Spectral concentrations (NF, QF, etc.) support consistency checks and per-bin analysis but do not replace them. If your View A already uses those tendencies, you have what you need; Section 2 ensures CONDNFROD and the mass condensation terms are interpreted correctly when ranking.
+This separation is the most useful way to read the tendency decomposition for the flare case: first ask **who creates new ice number**, then ask **who grows that ice mass**.
 
 ---
 
-## 4. The seeding flare: INP → immersion freezing
+## 4. Which terms actually create new ice number?
 
-The flare does **not** create ice directly. It adds **ice-nucleating particles (INP)** to the temperature-binned array **ninp_T** in the flare cell during burn intervals (`flare.f90`, `lflare_inp`). In `cloudxd`, the same array is passed as **ninp** (level slice).
+### 4.1. Primary nucleation / activation terms
 
-**Call order in cloudxd:**
+These are the terms to inspect first when the question is: **Which nucleation process is dominant in the seeding experiment?**
 
-1. **flare_burn**(..., ninp, ...) — If time is in a burn window, INP are added via `inp_parxd_flare` and distributed over temperature classes TFR; **ninp** is updated in place.
-2. **Deposition nucleation** — `depoxd` (idepo==1) or `depoxd_DM15` (idepo 101–107). These use **interstitial aerosol** (NWINS) or **liquid droplets** (NW, QW), **not** ninp. So deposition can add ice number but is **not** fed by the flare.
-3. **Immersion freezing** — `ice_binTxd` (iimfr 101–107), `imfr_inpxd` (iimfr 11), or `ice_asxd` (iimfr 13). These use **ninp**: for each temperature class with TABS ≤ TFR(it), INP in that class can freeze droplets. They output **IMMERN** (number) and **IMMERQ** (mass). So when the flare increases **ninp**, the next call to the immersion routine produces more **IMMERN** and thus more ice crystals.
+| Term | Source-code meaning | Uses flare `ninp`? | Interpretation |
+|------|------|------|------|
+| **IMMERN** | Immersion freezing of droplets | **Yes** | Direct flare-to-ice pathway |
+| **DEPON** | Deposition nucleation | No | Background or environment-driven ice initiation |
+| **HOMN** | Homogeneous freezing | No | Cold-end background pathway |
 
-**Conclusion:** After seeding start (e.g. 12:30), the dominant process that turns **flare INP into extra ice number** is **immersion freezing (IMMERN)**. Deposition nucleation (DEPON) can also add ice if the environment is ice-supersaturated, but it does not use the flare’s ninp.
+**IMMERN** is the clearest seeding-specific initiation term. In `freezing.f90`, `ice_binTxd` sums the INP classes for which `TABS <= TFR(it)`, converts that available `ninp_T` into a freezing rate, and distributes the freezing over eligible droplet bins:
+
+```fortran
+if(TABS.le.tfr(it)) then
+  nd_fr = nd_fr + ninp_T(it,ip)
+  imfrni(it) = -ninp_T(it,ip)
+endif
+...
+IMMERN(J,I) = rat_fr*NW(J,I,IP)
+IMMERQ(J,I) = rat_fr*QW(J,I,IP)
+```
+
+That means the flare signal reaches the ice-number budget primarily through **flare INP -> `ninp` -> `IMMERN`**.
+
+### 4.2. Deposition nucleation is real, but not flare-fed in the same way
+
+Both deposition schemes create new ice number, but neither uses the flare `ninp` reservoir:
+
+- **`depoxd`** (`idepo == 1`) nucleates ice from **interstitial insoluble aerosol** (`NWINS`, `QAINS`) and writes `DEPON`, `DEPOQ`, etc.
+- **`depoxd_DM15`** (`idepo = 101...107`) activates a **fraction of liquid droplets** (`NW`, `QW`, `QA`, `QS`) under ice supersaturation and writes `DEPON`, `DEPOQ`, `DEPOA`, `DEPOS`.
+
+So deposition nucleation can absolutely matter for total ice-number production, but it is **not** the direct flare-INP pathway.
+
+### 4.3. Collision/contact freezing terms add ice number by conversion
+
+Collision-related freezing terms can also increase `N_f`, but physically they are best treated as **conversion pathways**, not the primary flare activation pathway:
+
+- `KOLLNFROD`, `KOLLQFROD` from `koll_contactxd_DM15.f90`
+- `KOLLNFRODI`, `KOLLQFRODI`, `kollqwf` from `koll_ice_dropsxd.f90`
+- `KOLLNFROD_INS`, `KOLLQFROD_INS` from `koll_insolxd.f90`
+
+These terms convert already existing droplets into frozen particles after contact/collision with ice or insoluble particles. They can become important after ice is already present, so they are better interpreted as **secondary ice-number production or freezing conversion**, not as the first seeding trigger.
+
+### 4.4. Practical conclusion for number formation
+
+For the seeding experiments, the number-source hierarchy should be read in this order:
+
+1. **IMMERN**: first candidate for the dominant flare-induced nucleation pathway
+2. **DEPON**: competing background/environmental nucleation pathway
+3. **HOMN**: cold-end background nucleation
+4. **KOLLNFROD***: secondary conversion/freezing pathways that can amplify ice number after initiation
+
+`CONDNFROD` should stay outside this ranking because it does not create new particles.
 
 ---
 
-## 5. Deposition nucleation in short
+## 5. Which terms grow ice mass after initiation?
 
-- **depoxd** (idepo == 1): Uses interstitial insoluble aerosol (NWINS, QAINS); outputs **DEPON**, DEPOQ, etc. Does not use ninp.
-- **depoxd_DM15** (idepo 101–107): Uses liquid droplets (NW, QW, QA, QS) and ice supersaturation (Diehl & Mitra 2015 style); outputs **DEPON**, etc. Does not use ninp.
+Once ice exists, the dominant question changes from **formation** to **growth**. The relevant mass pathways are different from the number-initiation pathways.
 
-Both can be important for total ice number after 12:30 but are **not** the mechanism that uses flare-added INP.
+The main ice-mass growth terms are:
+
+| Term group | Physical meaning | Main role |
+|------|------|------|
+| `CONDQFROD`, `CONDQWFROD` | Depositional growth plus bin shift | Growth of existing ice / wet shell mass |
+| `DEPOQ` | Mass transfer associated with deposition nucleation | Mass added when new deposition-frozen particles form |
+| `KOLLQFROD`, `KOLLQFRODI`, `KOLLQFROD_INS`, `kollqwf` | Collision/contact/riming-related ice or shell growth | Growth and conversion after collisions |
+| `kqf`, `kqwf` | Ice-ice collisional growth / redistribution | Post-initiation growth and transfer |
+| `dqffrier` | Refreezing of liquid shell | Converts shell liquid to frozen mass |
+
+The practical distinction is:
+
+- **ice number production**: mainly `IMMERN`, `DEPON`, `HOMN`, plus collision/contact-freezing number terms
+- **ice mass growth**: mainly deposition/growth, riming/contact growth, aggregation/ice-ice collision, and refreezing
+
+This distinction is central for the flare analysis: the process that produces **more ice crystals** need not be the same process that produces **most ice mass**.
 
 ---
 
-## 6. How to analyze ice number increase after 12:30
+## 6. Recommended analysis workflow for the seeding runs
 
-1. **Time window:** Restrict to model time ≥ seeding start (e.g. 12:30:00). Compare total ice number or summed number tendency before vs after.
-2. **Flare effect:** Track **IMMERN** (or its bulk/diagnostic, e.g. DIMMERN_sum). This is the term that responds to flare INP; it should increase when the flare adds INP and conditions allow freezing.
-3. **Deposition:** Optionally track **DEPON** (e.g. Ddeponf_sum) to separate deposition-driven ice from immersion.
-4. **CONDNFROD:** For **total** ice number, sum over bins should be zero. Do not treat it as a source of new crystals; use it only for per-bin redistribution in spectral budgets. In the View A stacked-area plots, the dark-blue **CONDENSATION** slice in the **Ice Number sources** panel is exactly this redistribution—it can be large per bin or in aggregate over bins, but it does **not** add total ice number.
-5. **Output names:** Map model diagnostics (Ddeponf_sum, DIMMERN_sum, DCONDNFROD_sum, etc.) to your variable list or post-processing names.
+### 6.1. Separate formation from growth
+
+Use two different rankings:
+
+1. **Ice-number formation ranking**  
+   Rank only terms that can create new ice number:
+   `IMMERN`, `DEPON`, `HOMN`, `KOLLNFROD`, `KOLLNFRODI`, `KOLLNFROD_INS`, optionally `knf` if relevant in your setup.
+
+2. **Ice-mass growth ranking**  
+   Rank the mass terms:
+   `CONDQFROD`, `CONDQWFROD`, `DEPOQ`, `KOLLQFROD`, `KOLLQFRODI`, `KOLLQFROD_INS`, `kqf`, `kqwf`, `dqffrier`.
+
+### 6.2. Isolate the flare signal
+
+Restrict the analysis to times after seeding start and compare:
+
+- pre-seeding vs post-seeding
+- seeded vs unseeded experiment
+- `IMMERN` vs `DEPON` in the same time-height window
+
+If the flare acts primarily through `ninp`, then the cleanest signature should be an enhancement in **IMMERN** first, followed by growth terms that build up ice mass.
+
+### 6.3. Keep redistribution separate
+
+For interpretation:
+
+- **`CONDNFROD`**: keep for spectral redistribution diagnostics, but exclude from total ice-number source ranking
+- **melting terms** (`dnfmelt`, `dqfmelt`, `dqfwmelt`) and negative collision terms: keep as sinks, not sources
+
+### 6.4. Output mapping
+
+Map the model diagnostics to your post-processing variables, for example:
+
+- `DIMMERN_sum` -> immersion-freezing number source
+- `Ddeponf_sum` -> deposition-nucleation number source
+- `DCONDNFROD_sum` -> redistribution-only number term
+- `DCONDQFROD_sum`, `DCONDQWFROD_sum` -> condensation/deposition mass-growth terms
+
+This way, View A / View B can be read with the right storyline: **first activation/initiation, then conversion and growth, with redistribution kept separate**.
 
 ---
 
@@ -127,7 +387,7 @@ Both can be important for total ice number after 12:30 but are **not** the mecha
 
 ## Appendix A. Notebook 05-process-budget: investigation text for markdown cells
 
-The notebook **`notebooks/meteograms/05-process-budget.ipynb`** implements this investigation. The narrative (main question, View A/B interpretation, answers for Ice Number / Ice Mass / Liquid) is embedded in the notebook’s markdown cells. If you need to **re-apply** this text (e.g. after clearing cells or using another copy of the notebook), use the sections below. If the notebook fails to save or open due to truncated outputs, use **Kernel → Restart & Clear Output** (or **Edit → Clear All Outputs**), then save.
+The notebook **`notebooks/05-process-budget.ipynb`** implements this investigation. The narrative (main question, View A/B interpretation, answers for Ice Number / Ice Mass / Liquid) is embedded in the notebook’s markdown cells. If you need to **re-apply** this text (e.g. after clearing cells or using another copy of the notebook), use the sections below. If the notebook fails to save or open due to truncated outputs, use **Kernel → Restart & Clear Output** (or **Edit → Clear All Outputs**), then save.
 
 ### A.1. First cell (after the title) – add after "Disentangles which..."
 

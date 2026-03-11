@@ -1,0 +1,55 @@
+ensemble:
+  cs_run: cs-eriswil__20260304_110254
+
+paths:
+  # Optional explicit roots; leave null to use notebook defaults.
+  server_root: null
+  local_meteogram_root: null
+  local_ensemble_config_root: null
+
+
+selection:
+  experiment_index_default: 1
+  station_index_default: 0
+  plot_experiment_ids: [1, 2]
+  plot_station_ids: [0, 1, 2]
+  station_labels: {
+    0: "S1 — Seeding loc.",
+    1: "S2 — Observation site",
+    2: "S3 — Precipitation loc."
+    }
+
+
+time:
+  seed_start_utc: "2023-01-25T12:30:00"
+  coarsen: "30s"
+  rate_floor: 1.0e-18
+  # Add time window offsets in minutes relative to seed_start_utc
+  window_offsets_min: [0.0, 0.25, 0.5, 1.0, 2.5, 5.0, 7.5]
+
+size_ranges:
+  AERLBB:
+    start: 30
+    stop: 51
+    label: "Aerosol Range"
+    tag: "aerlbb"
+  CRYBB:
+    start: 51
+    stop: null
+    label: "Cloud Range"
+    tag: "crybb"
+  PRECBB:
+    start: 50
+    stop: 66
+    label: "Precipitation Range"
+    tag: "precbb"
+  ALLBB:
+    start: 0
+    stop: 66
+    label: "All Range"
+    tag: "allbb"
+
+plotting:
+  active_range_key: "ALLBB"
+  plot_range_keys: ["CRYBB", "ALLBB"] # "AERLBB", "CRYBB", "PRECBB", "ALLBB"
+  height_sel_m: [1400, 1200, 1000, 800]
