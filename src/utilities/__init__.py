@@ -53,6 +53,14 @@ from utilities.namelist_metadata import (
     get_process_groups,
     metadata_manager,
 )
+from utilities.process_budget_data import (
+    discover_candidate_datasets,
+    open_dataset_auto,
+    make_synthetic_rates,
+    load_process_budget_data,
+    stn_label,
+    select_rates_for_range,
+)
 
 try:
     from utilities.plotting import (
@@ -90,6 +98,9 @@ try:
         STYLE_2D,
         STYLE_HIST,
         STYLE_REGISTRY,
+        ENERGY_PROCESSES,
+        HEAT_RELEASE_PROCESSES,
+        HEAT_CONSUME_PROCESSES,
         get_style,
         use_style,
         format_elapsed_minutes_tick,
@@ -140,6 +151,7 @@ from utilities.process_rates import (
     build_spectral_rates,
     build_rates_dataset,
     build_rates_for_experiments,
+    tendency_to_rate,
     get_process_display_name,
 )
 
