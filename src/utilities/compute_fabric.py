@@ -345,6 +345,11 @@ def allocate_resources(
         raise ValueError("n_threads_per_process must be >= 1.")
 
     memory_per_node_gb = n_cpu if m == 0 else m
+    requested_processes_per_node = max(1, n_cpu // n_threads_per_process)
+    min_worker_memory_gb = 2.0
+    memory_capped_processes = max(1, int(memory_per_node_gb // min_worker_memory_gb))
+    est_processes_per_node = min(requested_processes_per_node, memory_capped_processes)
+    est_memory_per_worker_gb = memory_per_node_gb / est_processes_per_node
 
     # Use local cluster when sbatch is not available (e.g. laptop, Mac).
     if shutil.which("sbatch") is None:
@@ -368,8 +373,14 @@ def allocate_resources(
         raise ImportError("SLURMCluster unavailable. Install dask-jobqueue for HPC.")
 
     cores_per_node = n_cpu
-    processes_per_node = max(1, n_cpu // n_threads_per_process)
+    processes_per_node = est_processes_per_node
     n_nodes = n_jobs
+
+    if processes_per_node < requested_processes_per_node:
+        print(
+            f"Memory-aware worker cap: {requested_processes_per_node} requested -> "
+            f"{processes_per_node} processes/node ({memory_per_node_gb / processes_per_node:.2f} GB/worker)."
+        )
 
     dask.config.set(
         {

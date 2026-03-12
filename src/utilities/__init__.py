@@ -146,6 +146,7 @@ from utilities.tracking_pipeline import (
 )
 from utilities.process_rates import (
     PHYSICS_GROUPS,
+    PROCESS_PLOT_ORDER,
     build_proc_vars,
     build_rates,
     build_spectral_rates,
