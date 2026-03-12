@@ -378,35 +378,6 @@ Bin boundaries are defined logarithmically:
 
 ---
 
-## All Loop Iteration Counters (Summary)
-
-### Compile-Time Parameters (Fixed)
-| Variable | Default | Type | Purpose |
-|----------|---------|------|---------|
-| `JMAX` | 66 (132*) | INTEGER parameter | Number of liquid water droplet size bins |
-| `SIMAX` | 1 (66*) | INTEGER parameter | Number of insoluble aerosol size bins |
-| `NINPMAX` | 30 | INTEGER parameter | Number of ice nuclei temperature bins |
-
-*\*Alternative values available via compilation flags or configuration*
-
-### Runtime Variables (From Namelist)
-| Variable | Default | Type | Purpose |
-|----------|---------|------|---------|
-| `NMAX` | 2 | INTEGER | Spectral resolution of water droplet spectrum |
-| `TMAX` | 2 | INTEGER | Spectral resolution of insoluble aerosol spectrum |
-| `SMAX` | 1 | INTEGER | Number of soluble aerosol classes |
-| `ITMAX` | 1 | INTEGER | Number of externally mixed aerosol types |
-| `IPMAX` | 1 | INTEGER | Horizontal resolution (cylinder model) |
-
-### Grid Dimensions (From COSMO)
-| Variable | Source | Type | Purpose |
-|----------|--------|------|---------|
-| `KE` | `data_modelconfig` | INTEGER | Total number of vertical grid levels |
-| `IE`, `JE` | `data_modelconfig` | INTEGER | Zonal and meridional grid points |
-| `KZ` | Subroutine argument | INTEGER | Vertical levels passed to SBM routines |
-
----
-
 ## Typical Array Dimensions
 
 ### Input/Output Fields
@@ -436,6 +407,36 @@ deponi(simax, itmax)   ! Deposition on insoluble particles
 ```
 
 ---
+
+## All Loop Iteration Counters (Summary)
+
+### Compile-Time Parameters (Fixed)
+| Variable | Default | Type | Purpose |
+|----------|---------|------|---------|
+| `JMAX` | 66 (132*) | INTEGER parameter | Number of liquid water droplet size bins |
+| `SIMAX` | 1 (66*) | INTEGER parameter | Number of insoluble aerosol size bins |
+| `NINPMAX` | 30 | INTEGER parameter | Number of ice nuclei temperature bins |
+
+*\*Alternative values available via compilation flags or configuration*
+
+### Runtime Variables (From Namelist)
+| Variable | Default | Type | Purpose |
+|----------|---------|------|---------|
+| `NMAX` | 2 | INTEGER | Spectral resolution of water droplet spectrum |
+| `TMAX` | 2 | INTEGER | Spectral resolution of insoluble aerosol spectrum |
+| `SMAX` | 1 | INTEGER | Number of soluble aerosol classes |
+| `ITMAX` | 1 | INTEGER | Number of externally mixed aerosol types |
+| `IPMAX` | 1 | INTEGER | Horizontal resolution (cylinder model) |
+
+### Grid Dimensions (From COSMO)
+| Variable | Source | Type | Purpose |
+|----------|--------|------|---------|
+| `KE` | `data_modelconfig` | INTEGER | Total number of vertical grid levels |
+| `IE`, `JE` | `data_modelconfig` | INTEGER | Zonal and meridional grid points |
+| `KZ` | Subroutine argument | INTEGER | Vertical levels passed to SBM routines |
+
+---
+
 
 ## Key Notes on Dimensions
 
