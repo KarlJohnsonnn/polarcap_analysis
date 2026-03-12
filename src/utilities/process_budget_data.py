@@ -91,6 +91,22 @@ def _slice_from_cfg(entry, default_slice):
     return slice(entry.get("start", default_slice.start), entry.get("stop", default_slice.stop))
 
 
+def _chunk_summary(ds: xr.Dataset) -> dict[str, tuple[int, ...]]:
+    """Return a compact, logger-safe summary of chunk metadata."""
+    if not ds.chunks:
+        return {}
+    summary = {}
+    for dim, spec in ds.chunks.items():
+        if isinstance(spec, int):
+            summary[dim] = (int(spec),)
+            continue
+        vals = []
+        for chunk in spec[:4]:
+            vals.append(int(chunk[0]) if isinstance(chunk, tuple) else int(chunk))
+        summary[dim] = tuple(vals)
+    return summary
+
+
 def load_process_budget_data(
     repo_root: Path,
     config_path: Optional[Union[str, Path]] = None,

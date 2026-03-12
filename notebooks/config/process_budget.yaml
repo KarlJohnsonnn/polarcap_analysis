@@ -3,7 +3,7 @@ ensemble:
 
 paths:
   # Optional explicit roots; leave null to use notebook defaults.
-  server_root: null
+  server_root: "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/"
   local_meteogram_root: null
   local_ensemble_config_root: null
 
@@ -11,8 +11,8 @@ paths:
 selection:
   experiment_index_default: 1
   station_index_default: 0
-  plot_experiment_ids: [1, 2]
-  plot_station_ids: [0, 1, 2]
+  plot_experiment_ids: [1,2]
+  plot_station_ids: [0]
   station_labels: {
     0: "S1 — Seeding loc.",
     1: "S2 — Observation site",
@@ -21,7 +21,7 @@ selection:
 
 
 time:
-  seed_start_utc: "2023-01-25T12:30:00"
+  seed_start: "2023-01-25T12:30:00"
   coarsen: "30s"
   rate_floor: 1.0e-18
   # Add time window offsets in minutes relative to seed_start_utc
@@ -51,5 +51,51 @@ size_ranges:
 
 plotting:
   active_range_key: "ALLBB"
-  plot_range_keys: ["CRYBB", "ALLBB"] # "AERLBB", "CRYBB", "PRECBB", "ALLBB"
+  plot_range_keys: ["ALLBB"] # "AERLBB", "CRYBB", "PRECBB", "ALLBB"
   height_sel_m: [1400, 1200, 1000, 800]
+  # Optional explicit plotting time spacing in minutes relative to seed_start_utc.
+  # If omitted, falls back to time.window_offsets_min above.
+      # 0 to 5 min, every 0.1666667 min (~10 sec)
+      # 5 to 15 min, every 0.5 min (30 sec)
+      # 15 to 35 min, every 1.0 min
+  time_spacing_min: [
+      0.0, 0.1666667, 0.3333333, 0.5, 0.6666667, 0.8333333, 1.0, 1.1666667, 1.3333333, 1.5, 1.6666667, 1.8333333, 2.0, 2.1666667, 2.3333333, 2.5, 2.6666667, 2.8333333, 3.0, 3.1666667, 3.3333333, 3.5, 3.6666667, 3.8333333, 4.0, 4.1666667, 4.3333333, 4.5, 4.6666667, 4.8333333, 5.0,
+      5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0,
+      # 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, 32.0, 33.0, 34.0, 35.0
+    ]
+  spectral_waterfall:
+    kind: "N"        # "N" (number) or "Q" (mass)
+    normalize_mode: "none"  # "none", "bin" (per-bin fractions), "panel" (panel max-abs=1)
+    linthresh_W: 1.0e-9
+    linthresh_F: 1.0e-9
+    linscale: 0.1
+    xlim_W: [0.001, 4000.0]
+    xlim_F: [0.001, 4000.0]
+    ylim_W: [-10.0, 10.0]
+    ylim_F: [-10.0, 10.0]
+    bar_edge_color: "black"
+    bar_edge_linewidth: 0.35
+    bar_width_frac_merged: 0.95
+    pos_ice_alpha: 0.6
+    pos_liq_alpha: 0.35
+    neg_ice_alpha: 0.6
+    neg_liq_alpha: 0.35
+    ice_hatch: "...."
+    liq_hatch: null
+    rate_linewidth: 0.5
+    rate_linewidth_neg: 0.5
+    rate_fill_linewidth: 0.9
+    rate_edge_linewidth: 0.2
+    grid_linewidth: 0.15
+    grid_alpha: 0.5
+    zero_linewidth: 0.4
+    panel_bbox_alpha: 0.35
+    stacked_bars: True
+    merge_liquid_ice: True
+
+  render:
+    workers: 16
+    frame_dpi: 300
+    frame_png_compress: 1
+    mp4_fps: 5
+

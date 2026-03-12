@@ -20,33 +20,46 @@ _CONV = {"N": 1e-6, "Q": 1e-3}
 
 # Physics-aware process groups: group -> [(BASE_NAME, SPECTRUM, KIND), ...]
 # SPECTRUM: W = warm/liquid, F = frozen/ice. KIND: N = number, Q = mass.
+# Grouping aligns with docs/specs_params_and_variables.md (Output + Microphysical process tendencies).
+# Categories for plot ordering: (1) Liquid-only (2) Freezing (3) Riming (4) Ice-only (5) Melting.
 PHYSICS_GROUPS: Dict[str, List[Tuple[str, str, str]]] = {
+    # ── Liquid-only (warm-phase, no phase change) ──
     "CONDENSATION": [
         ("CONDN", "W", "N"), ("CONDQ", "W", "Q"),
-        ("CONDNFROD", "F", "N"), ("CONDQFROD", "F", "Q"),
-        ("CONDQWFROD", "F", "Q"),
     ],
-    "DROP_COLLISION": [
-        ("KOLLN", "W", "N"), ("KOLLQ", "W", "Q"),
-        ("KOLLN_INS", "W", "N"), ("KOLLQ_INS", "W", "Q"),
-    ],
-    "RIMING": [("KOLLNI", "F", "N"), ("KOLLQI", "F", "Q"), ("KOLLQWF", "F", "Q")],
+    "BREAKUP": [("BREAN", "W", "N"), ("BREAQ", "W", "Q")],
+    "DROP_COLLISION": [("KOLLN", "W", "N"), ("KOLLQ", "W", "Q")],
+    "DROP_INS_COLLISION": [("KOLLN_INS", "W", "N"), ("KOLLQ_INS", "W", "Q")],
+    # ── Freezing (liquid sink → ice source) ──
+    "IMMERSION_FREEZING": [("IMMERN", "W", "N"), ("IMMERQ", "W", "Q")],
+    "HOMOGENEOUS_FREEZING": [("HOMN", "W", "N"), ("HOMQ", "W", "Q")],
     "CONTACT_FREEZING": [
         ("KOLLNFRODI", "F", "N"), ("KOLLQFRODI", "F", "Q"),
         ("KOLLNFROD", "F", "N"), ("KOLLQFROD", "F", "Q"),
         ("KOLLNFROD_INS", "F", "N"), ("KOLLQFROD_INS", "F", "Q"),
     ],
+    # ── Riming (water–ice collision, ice gains) ──
+    "RIMING": [("KOLLNI", "F", "N"), ("KOLLQI", "F", "Q"), ("KOLLQWF", "F", "Q")],
+    # ── Ice-only (deposition, aggregation, refreezing) ──
+    "DEPOSITION": [
+        ("DEPONF", "F", "N"), ("DEPOQF", "F", "Q"),
+        ("CONDNFROD", "F", "N"), ("CONDQFROD", "F", "Q"), ("CONDQWFROD", "F", "Q"),
+    ],
     "AGGREGATION": [("KNF", "F", "N"), ("KQF", "F", "Q"), ("KQWF", "F", "Q")],
-    "IMMERSION_FREEZING": [("IMMERN", "W", "N"), ("IMMERQ", "W", "Q")],
-    "HOMOGENEOUS_FREEZING": [("HOMN", "W", "N"), ("HOMQ", "W", "Q")],
-    "BREAKUP": [("BREAN", "W", "N"), ("BREAQ", "W", "Q")],
+    "REFREEZING": [("DQFFRIER", "F", "Q")],
+    # ── Melting (ice → liquid) ──
     "MELTING": [
         ("DNFMELT", "F", "N"), ("DQFMELT", "F", "Q"), ("DQFWMELT", "F", "Q"),
         ("DNWMELT", "W", "N"), ("DQWMELT", "W", "Q"),
     ],
-    "DEPOSITION": [("DEPONF", "F", "N"), ("DEPOQF", "F", "Q")],
-    "REFREEZING": [("DQFFRIER", "F", "Q")],
 }
+
+# Suggested bar/legend order for spectral waterfall: liquid → freezing → riming → ice → melting.
+PROCESS_PLOT_ORDER: List[str] = [
+    "CONDENSATION", "BREAKUP", "DROP_COLLISION", "DROP_INS_COLLISION",
+    "IMMERSION_FREEZING", "HOMOGENEOUS_FREEZING", "CONTACT_FREEZING",
+    "RIMING", "DEPOSITION", "AGGREGATION", "REFREEZING", "MELTING",
+]
 
 _BASE_TO_GROUP: Dict[str, Tuple[str, str, str]] = {}
 for grp, members in PHYSICS_GROUPS.items():
