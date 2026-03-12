@@ -11,7 +11,7 @@ paths:
 selection:
   experiment_index_default: 1
   station_index_default: 0
-  plot_experiment_ids: [1,2]
+  plot_experiment_ids: [0]
   plot_station_ids: [0]
   station_labels: {
     0: "S1 — Seeding loc.",
@@ -21,7 +21,7 @@ selection:
 
 
 time:
-  seed_start: "2023-01-25T12:30:00"
+  seed_start: "2023-01-25T12:29:00"
   coarsen: "30s"
   rate_floor: 1.0e-18
   # Add time window offsets in minutes relative to seed_start_utc
@@ -66,13 +66,13 @@ plotting:
   spectral_waterfall:
     kind: "N"        # "N" (number) or "Q" (mass)
     normalize_mode: "none"  # "none", "bin" (per-bin fractions), "panel" (panel max-abs=1)
-    linthresh_W: 1.0e-9
-    linthresh_F: 1.0e-9
+    linthresh_W: 1.0e-6
+    linthresh_F: 1.0e-6
     linscale: 0.1
     xlim_W: [0.001, 4000.0]
     xlim_F: [0.001, 4000.0]
-    ylim_W: [-10.0, 10.0]
-    ylim_F: [-10.0, 10.0]
+    ylim_W: [-100.0, 100.0]
+    ylim_F: [-100.0, 100.0]
     bar_edge_color: "black"
     bar_edge_linewidth: 0.35
     bar_width_frac_merged: 0.95
