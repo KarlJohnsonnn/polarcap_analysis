@@ -157,15 +157,15 @@ INTEGER                  :: kz                        ! vertical levels for SBM 
 | `dqws` | (jmax, smax) | Soluble aerosol mass tendency in droplets | kg kg⁻¹ s⁻¹ |
 | `dqwa` | (jmax, smax) | Aerosol mass tendency in droplets | kg kg⁻¹ s⁻¹ |
 
-### Ice Particle Tendencies
+### Ice Particle Tendencies (Ice-Ice Aggregation, koll_eis_eisxd.f90)
 
 | Parameter | Dimension | Description | Unit |
 |-----------|-----------|-------------|------|
-| `knf` | (jmax, smax) | Number concentration tendency of ice particles | kg⁻¹ s⁻¹ |
-| `kqf` | (jmax, smax) | Total ice mass tendency | kg kg⁻¹ s⁻¹ |
-| `kqwf` | (jmax, smax) | Liquid water shell tendency (rime coating) | kg kg⁻¹ s⁻¹ |
-| `kqsf` | (jmax, smax) | Solid ice mass tendency | kg kg⁻¹ s⁻¹ |
-| `kqaf` | (jmax, smax) | Aerosol mass tendency in ice particles | kg kg⁻¹ s⁻¹ |
+| `knf` | (jmax, smax) | Number tendency from ice-ice aggregation | kg⁻¹ s⁻¹ |
+| `kqf` | (jmax, smax) | Ice mass tendency from ice-ice aggregation | kg kg⁻¹ s⁻¹ |
+| `kqwf` | (jmax, smax) | Liquid water shell tendency from ice-ice aggregation | kg kg⁻¹ s⁻¹ |
+| `kqsf` | (jmax, smax) | Soluble aerosol mass tendency from ice-ice aggregation | kg kg⁻¹ s⁻¹ |
+| `kqaf` | (jmax, smax) | Aerosol mass tendency from ice-ice aggregation | kg kg⁻¹ s⁻¹ |
 
 ### Insoluble Aerosol Tendencies
 
@@ -236,26 +236,72 @@ INTEGER                  :: kz                        ! vertical levels for SBM 
 | `kolls` | (jmax, smax) | Soluble aerosol mass change during collision | kg kg⁻¹ s⁻¹ |
 | `kolla` | (jmax, smax) | Aerosol mass change during collision | kg kg⁻¹ s⁻¹ |
 
-### Collision (Water-Ice)
+### Riming — Drop-Ice Collision (koll_ice_dropsxd.f90)
+
+Liquid drops captured by frozen drops (ice particles). Liquid-side variables
+appear in the DNW/DQW budget; ice-side variables in the DNFROD/DQFROD budget.
+
+**Liquid-side loss (drops consumed by ice):**
 
 | Parameter | Dimension | Description | Unit |
 |-----------|-----------|-------------|------|
-| `kollqi` | (jmax, smax) | Ice mass from water-ice collision | kg kg⁻¹ s⁻¹ |
-| `kollni` | (jmax, smax) | Number change from water-ice collision | kg⁻¹ s⁻¹ |
-| `kollsi` | (jmax, smax) | Solid ice mass change | kg kg⁻¹ s⁻¹ |
-| `kollai` | (jmax, smax) | Aerosol mass change in water-ice collision | kg kg⁻¹ s⁻¹ |
-| `kollqwf` | (jmax, smax) | Liquid water shell mass from collision | kg kg⁻¹ s⁻¹ |
+| `kollni` | (jmax, smax) | Liquid drop number loss from riming (in DNW budget) | kg⁻¹ s⁻¹ |
+| `kollqi` | (jmax, smax) | Liquid drop mass loss from riming (in DQW budget) | kg kg⁻¹ s⁻¹ |
+| `kollsi` | (jmax, smax) | Soluble aerosol mass loss from riming | kg kg⁻¹ s⁻¹ |
+| `kollai` | (jmax, smax) | Aerosol mass loss from riming | kg kg⁻¹ s⁻¹ |
 
-### Collision (Water-Insoluble Particles)
+**Ice-side gain (frozen drops grow):**
 
 | Parameter | Dimension | Description | Unit |
 |-----------|-----------|-------------|------|
-| `kolln_ins` | (jmax, smax) | Number change from water-INS collision | kg⁻¹ s⁻¹ |
-| `kollq_ins` | (jmax, smax) | Mass change from water-INS collision | kg kg⁻¹ s⁻¹ |
-| `kolla_ins` | (jmax, smax) | Aerosol mass change in water-INS collision | kg kg⁻¹ s⁻¹ |
-| `kolls_ins` | (jmax, smax) | Soluble aerosol change in water-INS collision | kg kg⁻¹ s⁻¹ |
+| `kollnfrodi` | (jmax, smax) | Frozen drop number redistribution from riming (in DNFROD budget) | kg⁻¹ s⁻¹ |
+| `kollqfrodi` | (jmax, smax) | Frozen drop ice-core mass redistribution from riming (in DQFROD budget) | kg kg⁻¹ s⁻¹ |
+| `kollafrodi` | (jmax, smax) | Aerosol mass gain on frozen drops from riming | kg kg⁻¹ s⁻¹ |
+| `kollsfrodi` | (jmax, smax) | Soluble aerosol gain on frozen drops from riming | kg kg⁻¹ s⁻¹ |
+| `kollqwf` | (jmax, smax) | Liquid water shell mass gain from captured drops (rime shell) | kg kg⁻¹ s⁻¹ |
 
-### Collision (Ice-Ice)
+**Alternative riming pathway (koll_contactxd_DM15.f90, ikoll≥101):**
+
+| Parameter | Dimension | Description | Unit |
+|-----------|-----------|-------------|------|
+| `kollnfrod` | (jmax, smax) | Frozen drop number tendency (DM15 riming kernel) | kg⁻¹ s⁻¹ |
+| `kollqfrod` | (jmax, smax) | Frozen drop mass tendency (DM15 riming kernel) | kg kg⁻¹ s⁻¹ |
+
+### Collision (Water-Insoluble Particles) + Contact Freezing (koll_insolxd.f90)
+
+Drop + insoluble aerosol collisions. If T < T_contact, a fraction freezes
+(contact freezing); the rest stays liquid (aerosol scavenging).
+
+**Liquid fraction (drop stays liquid, scavenges aerosol):**
+
+| Parameter | Dimension | Description | Unit |
+|-----------|-----------|-------------|------|
+| `kolln_ins` | (jmax, smax) | Liquid drop number change from insol. aerosol scavenging | kg⁻¹ s⁻¹ |
+| `kollq_ins` | (jmax, smax) | Liquid drop mass change from insol. aerosol scavenging | kg kg⁻¹ s⁻¹ |
+| `kolla_ins` | (jmax, smax) | Aerosol mass change in liquid drops | kg kg⁻¹ s⁻¹ |
+| `kolls_ins` | (jmax, smax) | Soluble aerosol change in liquid drops | kg kg⁻¹ s⁻¹ |
+
+**Frozen fraction (contact freezing: drop + aerosol → frozen drop):**
+
+| Parameter | Dimension | Description | Unit |
+|-----------|-----------|-------------|------|
+| `kollnfrod_ins` | (jmax, smax) | Frozen drop number from contact freezing | kg⁻¹ s⁻¹ |
+| `kollqfrod_ins` | (jmax, smax) | Frozen drop mass from contact freezing | kg kg⁻¹ s⁻¹ |
+
+### Ice-Ice Aggregation (koll_eis_eisxd.f90)
+
+Collision-coalescence of frozen drops with other frozen drops (wet ice
+aggregation, requires at least one particle with substantial liquid shell).
+
+| Parameter | Dimension | Description | Unit |
+|-----------|-----------|-------------|------|
+| `knf` | (jmax, smax) | Frozen drop number tendency from ice-ice aggregation | kg⁻¹ s⁻¹ |
+| `kqf` | (jmax, smax) | Frozen drop ice mass tendency from aggregation | kg kg⁻¹ s⁻¹ |
+| `kqwf` | (jmax, smax) | Frozen drop liquid water shell tendency from aggregation | kg kg⁻¹ s⁻¹ |
+| `kqsf` | (jmax, smax) | Frozen drop soluble aerosol mass tendency from aggregation | kg kg⁻¹ s⁻¹ |
+| `kqaf` | (jmax, smax) | Frozen drop aerosol mass tendency from aggregation | kg kg⁻¹ s⁻¹ |
+
+### Collision (INS-INS)
 
 | Parameter | Dimension | Description | Unit |
 |-----------|-----------|-------------|------|
@@ -271,14 +317,17 @@ INTEGER                  :: kz                        ! vertical levels for SBM 
 | `immera` | (jmax, smax) | Aerosol mass change in immersion freezing | kg kg⁻¹ s⁻¹ |
 | `immers` | (jmax, smax) | Soluble aerosol mass change in immersion freezing | kg kg⁻¹ s⁻¹ |
 
-### Contact Freezing
+### Contact Freezing (koll_insolxd.f90)
+
+Contact freezing occurs when a liquid drop collides with an insoluble aerosol
+particle at T < T_contact. The frozen fraction is controlled by `fac_freeze`
+from `contact_tempxd.f90`. Only `kollnfrod_ins`/`kollqfrod_ins` are true
+contact freezing variables; `kollnfrodi`/`kollqfrodi` are riming (see above).
 
 | Parameter | Dimension | Description | Unit |
 |-----------|-----------|-------------|------|
-| `kollnfrodi` | (jmax, smax) | Number change from contact freezing | kg⁻¹ s⁻¹ |
-| `kollqfrodi` | (jmax, smax) | Mass change from contact freezing | kg kg⁻¹ s⁻¹ |
-| `kollafrodi` | (jmax, smax) | Aerosol mass change from contact freezing | kg kg⁻¹ s⁻¹ |
-| `kollsfrodi` | (jmax, smax) | Soluble aerosol change from contact freezing | kg kg⁻¹ s⁻¹ |
+| `kollnfrod_ins` | (jmax, smax) | Frozen drop number from contact freezing (drop + insol. aerosol → ice) | kg⁻¹ s⁻¹ |
+| `kollqfrod_ins` | (jmax, smax) | Frozen drop mass from contact freezing | kg kg⁻¹ s⁻¹ |
 
 ### Homogeneous Freezing
 
@@ -315,11 +364,30 @@ INTEGER                  :: kz                        ! vertical levels for SBM 
 | `dnwmelt` | (jmax, smax) | Droplet number change from melting | kg⁻¹ s⁻¹ |
 | `dqwmelt` | (jmax, smax) | Droplet mass change from melting | kg kg⁻¹ s⁻¹ |
 
-### Refreezing
+### Refreezing (frierenxd.f90)
 
 | Parameter | Dimension | Description | Unit |
 |-----------|-----------|-------------|------|
-| `dqffrier` | (jmax, smax) | Mass change from refreezing | kg kg⁻¹ s⁻¹ |
+| `dqffrier` | (jmax, smax) | Ice core mass gain from refreezing of liquid shell on frozen drops | kg kg⁻¹ s⁻¹ |
+
+---
+
+## Budget Equations (from cloudxd.f90)
+
+These are the prognostic increments assembled from all process tendencies.
+Sign convention: positive = source, negative = sink for that budget.
+
+```
+DNW     = (CONDN + KOLLN + KOLLNI + KOLLN_INS + BREAN − IMMERN − HOMN + dnwmelt) × DELTAT
+DQW     = (CONDQ + KOLLQ + KOLLQI + KOLLQ_INS + BREAQ − IMMERQ − HOMQ + dqwmelt) × DELTAT
+DNFROD  = (CONDNFROD + KOLLNFROD + KOLLNFRODI + KOLLNFROD_INS + knf + IMMERN + DEPON + HOMN + dnfmelt) × DELTAT
+DQFROD  = (CONDQFROD + KOLLQFROD + KOLLQFRODI + KOLLQFROD_INS + kqf + IMMERQ + DEPOQ + HOMQ + dqfmelt + dqffrier) × DELTAT
+dqwfrod = (CONDQWFROD + KOLLQFROD + kollqwf + KOLLQFROD_INS + kqwf + IMMERQ + DEPOQ + HOMQ + dqfwmelt) × DELTAT
+DELT    = −DQVcond·LV/CP − DQVdep·LS/CP + DELT_ICE
+```
+
+Key cross-phase symmetry: IMMERN/IMMERQ and HOMN/HOMQ appear with **−** in the
+liquid budget (DNW/DQW) and **+** in the ice budget (DNFROD/DQFROD).
 
 ---
 
