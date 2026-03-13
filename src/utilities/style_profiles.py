@@ -117,6 +117,22 @@ PROC_COLORS: dict[str, str] = {
     "REFREEZING": "#b5e0f0",
 }
 
+# Per-process hatching for visual distinction beyond colour (grayscale-safe).
+PROC_HATCH: dict[str, str | None] = {
+    "CONDENSATION": None,
+    "BREAKUP": "xx",
+    "DROP_COLLISION": "//",
+    "DROP_INS_COLLISION": "\\\\",
+    "IMMERSION_FREEZING": "...",
+    "HOMOGENEOUS_FREEZING": "ooo",
+    "CONTACT_FREEZING": "++",
+    "RIMING": "---",
+    "DEPOSITION": "|||",
+    "AGGREGATION": "OO",
+    "REFREEZING": "**",
+    "MELTING": "\\\\//",
+}
+
 # Processes that release or consume latent heat (Energy); used for hatching in View A.
 ENERGY_PROCESSES: frozenset[str] = frozenset({
     "CONDENSATION", "DEPOSITION", "MELTING", "REFREEZING",
@@ -171,6 +187,46 @@ def save_fig(
 def proc_color(name: str) -> str:
     """Return hex color for process name (Okabe–Ito); fallback #333333 if unknown."""
     return PROC_COLORS.get(name, "#333333")
+
+
+def proc_hatch(name: str) -> str | None:
+    """Return hatch pattern for process name; None if solid fill."""
+    return PROC_HATCH.get(name)
+
+
+def build_fixed_legend(
+    fig: plt.Figure,
+    active_procs: set[str],
+    process_order: list[str],
+    *,
+    ncol: int = 6,
+    bbox_y: float = -0.02,
+) -> None:
+    """Fixed-size legend showing all processes; active = filled+hatched, inactive = hollow outline."""
+    import matplotlib.patches as mpatches
+
+    handles, labels = [], []
+    for p in process_order:
+        is_active = p in active_procs
+        c = proc_color(p)
+        h = proc_hatch(p)
+        patch = mpatches.FancyBboxPatch(
+            (0, 0), 1, 1, boxstyle="round,pad=0.1",
+            facecolor=c if is_active else "white",
+            edgecolor=c,
+            linewidth=1.0 if is_active else 0.6,
+            alpha=0.85 if is_active else 0.35,
+            hatch=h if is_active else None,
+        )
+        handles.append(patch)
+        labels.append(p.replace("_", " ").title())
+    fig.legend(
+        handles, labels,
+        loc="lower center", bbox_to_anchor=(0.5, bbox_y),
+        ncol=min(ncol, max(1, len(handles))),
+        frameon=False, handlelength=1.6, handleheight=1.0,
+        handletextpad=0.5, columnspacing=1.0,
+    )
 
 
 def log_axis_formatter() -> FuncFormatter:

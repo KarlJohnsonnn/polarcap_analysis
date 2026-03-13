@@ -112,7 +112,10 @@ try:
         apply_publication_style,
         save_fig,
         PROC_COLORS,
+        PROC_HATCH,
         proc_color,
+        proc_hatch,
+        build_fixed_legend,
     )
     from utilities.plume_path_plot import (
         _assign_elapsed_time,
@@ -154,6 +157,9 @@ from utilities.process_rates import (
     build_rates_for_experiments,
     tendency_to_rate,
     get_process_display_name,
+    panel_process_values,
+    merge_liq_ice_net,
+    normalize_net_stacks,
 )
 
 from utilities.data_slicer import (

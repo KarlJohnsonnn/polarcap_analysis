@@ -11,6 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 import xarray as xr
 
 from utilities.processing_metadata import add_provenance_to_dataset, git_head
@@ -24,30 +25,49 @@ _CONV = {"N": 1e-6, "Q": 1e-3}
 # Categories for plot ordering: (1) Liquid-only (2) Freezing (3) Riming (4) Ice-only (5) Melting.
 PHYSICS_GROUPS: Dict[str, List[Tuple[str, str, str]]] = {
     # ── Liquid-only (warm-phase, no phase change) ──
+    # CONDN/CONDQ: condensation/evaporation on liquid drops          (cond_mixxd.f90)
     "CONDENSATION": [
         ("CONDN", "W", "N"), ("CONDQ", "W", "Q"),
     ],
+    # BREAN/BREAQ: spontaneous drop breakup                          (breakxd.f90)
     "BREAKUP": [("BREAN", "W", "N"), ("BREAQ", "W", "Q")],
+    # KOLLN/KOLLQ: drop-drop coalescence                             (koll_contactxd.f90)
     "DROP_COLLISION": [("KOLLN", "W", "N"), ("KOLLQ", "W", "Q")],
+    # KOLLN_INS/KOLLQ_INS: drop + insol. aerosol scavenging (liquid fraction stays liquid)
     "DROP_INS_COLLISION": [("KOLLN_INS", "W", "N"), ("KOLLQ_INS", "W", "Q")],
-    # ── Freezing (liquid sink → ice source) ──
+    # ── Freezing (liquid → ice) ──
+    # IMMERN/IMMERQ: stochastic immersion freezing of supercooled drops  (immersion_koopxd.f90)
     "IMMERSION_FREEZING": [("IMMERN", "W", "N"), ("IMMERQ", "W", "Q")],
+    # HOMN/HOMQ: homogeneous freezing of solution droplets           (homogeneous_freezing.f90)
     "HOMOGENEOUS_FREEZING": [("HOMN", "W", "N"), ("HOMQ", "W", "Q")],
+    # KOLLNFROD_INS/KOLLQFROD_INS: drop + insol. aerosol → frozen drop   (koll_insolxd.f90)
     "CONTACT_FREEZING": [
-        ("KOLLNFRODI", "F", "N"), ("KOLLQFRODI", "F", "Q"),
-        ("KOLLNFROD", "F", "N"), ("KOLLQFROD", "F", "Q"),
         ("KOLLNFROD_INS", "F", "N"), ("KOLLQFROD_INS", "F", "Q"),
     ],
-    # ── Riming (water–ice collision, ice gains) ──
-    "RIMING": [("KOLLNI", "F", "N"), ("KOLLQI", "F", "Q"), ("KOLLQWF", "F", "Q")],
+    # ── Riming (drop captured by ice, both liquid-side loss and ice-side gain) ──
+    # KOLLNI/KOLLQI: liquid-side loss (drops consumed)               (koll_ice_dropsxd.f90, in DNW/DQW budget)
+    # KOLLNFRODI/KOLLQFRODI: ice-side number/mass redistribution     (koll_ice_dropsxd.f90, in DNFROD/DQFROD budget)
+    # KOLLNFROD/KOLLQFROD: alt riming pathway (DM15 kernel)          (koll_contactxd_DM15.f90)
+    # KOLLQWF: liquid water shell gain on ice from captured drops    (koll_ice_dropsxd.f90)
+    "RIMING": [
+        ("KOLLNI", "W", "N"), ("KOLLQI", "W", "Q"),
+        ("KOLLNFRODI", "F", "N"), ("KOLLQFRODI", "F", "Q"),
+        ("KOLLNFROD", "F", "N"), ("KOLLQFROD", "F", "Q"),
+        ("KOLLQWF", "F", "Q"),
+    ],
     # ── Ice-only (deposition, aggregation, refreezing) ──
+    # DEPONF/DEPOQF: heterogeneous nucleation from vapour            (depoxd.f90)
+    # CONDNFROD/CONDQFROD/CONDQWFROD: vapour deposition on existing ice (cond_mixxd.f90)
     "DEPOSITION": [
         ("DEPONF", "F", "N"), ("DEPOQF", "F", "Q"),
         ("CONDNFROD", "F", "N"), ("CONDQFROD", "F", "Q"), ("CONDQWFROD", "F", "Q"),
     ],
+    # KNF/KQF/KQWF: ice-ice collision/aggregation (wet ice)         (koll_eis_eisxd.f90)
     "AGGREGATION": [("KNF", "F", "N"), ("KQF", "F", "Q"), ("KQWF", "F", "Q")],
+    # DQFFRIER: refreezing of liquid water shell on ice core         (frierenxd.f90)
     "REFREEZING": [("DQFFRIER", "F", "Q")],
     # ── Melting (ice → liquid) ──
+    # ice-side: DNFMELT/DQFMELT/DQFWMELT  liquid-side: DNWMELT/DQWMELT  (schmelzenxd.f90)
     "MELTING": [
         ("DNFMELT", "F", "N"), ("DQFMELT", "F", "Q"), ("DQFWMELT", "F", "Q"),
         ("DNWMELT", "W", "N"), ("DQWMELT", "W", "Q"),
@@ -417,3 +437,87 @@ def build_rates_for_experiments(
         rates_by_exp[eid] = R
         rates_ds_by_exp[eid] = build_rates_dataset(R, eid, ds_exp=ds_exp, config=config, repo_root=repo_root)
     return rates_by_exp, rates_ds_by_exp
+
+
+# ── Spectral waterfall data helpers ──────────────────────────────────────────
+
+def _pad_1d(arr: np.ndarray, n: int, fill_value: float = 0.0) -> np.ndarray:
+    a = np.asarray(arr)
+    return a[:n] if a.size >= n else np.pad(a, (0, n - a.size), constant_values=fill_value)
+
+
+def _clean_array(arr: np.ndarray) -> np.ndarray:
+    return np.nan_to_num(np.asarray(arr, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
+
+
+def panel_process_values(
+    proc_map: Dict[str, xr.DataArray],
+    procs: List[str],
+    station_idx: int,
+    h0: float,
+    h1: float,
+    twindow: slice,
+    bin_slice: slice,
+) -> Dict[str, np.ndarray]:
+    """Time-mean spectral values per process over a height/station/time window."""
+    if not procs:
+        return {}
+    stacked = xr.concat([proc_map[p] for p in procs], dim="process")
+    stacked = (
+        stacked.isel(station=station_idx)
+        .sel(height_level=slice(h0, h1))
+        .mean(dim="height_level")
+        .sel(time=twindow)
+    )
+    if stacked.sizes.get("time", 0) == 0:
+        return {}
+    vals = np.asarray(stacked.mean(dim="time").isel(bins=bin_slice).values)
+    return {p: vals[i] for i, p in enumerate(procs)}
+
+
+def merge_liq_ice_net(
+    net_w: Dict[str, np.ndarray],
+    net_f: Dict[str, np.ndarray],
+    n: int,
+    color_fn=None,
+) -> Dict[str, Tuple[str, np.ndarray]]:
+    """Sum liquid and ice net arrays per process → {proc: (color, net_array)}.
+
+    *color_fn* defaults to ``proc_color`` from style_profiles if not given.
+    """
+    if color_fn is None:
+        from utilities.style_profiles import proc_color
+        color_fn = proc_color
+    out: Dict[str, Tuple[str, np.ndarray]] = {}
+    for p in set(net_w) | set(net_f):
+        w = _clean_array(_pad_1d(net_w[p], n)) if p in net_w else np.zeros(n)
+        f = _clean_array(_pad_1d(net_f[p], n)) if p in net_f else np.zeros(n)
+        out[p] = (color_fn(p), w + f)
+    return out
+
+
+def normalize_net_stacks(
+    net_map: Dict[str, Tuple[str, np.ndarray]],
+    mode: str,
+) -> Dict[str, Tuple[str, np.ndarray]]:
+    """Normalize net process arrays: 'none' | 'bin' (per-bin fractions) | 'panel' (max-abs=1)."""
+    if mode == "none":
+        return net_map
+    if mode == "bin":
+        pos_sum = np.zeros_like(next(iter(net_map.values()))[1])
+        neg_sum = np.zeros_like(pos_sum)
+        for _, (_, arr) in net_map.items():
+            pos_sum += np.maximum(0.0, arr)
+            neg_sum += np.maximum(0.0, -arr)
+        out: Dict[str, Tuple[str, np.ndarray]] = {}
+        for p, (c, arr) in net_map.items():
+            pos_part = np.divide(np.maximum(0.0, arr), pos_sum, out=np.zeros_like(arr), where=pos_sum > 0)
+            neg_part = np.divide(np.maximum(0.0, -arr), neg_sum, out=np.zeros_like(arr), where=neg_sum > 0)
+            out[p] = (c, pos_part - neg_part)
+        return out
+    if mode == "panel":
+        vmax = max(float(np.nanmax(np.abs(arr))) for _, (_, arr) in net_map.items()) if net_map else 0.0
+        if vmax <= 0:
+            return net_map
+        return {p: (c, arr / vmax) for p, (c, arr) in net_map.items()}
+    raise ValueError(f"Unknown normalize mode: {mode}")
