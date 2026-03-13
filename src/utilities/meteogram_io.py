@@ -306,13 +306,17 @@ def build_meteogram_zarr(
     max_height_level: int = 20,
     station_coords: Optional[Dict[str, Tuple[float, float]]] = None,
     meta_file: Optional[str] = None,
-    target_time_chunk: int = 500,
-    target_station_chunk: int = 5,
+    target_time_chunk: int = 100,
+    target_station_chunk: int = 1,
+    target_bins_chunk: int = 30,
     compression_level: int = 3,
     debug_mode: bool = False,
     global_attrs: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Build a Zarr store from per-experiment meteogram NetCDF files.
+
+    Chunk defaults (time=100, station=1, bins=30) suit time-frame and single-station
+    analysis on both SLURM and laptop; reprocess existing zarrs with --overwrite to apply.
 
     Strategy
     --------
@@ -337,7 +341,7 @@ def build_meteogram_zarr(
         "time": min(target_time_chunk, max_time) if max_time > 0 else target_time_chunk,
         "height_level": -1,
         "height_level2": -1,
-        "bins": -1,
+        "bins": target_bins_chunk,
     }
 
     # -----------------------------------------------------------
@@ -365,8 +369,15 @@ def build_meteogram_zarr(
     print("Concatenating experiments...")
     ds_all = xr.concat(exp_datasets, dim="expname", coords="minimal", compat="override")
 
-    # apply target chunks once
-    active_chunks = {k: v for k, v in target_chunks.items() if k in ds_all.sizes}
+    # apply target chunks once; clamp bins to actual size
+    active_chunks = {}
+    for k, v in target_chunks.items():
+        if k not in ds_all.sizes:
+            continue
+        if v == -1:
+            active_chunks[k] = v
+        else:
+            active_chunks[k] = min(v, ds_all.sizes[k])
     active_chunks["expname"] = 1
     ds_all = ds_all.chunk(active_chunks)
 

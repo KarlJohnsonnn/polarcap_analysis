@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **Meteogram Zarr Rechunking on Open** – Added optional in-memory rechunking for meteogram Zarrs when opening (`src/utilities/process_budget_data.py`) to optimize compute for the current machine (server vs laptop). Controlled via `zarr.rechunk_on_open` in the config file.
+
 ### Changed
+- **Meteogram Zarr Chunk Defaults** – Updated `build_meteogram_zarr` (`src/utilities/meteogram_io.py`) default chunk sizes to be optimal for time-frame and single-station analysis: `time=100`, `station=1`, `bins=30` (added `target_bins_chunk` parameter).
 - **Compression** – Moved to `scripts/nc_compression/`: `compress_nc.sh`, `compress_nc_slurm.sh`. Processing chain README now points to that directory.
 - **`_paths.py`** → `src/utilities/processing_paths.py` – Path resolution moved into utilities for reuse by notebooks and other scripts.
 

@@ -107,6 +107,29 @@ def _chunk_summary(ds: xr.Dataset) -> dict[str, tuple[int, ...]]:
     return summary
 
 
+def _rechunk_meteogram_for_env(ds: xr.Dataset, cfg: dict) -> xr.Dataset:
+    """Rechunk meteogram dataset for current machine (server vs laptop). Controlled by config zarr.rechunk_on_open; optional zarr.memory_fraction, zarr.max_chunk_mb, zarr.min_chunk_mb, zarr.target_chunk_mb."""
+    if not getattr(ds, "chunks", None) or not any(ds.chunks.values()):
+        return ds
+    from utilities.compute_fabric import auto_chunk_dataset
+
+    target_mb = _cfg_get(cfg, "zarr", "target_chunk_mb", default=None)
+    memory_fraction = _cfg_get(cfg, "zarr", "memory_fraction", default=0.12)
+    max_chunk_mb = _cfg_get(cfg, "zarr", "max_chunk_mb", default=512)
+    min_chunk_mb = _cfg_get(cfg, "zarr", "min_chunk_mb", default=64)
+    prefer_dims = ("time", "height_level", "station", "bins", "expname")
+    _, chunk_dict = auto_chunk_dataset(
+        ds,
+        target_chunk_mb=target_mb,
+        memory_fraction=memory_fraction,
+        max_chunk_mb=max_chunk_mb,
+        min_chunk_mb=min_chunk_mb,
+        prefer_dims=prefer_dims,
+    )
+    chunk_dict["expname"] = 1
+    return ds.chunk({k: v for k, v in chunk_dict.items() if k in ds.sizes})
+
+
 def load_process_budget_data(
     repo_root: Path,
     config_path: Optional[Union[str, Path]] = None,
@@ -129,7 +152,7 @@ def load_process_budget_data(
     cs_run = _cfg_get(cfg, "ensemble", "cs_run", default="cs-eriswil__20260304_110254")
 
     if is_server():
-        root = Path(_cfg_get(cfg, "paths", "server_root", default="/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100"))
+        root = Path(_cfg_get(cfg, "paths", "server_root", default=None))
         data_dir = root / "ensemble_output" / cs_run
     else:
         local_meteogram_root = _cfg_get(cfg, "paths", "local_meteogram_root", default=None)
@@ -148,15 +171,19 @@ def load_process_budget_data(
     if zarr_path:
         print(f"Zarr store: {zarr_path}")
         ds = open_dataset_auto(zarr_path)
+        if _cfg_get(cfg, "zarr", "rechunk_on_open", default=False):
+            ds = _rechunk_meteogram_for_env(ds, cfg)
+            if ds.chunks:
+                print(f"  rechunk (env): {_chunk_summary(ds)}")
     else:
         raise ValueError(f"No Zarr dataset found for config: {zarr_path}")
 
     # size ranges (keys stay AERLBB etc. for compatibility with rates_N_liq_AERLBB)
     yaml_sr = _cfg_get(cfg, "size_ranges", default={}) or {}
-    aerlbb = _slice_from_cfg(yaml_sr.get("AERLBB", {}), slice(30, 51))
-    crybb = _slice_from_cfg(yaml_sr.get("CRYBB", {}), slice(51, None))
-    precbb = _slice_from_cfg(yaml_sr.get("PRECBB", {}), slice(50, 66))
-    allbb = _slice_from_cfg(yaml_sr.get("ALLBB", {}), slice(0, 66))
+    aerlbb = _slice_from_cfg(yaml_sr.get("AERLBB", {}), slice(None, 30))
+    crybb = _slice_from_cfg(yaml_sr.get("CRYBB", {}), slice(30, 50))
+    precbb = _slice_from_cfg(yaml_sr.get("PRECBB", {}), slice(50, None))
+    allbb = _slice_from_cfg(yaml_sr.get("ALLBB", {}), slice(None, None))
 
     size_ranges = {
         "AERLBB": {"slice": aerlbb, "label": yaml_sr.get("AERLBB", {}).get("label", "Range AERLBB"), "tag": yaml_sr.get("AERLBB", {}).get("tag", "aerlbb")},
