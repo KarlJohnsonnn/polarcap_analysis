@@ -28,15 +28,21 @@ from utilities.namelist_metadata import update_dataset_metadata
 from utilities.processing_metadata import add_provenance_to_dataset, git_head, provenance_attrs
 
 
-# Default tracer specs: (var_name, diameter_slice) for building tobac input
+# Paper/notebook: n_i^feature = n_f^flare - n_f^ref, threshold ≥ 1 L⁻¹ (ice crystal number conc)
 DEFAULT_TRACER_SPECS: List[Tuple[str, Tuple[int, Optional[int]]]] = [
-    ("qi", (30, 50)),
-    ("qs", (50, None)),
+    ("nf", (0, None)),  # size-integrated ice number concentration (all diameter bins)
 ]
+DEFAULT_THRESHOLD = 1.0  # 1 per liter (L⁻¹), Omanovic et al. 2024
 DEFAULT_EXTRACTION_TYPES = ("integrated", "extreme", "vertical")
 DEG_KM_LON = 111.13295254925466  # 1 deg longitude ≈ 111 km at mid-lat
 DEFAULT_FLARE_LAT, DEFAULT_FLARE_LON = 47.07425, 7.90522
 DEFAULT_MAX_ALTITUDE = 1500  # m
+
+# Keys that differ between flare and reference (emission-related only)
+FLARE_REF_DIFF_KEYS = frozenset({
+    "lflare",  # sbm_par
+    "flare_emission", "lflare_inp", "lflare_ccn", "flare_dn", "flare_dp", "flare_sig",  # flare_sbm
+})
 
 
 def prep_tobac_input(
@@ -70,7 +76,7 @@ class RunContext:
     ref_nc_file: str
     flare_idx: int
     ref_idx: int
-    threshold: float = 1e-6
+    threshold: float = DEFAULT_THRESHOLD
     flare_lat: float = DEFAULT_FLARE_LAT
     flare_lon: float = DEFAULT_FLARE_LON
     flare_alt_idx: int = -1
@@ -94,15 +100,53 @@ def _is_flare(meta: Dict[str, Any], exp_name: str) -> bool:
         return False
 
 
+def _non_emission_signature(meta: Dict[str, Any], exp_name: str) -> Tuple[Any, ...]:
+    """Signature of all INPUT_ORG params that should match between flare and reference (excl. emission)."""
+    io = meta.get(exp_name, {}).get("INPUT_ORG", {})
+    sbm = io.get("sbm_par", {})
+    flare = io.get("flare_sbm", {})
+    runctl = io.get("runctl", {})
+    # Flare-only keys we ignore; everything else must match
+    sbm_sub = {k: v for k, v in sbm.items() if k not in FLARE_REF_DIFF_KEYS}
+    flare_sub = {k: v for k, v in flare.items() if k not in FLARE_REF_DIFF_KEYS}
+    return (
+        io.get("domain"),
+        tuple(sorted(sbm_sub.items())),
+        tuple(sorted(flare_sub.items())),
+        tuple(sorted(runctl.items())),
+    )
+
+
+def find_matching_reference(
+    meta: Dict[str, Any],
+    flare_exp_name: str,
+    ref_names: List[str],
+) -> Optional[str]:
+    """
+    Return the reference experiment that matches the flare in all non-emission parameters.
+    Ref and flare must differ only in lflare, flare_emission, lflare_inp, lflare_ccn (and flare_dn/dp/sig).
+    Returns None if no matching ref found.
+    """
+    sig_flare = _non_emission_signature(meta, flare_exp_name)
+    for ref_name in ref_names:
+        if _non_emission_signature(meta, ref_name) == sig_flare:
+            return ref_name
+    return None
+
+
 def discover_3d_runs(
     model_data_root: str,
     domain_xy: str,
     cs_run: str,
     flare_idx: int = 0,
-    ref_idx: int = 0,
-    threshold: float = 1e-6,
+    ref_idx: int = -1,
+    threshold: float = DEFAULT_THRESHOLD,
 ) -> Optional[RunContext]:
-    """Build RunContext for one (cs_run, flare_idx, ref_idx). Returns None if no flare/ref."""
+    """
+    Build RunContext for one (cs_run, flare_idx, ref_idx).
+    ref_idx < 0: auto-select reference that matches flare in non-emission params only.
+    Returns None if no flare/ref or no matching ref when ref_idx < 0.
+    """
     model_data_path = f"{model_data_root}/RUN_ERISWILL_{domain_xy}x100/ensemble_output/{cs_run}/"
     extpar_file = f"{model_data_root}/RUN_ERISWILL_{domain_xy}x100/COS_in/extPar_Eriswil_{domain_xy}.nc"
     json_files = glob.glob(f"{model_data_path}*.json")
@@ -116,10 +160,18 @@ def discover_3d_runs(
     ref_names = [e for e in exp_names if not _is_flare(meta, e)]
     if not flare_names or not ref_names:
         return None
-    if flare_idx >= len(flare_names) or ref_idx >= len(ref_names):
+    if flare_idx >= len(flare_names):
         return None
     flare_exp_name = flare_names[flare_idx]
-    ref_exp_name = ref_names[ref_idx]
+    if ref_idx < 0:
+        ref_exp_name = find_matching_reference(meta, flare_exp_name, ref_names)
+        if ref_exp_name is None:
+            return None
+        ref_idx = ref_names.index(ref_exp_name)
+    elif ref_idx >= len(ref_names):
+        return None
+    else:
+        ref_exp_name = ref_names[ref_idx]
     flare_nc = next(p for p in filelist_3d if flare_exp_name in p)
     ref_nc = next(p for p in filelist_3d if ref_exp_name in p)
     domain_str = meta[flare_exp_name].get("domain", "")

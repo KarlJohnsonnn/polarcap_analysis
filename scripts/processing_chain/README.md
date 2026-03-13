@@ -16,12 +16,26 @@ Scripts under `scripts/processing_chain` run the full pipeline from raw COSMO-SP
 ```
 processed/
   <cs_run>/
-    lv1_tracking/    # Tobac CSVs + *_tobac_mask_xarray.nc
-    lv1_paths/       # data_<cs_run>_<exp>_<integrated|extreme|vertical>_plume_path_<qi|qs>_cell<N>.nc
+    lv1_tracking/    # Tobac CSVs + *_nf_tobac_mask_xarray.nc (tracer: size-integrated ice number)
+    lv1_paths/       # data_<cs_run>_<exp>_<integrated|extreme|vertical>_plume_path_nf_cell<N>.nc
     lv2_meteogram/   # Meteogram_<cs_run>_*.zarr
     lv3_rates/       # process_rates_exp<N>.nc
     manifests/       # run_manifest.json
 ```
+
+## LV1 tracking (Tobac)
+
+Plume tracking follows the approach in Omanovic et al. 2024 and the archive notebook `01-Generate_Tobac_Tracking_from_3D_output.ipynb`:
+
+- **Tracking field**: Difference of size-integrated ice number concentration, \(n_i^{\mathrm{feature}} = n_f^{\mathrm{flare}} - n_f^{\mathrm{ref}}\), over all diameter bins (variable `nf`). Units 1/L (per liter).
+- **Detection threshold**: Values \(\geq 1\,\mathrm{L}^{-1}\) are considered for tracking (default `--threshold 1.0`). Multi-threshold list used by Tobac: 1, 10, 100.
+- **Domain**: Flare-centred region extending two grid cells beyond the flare location; altitudes above 1500 m a.m.s.l.
+- **Tobac**: Multi-threshold feature detection (`position_threshold="extreme"`, `target="maximum"`), linking with `v_max=100` m/s, segmentation for plume voxels. Outputs: features CSV, tracks CSV, features mask CSV, segmentation mask NetCDF. Path extraction produces integrated, extreme, and vertical per-cell plume path NetCDFs.
+
+**Reference pairing (flare vs reference):** Flare and reference runs must differ **only** in emission-related parameters: `lflare`, `flare_emission`, `lflare_inp`, `lflare_ccn`, and optionally `flare_dn`, `flare_dp`, `flare_sig` (see run JSON `INPUT_ORG.sbm_par` and `INPUT_ORG.flare_sbm`). All other settings (e.g. `ishape`, domain, `runctl`) must match.
+
+- **`--ref-idx -1` (default)**: Automatically select the reference experiment that matches the chosen flare in all non-emission parameters. If no such reference exists (e.g. flare has different `ishape` than any ref), discovery fails with a clear error.
+- **`--ref-idx N`**: Use the N-th reference experiment by index (previous behaviour). Use when you have multiple refs and want to force a specific one.
 
 ## Usage
 
@@ -65,7 +79,7 @@ Optional YAML/JSON config via `--config` (e.g. `config_example.yaml`). Keys: `mo
 
 - `src/utilities/processing_paths.py`: get_runs_root, resolve_ensemble_output.
 - `src/utilities/processing_metadata.py`: git commit, provenance_attrs, Zarr-safe attr normalization.
-- `src/utilities/tracking_pipeline.py`: RunContext, discover_3d_runs, prep_tobac_input, run_tobac_tracking, extract_segmented_tracks_paths, run_plume_path_extraction.
+- `src/utilities/tracking_pipeline.py`: RunContext, discover_3d_runs, find_matching_reference, prep_tobac_input, run_tobac_tracking, extract_segmented_tracks_paths, run_plume_path_extraction; DEFAULT_TRACER_SPECS (nf), DEFAULT_THRESHOLD (1 L⁻¹), FLARE_REF_DIFF_KEYS.
 - `src/utilities/process_rates.py`: PHYSICS_GROUPS, build_proc_vars, build_rates, build_spectral_rates, build_rates_dataset, build_rates_for_experiments.
 - `src/utilities/meteogram_io.py`: build_meteogram_zarr (accepts optional `global_attrs` for provenance).
 
@@ -73,7 +87,7 @@ Optional YAML/JSON config via `--config` (e.g. `config_example.yaml`). Keys: `mo
 
 - **cs_run format**: All stages expect `cs-eriswil__YYYYMMDD_HHMMSS`. `run_chain.py` validates once; LV2 also validates. Use consistent IDs.
 - **Domain vs directory name**: LV1 builds paths as `RUN_ERISWILL_{domain}x100` (e.g. `50x40` → `50x40x100`). If your run lives under `RUN_ERISWILL_50x42x100`, pass `--domain 50x42`. LV2 finds any `RUN_ERISWILL_*x100` that contains the run.
-- **Flare/ref indices**: If you have multiple flare or reference experiments, use `--flare-idx` and `--ref-idx` in `run_lv1_tracking.py`. Out-of-range indices cause discovery to return no context (clear error).
+- **Flare/ref indices**: Use `--flare-idx` to pick which flare experiment to track. Use `--ref-idx -1` (default) to auto-select the reference that matches the flare in all non-emission params; use `--ref-idx N` to force the N-th reference. If auto fails (no matching ref, e.g. different `ishape`), discovery returns no context with a clear error.
 - **Missing run JSON**: LV1 needs `*.json` and `3D_*.nc` in the run dir. LV2 needs `{cs_run}.json` in the run dir and meteogram NetCDFs. Missing metadata yields an explicit error.
 - **Empty Zarr / no experiments**: LV3 exits with a clear message if the Zarr has no `expname` dimension or `--exp-ids` is empty.
 - **Multiple Zarrs**: LV3 prefers a non-`_dbg` Zarr when both exist under `lv2_meteogram/`.

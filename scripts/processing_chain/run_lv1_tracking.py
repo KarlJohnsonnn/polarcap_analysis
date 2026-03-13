@@ -25,6 +25,7 @@ if _src.is_dir() and str(_src) not in sys.path:
 from utilities.processing_paths import get_runs_root
 from utilities.tracking_pipeline import (
     DEFAULT_EXTRACTION_TYPES,
+    DEFAULT_THRESHOLD,
     DEFAULT_TRACER_SPECS,
     discover_3d_runs,
     run_plume_path_extraction,
@@ -39,8 +40,10 @@ def parse_args():
     p.add_argument("--cs-run", required=True, help="Run ID, e.g. cs-eriswil__20260123_180947")
     p.add_argument("--domain", default="200x160", help="Domain e.g. 50x40 or 200x160")
     p.add_argument("--flare-idx", type=int, default=0, help="Flare experiment index")
-    p.add_argument("--ref-idx", type=int, default=0, help="Reference experiment index")
-    p.add_argument("--threshold", type=float, default=1e-6, help="Tobac detection threshold")
+    p.add_argument("--ref-idx", type=int, default=-1,
+                   help="Reference experiment index; -1 = auto (match flare by non-emission params only)")
+    p.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD,
+                   help="Tobac detection threshold in 1/L (default: 1.0 = 1 per liter)")
     p.add_argument("--out", default="processed", help="Output root; <out>/<cs_run>/lv1_*")
     p.add_argument("--skip-tracking", action="store_true", help="Skip LV1a, only run LV1b path extraction")
     p.add_argument("--skip-paths", action="store_true", help="Skip LV1b, only run LV1a tracking")
@@ -59,8 +62,11 @@ def main():
         flare_idx=args.flare_idx, ref_idx=args.ref_idx, threshold=args.threshold,
     )
     if ctx is None:
-        print("No flare/ref pair found; check --root, --cs-run, --domain (and --flare-idx/--ref-idx if multiple)", file=sys.stderr)
+        print("No flare/ref pair found. With --ref-idx -1 (default) ref must match flare in all non-emission params.", file=sys.stderr)
+        print("Check --root, --cs-run, --domain, --flare-idx and --ref-idx.", file=sys.stderr)
         sys.exit(1)
+    if args.ref_idx < 0:
+        print(f"  Reference auto-selected: {ctx.ref_exp_name} (matches flare {ctx.flare_exp_name} in non-emission params)")
     out_root = Path(args.out) / args.cs_run
     lv1_tracking_dir = out_root / "lv1_tracking"
     lv1_paths_dir = out_root / "lv1_paths"
