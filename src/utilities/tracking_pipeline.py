@@ -384,9 +384,10 @@ def extract_segmented_tracks_paths(
             n_plume_path = n_plume.sel(
                 time=xr.DataArray(path_times, dims="path"), method="nearest"
             )
-            cell_ds = ds_sub.sum(["altitude", "latitude", "longitude"]) / np.maximum(
-                n_plume_path.values, 1
+            divisor = xr.DataArray(
+                np.maximum(n_plume_path.values, 1), dims=["path"]
             )
+            cell_ds = ds_sub.sum(["altitude", "latitude", "longitude"]) / divisor
             cell_ds["temperature"] = xr.DataArray(
                 ds_sub["t"].mean(["altitude", "latitude", "longitude"]).values, dims="path"
             )
