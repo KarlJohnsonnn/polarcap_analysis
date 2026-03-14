@@ -201,6 +201,8 @@ def build_fixed_legend(
     *,
     ncol: int = 6,
     bbox_y: float = -0.02,
+    handletextpad: float = 0.8,
+    columnspacing: float = 1.4,
 ) -> None:
     """Fixed-size legend showing all processes; active = filled+hatched, inactive = hollow outline."""
     import matplotlib.patches as mpatches
@@ -225,7 +227,7 @@ def build_fixed_legend(
         loc="lower center", bbox_to_anchor=(0.5, bbox_y),
         ncol=min(ncol, max(1, len(handles))),
         frameon=False, handlelength=1.6, handleheight=1.0,
-        handletextpad=0.5, columnspacing=1.0,
+        handletextpad=handletextpad, columnspacing=columnspacing,
     )
 
 
