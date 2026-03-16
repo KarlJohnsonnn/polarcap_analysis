@@ -69,8 +69,8 @@ def make_synthetic_rates(n_time=180, n_height=52, n_station=2):
     return {
         0: {
             'exp_label': 'synthetic_demo',
-            'unit_N': r'cm$^{-3}$ s$^{-1}$',
-            'unit_Q': r'g cm$^{-3}$ s$^{-1}$',
+            'unit_N': r'm$^{-3}$ s$^{-1}$',
+            'unit_Q': r'g m$^{-3}$ s$^{-1}$',
             'rates_N_liq': rates,
         }
     }
@@ -258,6 +258,17 @@ def load_process_budget_data(
         rates_by_exp[eid]["spec_rates_Q_W_pos"], rates_by_exp[eid]["spec_rates_Q_W_neg"] = _build_pos_neg("Q", "W")
         rates_by_exp[eid]["spec_rates_Q_F_pos"], rates_by_exp[eid]["spec_rates_Q_F_neg"] = _build_pos_neg("Q", "F")
 
+        # Spectral concentrations
+        if rho is not None:
+            if "NW" in ds_exp.data_vars:
+                rates_by_exp[eid]["spec_conc_N_W"] = ds_exp["NW"] * rho
+            if "NF" in ds_exp.data_vars:
+                rates_by_exp[eid]["spec_conc_N_F"] = ds_exp["NF"] * rho
+            if "QW" in ds_exp.data_vars:
+                rates_by_exp[eid]["spec_conc_Q_W"] = ds_exp["QW"] * rho * 1000.0
+            if "QF" in ds_exp.data_vars:
+                rates_by_exp[eid]["spec_conc_Q_F"] = ds_exp["QF"] * rho * 1000.0
+
     _raw_expnames = [v.decode() if isinstance(v, bytes) else str(v) for v in ds.expname.values]
     if is_server():
         _config_dir = root / "ensemble_output"
@@ -310,7 +321,7 @@ def _apply_cfg_defaults(cfg: dict) -> None:
     cfg.setdefault("plot_stn_ids", _cfg_get(cfg, "selection", "plot_station_ids", default=[0, 1, 2]))
     cfg.setdefault("exp_idx", _cfg_get(cfg, "selection", "experiment_index_default", default=1))
     cfg.setdefault("stn_idx", _cfg_get(cfg, "selection", "station_index_default", default=0))
-    seed_utc = _cfg_get(cfg, "time", "seed_start_utc", default="2023-01-25T12:30:00")
+    seed_utc = _cfg_get(cfg, "time", "seed_start", default=_cfg_get(cfg, "time", "seed_start_utc", default="2023-01-25T12:30:00"))
     cfg.setdefault("seed_start", np.datetime64(seed_utc))
     cfg.setdefault("time_coarsen", _cfg_get(cfg, "time", "coarsen", default="30s"))
     cfg.setdefault("rate_floor", float(_cfg_get(cfg, "time", "rate_floor", default=1e-18)))

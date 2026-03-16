@@ -82,36 +82,38 @@ def _draw_bars(ax, d, widths, order, net_merged, cfg_plot):
 def _draw_lines(ax, d, order, net_merged, cfg_plot):
     """Line + fill_between: white underlay, then fill (alpha 0.25), then colored line (alpha 0.7) on top."""
     any_data = False
-    lw = cfg_plot.get("line_linewidth", 0.9)
     fill_alpha = cfg_plot.get("fill_alpha", 0.25)
     line_alpha = cfg_plot.get("line_alpha", 0.7)
     white_lw = cfg_plot.get("rate_white_linewidth", 2.5)
+    color_lw = cfg_plot.get("rate_color_linewidth", 0.8)
+    black_lw = cfg_plot.get("rate_black_linewidth", 0.5)
     for p in order:
         c, net_arr = net_merged[p]
         if not np.any(np.abs(net_arr) > 0):
             continue
         any_data = True
         ax.plot(d, net_arr, color="white", linewidth=white_lw, linestyle="-", zorder=1)
-        ax.fill_between(d, 0, net_arr, color=c, alpha=fill_alpha, linewidth=0, zorder=2)
-        ax.plot(d, net_arr, color=c, linewidth=lw, linestyle="-", alpha=line_alpha, zorder=3)
+        ax.fill_between(d, 0, net_arr, color=c, alpha=fill_alpha, linewidth=color_lw, zorder=2)
+        ax.plot(d, net_arr, color="black", linewidth=black_lw, linestyle="-", alpha=line_alpha, zorder=3)
     return any_data
 
 
 def _draw_steps(ax, d, order, net_merged, cfg_plot):
     """Step + fill_between: white underlay, then fill (alpha 0.25), then colored step line (alpha 0.7) on top."""
     any_data = False
-    lw = cfg_plot.get("line_linewidth", 0.9)
     fill_alpha = cfg_plot.get("fill_alpha", 0.25)
     line_alpha = cfg_plot.get("line_alpha", 0.7)
     white_lw = cfg_plot.get("rate_white_linewidth", 2.5)
+    color_lw = cfg_plot.get("rate_color_linewidth", 0.8)
+    black_lw = cfg_plot.get("rate_black_linewidth", 0.5)
     for p in order:
         c, net_arr = net_merged[p]
         if not np.any(np.abs(net_arr) > 0):
             continue
         any_data = True
         ax.step(d, net_arr, color="white", where="mid", linewidth=white_lw, zorder=1)
-        ax.fill_between(d, 0, net_arr, color=c, alpha=fill_alpha, step="mid", linewidth=0, zorder=2)
-        ax.step(d, net_arr, color=c, where="mid", linewidth=lw, alpha=line_alpha, zorder=3)
+        ax.fill_between(d, 0, net_arr, color=c, alpha=fill_alpha, step="mid", linewidth=color_lw, zorder=2)
+        ax.step(d, net_arr, color="black", where="mid", linewidth=black_lw, alpha=line_alpha, zorder=3)
     return any_data
 
 
@@ -124,31 +126,30 @@ def _draw_phase(ax, plot_style, d, widths, order, net_map, cfg_plot):
     return _draw_bars(ax, d, widths, order, net_map, cfg_plot)
 
 
-def _format_psd_ax(ax, *, row, col, n_cols, xlim, ylim, cfg_plot, conc_unit_label) -> None:
+def _format_psd_ax(ax, *, row, col, n_cols, xlim, ylim, grid_linewidth, psd_yscale, conc_unit_label, station_idx, station_labels, spec_label) -> None:
     """Format the compact shared PSD strip axis above each liquid/ice pair."""
-    from matplotlib.ticker import FuncFormatter
+    from matplotlib.ticker import FuncFormatter, LogLocator
 
     ax.set_xscale("log")
-    ax.set_yscale(cfg_plot["psd_yscale"])
     ax.set_xlim(*xlim)
-    ax.set_ylim(*ylim)
-    ax.grid(True, which="major", linestyle="--", linewidth=cfg_plot["grid_linewidth"], color="k", alpha=0.18)
     ax.set_axisbelow(True)
-    ax.tick_params(which="both", direction="out", labelbottom=False, bottom=False)
-    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:g}"))
-    ax.yaxis.set_ticks_position("right")
-    ax.tick_params(axis="y", labelsize="xx-small")
-    ax.spines["left"].set_visible(False)
     ax.spines["bottom"].set_visible(False)
-    ticks = [t for t in ax.get_yticks() if np.isfinite(t)]
-    labels = [f"{t:g}" if i % 2 == 0 else "" for i, t in enumerate(ticks)]
-    ax.set_yticks(ticks)
-    ax.set_yticklabels(labels)
-    if col != n_cols - 1:
-        ax.tick_params(labelright=False)
-    elif row == 0:
-        ax.set_ylabel(conc_unit_label, fontsize="xx-small")
-        ax.yaxis.set_label_position("right")
+    ax.spines["top"].set_visible(False)
+    ax.set_yscale(psd_yscale)
+    ax.set_ylim(*ylim)
+    if psd_yscale == "log":
+        ax.yaxis.set_major_locator(LogLocator(base=10.0))
+        ax.yaxis.set_minor_locator(LogLocator(base=10.0, subs=np.arange(2, 10) * 0.1))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:g}"))
+    ax.grid(True, which="major", linestyle="--", linewidth=grid_linewidth, color="k", alpha=0.18)
+    if psd_yscale == "log":
+        ax.grid(True, which="minor", linestyle=":", linewidth=grid_linewidth * 0.7, color="k", alpha=0.12)
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:g}"))
+    ax.tick_params(which="both", direction="out", labelbottom=False, bottom=False)
+    ax.set_ylabel(conc_unit_label, fontsize="xx-small")
+    ax.yaxis.set_ticks_position("right")
+    ax.yaxis.set_label_position("right")
+    ax.tick_params(axis="y", labelsize="xx-small")
     ax.text(
         0.02,
         0.84,
@@ -160,7 +161,8 @@ def _format_psd_ax(ax, *, row, col, n_cols, xlim, ylim, cfg_plot, conc_unit_labe
         fontstyle="italic",
         color="0.45",
     )
-
+    if row == 0:
+        ax.set_title(stn_label(station_idx, station_labels))
 
 def _add_psd_legend(ax, cfg_plot) -> None:
     """Add small legend for Liquid/Ice PSD curves on the PSD axis."""
@@ -248,14 +250,14 @@ def plot_spectral_waterfall(
         constrained_layout=True,
     )
     fig.set_constrained_layout_pads(h_pad=2 * MM)
-    gs = fig.add_gridspec(n_hl, n_cols, hspace=0.12, wspace=0.08)
+    gs = fig.add_gridspec(n_hl, n_cols, hspace=0.005, wspace=0.005)
 
     axes_psd = np.empty((n_hl, n_cols), dtype=object)
     axes_liq = np.empty((n_hl, n_cols), dtype=object)
     axes_ice = np.empty((n_hl, n_cols), dtype=object)
     for r in range(n_hl):
         for c in range(n_cols):
-            sub = gs[r, c].subgridspec(3, 1, height_ratios=[1.05, 2.6, 2.6], hspace=0.008)
+            sub = gs[r, c].subgridspec(3, 1, height_ratios=[1.5, 2.3, 2.3], hspace=0.005)
             axes_psd[r, c] = fig.add_subplot(sub[0])
             axes_liq[r, c] = fig.add_subplot(sub[1], sharex=axes_psd[r, c])
             axes_ice[r, c] = fig.add_subplot(sub[2], sharex=axes_psd[r, c])
@@ -289,8 +291,12 @@ def plot_spectral_waterfall(
                     n_cols=n_cols,
                     xlim=xlim,
                     ylim=psd_ylim,
-                    cfg_plot=cfg_plot,
+                    grid_linewidth=cfg_plot.get("grid_linewidth", 0.15),
+                    psd_yscale=cfg_plot.get("psd_yscale", "log"),
                     conc_unit_label=conc_unit_label,
+                    station_idx=station_idx,
+                    station_labels=station_labels,
+                    spec_label=spec_label,
                 )
             else:
                 ax_psd.set_visible(False)
@@ -323,6 +329,7 @@ def plot_spectral_waterfall(
                             psd_color = cfg_plot["psd_color_W"] if phase == "liq" else cfg_plot["psd_color_F"]
                             psd_alpha = cfg_plot.get("psd_fill_alpha", 0.4)
                             psd_floor = np.full_like(d, max(psd_ylim[0], np.finfo(float).tiny), dtype=float)
+                            ax_psd.step(d, psd_floor, where="mid", color='white', alpha=psd_alpha, linewidth=cfg_plot.get("psd_white_linewidth", 2.0))
                             ax_psd.fill_between(
                                 d,
                                 psd_floor,
@@ -330,10 +337,10 @@ def plot_spectral_waterfall(
                                 step="mid",
                                 color=psd_color,
                                 alpha=psd_alpha,
-                                linewidth=0,
+                                linewidth=1.2,
                             )
-                            olw = cfg_plot.get("psd_outline_linewidth", 0.8)
-                            ax_psd.step(d, conc_arr, where="mid", color=psd_color, alpha=psd_alpha, linewidth=olw)
+                            ax_psd.step(d, conc_arr, where="mid", color='black', alpha=1.0, linewidth=cfg_plot.get("psd_black_linewidth", 0.8))
+                        
             if cfg_plot.get("show_psd_twin", False):
                 _add_psd_legend(ax_psd, cfg_plot)
 
@@ -402,8 +409,8 @@ def _format_ax(ax, *, phase, row, col, n_hl, n_cols, xlim, ylim, linthresh,
 
     if phase == "ice" and row == n_hl - 1:
         ax.set_xlabel("Diameter [µm]")
-    if phase == "liq" and row == 0:
-        ax.set_title(stn_label(station_idx, station_labels) if n_cols > 1 else spec_label)
+    # if phase == "liq" and row == 0:
+    #     ax.set_title(stn_label(station_idx, station_labels) if n_cols > 1 else spec_label)
     if col == 0:
         ax.set_ylabel(f"[{unit_label}]" if normalize_mode == "none" else "Rel. [-]", fontsize="x-small")
     if phase == "liq":
@@ -442,10 +449,6 @@ def _waterfall_cfg(cfg_yaml: dict[str, Any]) -> dict[str, Any]:
         "xlim_F": (0.001, 4e3),
         "ylim_W": (-1e1, 1e1),
         "ylim_F": (-1e1, 1e1),
-        "psd_ylim_W": (1e-12, 1.0),
-        "psd_ylim_F": (1e-12, 1.0),
-        "psd_xlim_W": (0.001, 4e3),
-        "psd_xlim_F": (0.001, 4e3),
         "bar_edge_color": "black",
         "bar_edge_linewidth": 0.35,
         "bar_width_frac_merged": 0.95,
@@ -462,13 +465,20 @@ def _waterfall_cfg(cfg_yaml: dict[str, Any]) -> dict[str, Any]:
         "fill_alpha": 0.25,
         "line_alpha": 0.7,
         "rate_white_linewidth": 2.0,
+        "rate_color_linewidth": 0.8,
+        "rate_black_linewidth": 0.5,
         "show_psd_twin": True,
         "psd_color_W": "steelblue",
         "psd_color_F": "sienna",
         "psd_fill_alpha": 0.4,         # 0.25 was too faint; outline uses same alpha
-        "psd_outline_linewidth": 0.8, # thin step outline at fill alpha to show PSD shape
-        "psd_zorder": 0,
+        "psd_color_linewidth": 1.2, # thin step outline at fill alpha to show PSD shape
+        "psd_black_linewidth": 0.5,
+        "psd_white_linewidth": 2.0,
         "psd_yscale": "log",
+        "psd_ylim_W": (1e-10, 1.0),
+        "psd_ylim_F": (1e-10, 1.0),
+        "psd_xlim_W": (0.001, 4e3), 
+        "psd_xlim_F": (0.001, 4e3),
         "show_proc_labels": "legend",
     }
     cfg_raw = cfg_yaml.get("plotting", {}).get("spectral_waterfall", {})
@@ -613,11 +623,9 @@ def main() -> None:
     parser.add_argument("--linthresh-w", type=float, default=None, help="Symlog linear threshold for liquid axis (e.g. 1e-9).")
     parser.add_argument("--linthresh-f", type=float, default=None, help="Symlog linear threshold for ice axis.")
     parser.add_argument("--linscale", type=float, default=None, help="Symlog linscale (e.g. 0.01).")
-    parser.add_argument("--xlim-w", action=_MinMaxAction, default=None,
-                        help="X-axis limits liquid: MIN MAX or MIN,MAX (e.g. --xlim-w 0.1 4000 or --xlim-w=0.1,4000).")
+    parser.add_argument("--xlim-w", action=_MinMaxAction, default=None, help="X-axis limits liquid: MIN MAX or MIN,MAX (e.g. --xlim-w 0.1 4000 or --xlim-w=0.1,4000).")
     parser.add_argument("--xlim-f", action=_MinMaxAction, default=None, help="X-axis limits ice.")
-    parser.add_argument("--ylim-w", action=_MinMaxAction, default=None,
-                        help="Y-axis limits liquid: MIN MAX or MIN,MAX (e.g. --ylim-w -0.01 0.01).")
+    parser.add_argument("--ylim-w", action=_MinMaxAction, default=None, help="Y-axis limits liquid: MIN MAX or MIN,MAX (e.g. --ylim-w -0.01 0.01).")
     parser.add_argument("--ylim-f", action=_MinMaxAction, default=None, help="Y-axis limits ice.")
     parser.add_argument("--psd-ylim-w", action=_MinMaxAction, default=None, help="PSD twin Y-axis limits liquid.")
     parser.add_argument("--psd-ylim-f", action=_MinMaxAction, default=None, help="PSD twin Y-axis limits ice.")
@@ -661,12 +669,16 @@ def main() -> None:
     if args.linscale is not None:
         sw_cfg["linscale"] = float(args.linscale)
     if args.xlim_w is not None:
+        print(f"args.xlim_w: {args.xlim_w}")
         sw_cfg["xlim_W"] = args.xlim_w[0]
     if args.xlim_f is not None:
+        print(f"args.xlim_f: {args.xlim_f}")
         sw_cfg["xlim_F"] = args.xlim_f[0]
     if args.ylim_w is not None:
+        print(f"args.ylim_w: {args.ylim_w}")
         sw_cfg["ylim_W"] = args.ylim_w[0]
     if args.ylim_f is not None:
+        print(f"args.ylim_f: {args.ylim_f}")
         sw_cfg["ylim_F"] = args.ylim_f[0]
     if args.psd_ylim_w is not None:
         sw_cfg["psd_ylim_W"] = args.psd_ylim_w[0]
