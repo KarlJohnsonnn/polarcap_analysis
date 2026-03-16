@@ -14,6 +14,7 @@ Use --skip-* to skip stages; --overwrite to recompute existing outputs.
 Usage:
   python run_chain.py --cs-run cs-eriswil__20260123_180947
   python run_chain.py --cs-run cs-eriswil__20260123_180947 --skip-tracking --out processed
+  python run_chain.py --root $CS_RUNS_DIR --cs-run cs-eriswil__20260314_103039 --skip-tracking --out processed
 """
 
 from __future__ import annotations

@@ -1,0 +1,24 @@
+# Example config for processing_chain (YAML). Not required; CLI flags override.
+# Paths can be absolute or relative to cwd.
+# model_data_root defaults to environment variable CS_RUNS_DIR if set (directory
+# containing RUN_ERISWILL_200x160x100/, RUN_ERISWILL_50x42x100/, etc.).
+
+model_data_root: "${CS_RUNS_DIR}/RUN_ERISWILL_50x40x100/"  # expanded via os.path.expandvars; or use absolute path
+output_root: "processed"
+# Ensemble run ID validation: regex pattern for --cs-run (default below)
+cs_run_pattern: "^cs-eriswil__\\d{8}_\\d{6}$"
+# cs_run: "cs-eriswil__20260123_180947"
+domain: "50x40"
+run_lv1a_tracking: true
+run_lv1b_paths: true
+run_lv2_meteogram: true
+run_lv3_rates: true
+overwrite: false
+debug: false
+
+# Optional: when loading Meteogram zarr in process_budget_data / run_spectral_waterfall.
+# rechunk_on_open: rechunk in memory for current machine (server vs laptop). Default false.
+# When true, optional: memory_fraction, min_chunk_mb, max_chunk_mb, target_chunk_mb (see utilities.compute_fabric).
+zarr:
+  rechunk_on_open: false
+

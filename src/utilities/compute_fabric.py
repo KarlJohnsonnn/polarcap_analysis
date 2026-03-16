@@ -432,7 +432,7 @@ def allocate_resources(
     dashboard_address = cluster.scheduler_address
     remote_dashboard = f"http://{dashboard_address.split('//')[-1].split(':')[0]}:{port}"
     print(f"Remote dashboard address: {remote_dashboard}")
-    print(f"Setup ssh port forwarding: ssh -L {port}:{dashboard_address.split('//')[-1].split(':')[0]}:{port} username@levante.dkrz.de")
+    print(f"Setup ssh port forwarding: ssh -L {port}:{dashboard_address.split('//')[-1].split(':')[0]}:{port} lev")
     print(f"Local dashboard address: http://localhost:{port}")
     return cluster, client
 

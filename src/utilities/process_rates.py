@@ -16,8 +16,8 @@ import xarray as xr
 
 from utilities.processing_metadata import add_provenance_to_dataset, git_head
 
-# Conversion factors: raw [kg⁻¹ s⁻¹] × ρ → [cm⁻³ s⁻¹]; raw [kg kg⁻¹ s⁻¹] × ρ → [g cm⁻³ s⁻¹]
-_CONV = {"N": 1e-6, "Q": 1e-3}
+# Conversion factors: raw [kg⁻¹ s⁻¹] × ρ → [m⁻³ s⁻¹]; raw [kg kg⁻¹ s⁻¹] × ρ → [g m⁻³ s⁻¹]
+_CONV = {"N": 1.0, "Q": 1e3}
 
 # Physics-aware process groups: group -> [(BASE_NAME, SPECTRUM, KIND), ...]
 # SPECTRUM: W = warm/liquid, F = frozen/ice. KIND: N = number, Q = mass.
@@ -406,8 +406,8 @@ def build_rates_for_experiments(
     """
     rates_by_exp: Dict[int, Dict] = {}
     rates_ds_by_exp: Dict[int, xr.Dataset] = {}
-    unit_N = r"cm$^{-3}$ s$^{-1}$"
-    unit_Q = r"g cm$^{-3}$ s$^{-1}$"
+    unit_N = r"m$^{-3}$ s$^{-1}$"
+    unit_Q = r"g m$^{-3}$ s$^{-1}$"
     for eid in exp_ids:
         ds_exp = ds.isel(expname=eid)
         if "HMLd" in ds_exp.coords:
@@ -473,6 +473,32 @@ def panel_process_values(
         return {}
     vals = np.asarray(stacked.mean(dim="time").isel(bins=bin_slice).values)
     return {p: vals[i] for i, p in enumerate(procs)}
+
+
+def panel_concentration_profile(
+    spec_conc_da: Optional[xr.DataArray],
+    station_idx: int,
+    h0: float,
+    h1: float,
+    twindow: slice,
+    bin_slice: slice,
+) -> np.ndarray:
+    """Time-mean spectral concentration profile over a height/station/time window."""
+    if spec_conc_da is None:
+        return np.zeros(0)
+    
+    sliced = (
+        spec_conc_da.isel(station=station_idx)
+        .sel(height_level=slice(h0, h1))
+        .mean(dim="height_level")
+        .sel(time=twindow)
+    )
+    if sliced.sizes.get("time", 0) == 0:
+        return np.zeros(0)
+    
+    vals = np.asarray(sliced.mean(dim="time").isel(bins=bin_slice).values)
+    return _clean_array(vals)
+
 
 
 def merge_liq_ice_net(

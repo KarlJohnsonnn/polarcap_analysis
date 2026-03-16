@@ -158,6 +158,7 @@ from utilities.process_rates import (
     tendency_to_rate,
     get_process_display_name,
     panel_process_values,
+    panel_concentration_profile,
     merge_liq_ice_net,
     normalize_net_stacks,
 )

@@ -369,7 +369,7 @@ contact freezing variables; `kollnfrodi`/`kollqfrodi` are riming (see above).
 | Parameter | Dimension | Description | Unit |
 |-----------|-----------|-------------|------|
 | `dqffrier` | (jmax, smax) | Ice core mass gain from refreezing of liquid shell on frozen drops | kg kg⁻¹ s⁻¹ |
-
+note that there is no mass gain in the frozen spectrum since the liquid shell is already part of the frozen spectrum
 ---
 
 ## Budget Equations (from cloudxd.f90)

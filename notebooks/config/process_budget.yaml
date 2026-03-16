@@ -25,7 +25,7 @@ selection:
 
 time:
   seed_start: "2023-01-25T12:28:00"
-  coarsen: "30s"
+  # coarsen: "30s"
   rate_floor: 1.0e-18
   # Add time window offsets in minutes relative to seed_start_utc
   window_offsets_min: [0.0, 0.25, 0.5, 1.0, 2.5, 5.0, 7.5]
@@ -82,37 +82,44 @@ plotting:
       34.17, 34.33, 34.50, 34.67, 34.83, 35.00
     ]
   spectral_waterfall:
+    plot_style: steps      # or bars
+    yscale: symlog         # or symlog, log
+    line_linewidth: 1.5
+    fill_alpha: 0.25
+    line_alpha: 0.7
+    rate_white_linewidth: 2.5
     kind: "Q"        # "N" (number) or "Q" (mass)
     normalize_mode: "none"  # "none", "bin" (per-bin fractions), "panel" (panel max-abs=1)
-    linthresh_W: 1.0e-6
-    linthresh_F: 1.0e-6
+    show_psd_twin: true
+    show_proc_labels: "legend"   # or "cmap"
+    psd_color_W: "mediumblue"
+    psd_color_F: "darkorange"
+    psd_fill_alpha: 0.4
+    psd_outline_linewidth: 0.8
+    psd_yscale: "log"
+    linthresh_W: 1.0e-09
+    linthresh_F: 1.0e-09
     linscale: 1.0
     xlim_W: [0.001, 4000.0]
     xlim_F: [0.001, 4000.0]
-    ylim_W: [-100.0, 100.0]
-    ylim_F: [-100.0, 100.0]
+    ylim_W: [-1.0, 1.0]
+    ylim_F: [-1.0, 1.0]
+    psd_ylim_W: [1.0e-12, 1.0]
+    psd_ylim_F: [1.0e-12, 1.0]
+    psd_xlim_W: [0.001, 4000.0]
+    psd_xlim_F: [0.001, 4000.0]
     bar_edge_color: "black"
     bar_edge_linewidth: 0.5
     bar_width_frac_merged: 0.95
-    pos_ice_alpha: 0.8
-    pos_liq_alpha: 0.6
-    neg_ice_alpha: 0.8
-    neg_liq_alpha: 0.6
-    ice_hatch: "...."
-    liq_hatch: null
-    rate_linewidth: 0.5
-    rate_linewidth_neg: 0.5
-    rate_fill_linewidth: 0.9
-    rate_edge_linewidth: 0.2
+    pos_alpha: 0.6
+    neg_alpha: 0.6
     grid_linewidth: 0.15
     grid_alpha: 0.5
     zero_linewidth: 0.4
     panel_bbox_alpha: 0.35
-    stacked_bars: True
-    merge_liquid_ice: True
 
   render:
-    workers: 16
+    workers: 8
     frame_dpi: 300
     frame_png_compress: 1
     mp4_fps: 5
