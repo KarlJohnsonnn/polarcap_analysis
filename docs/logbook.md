@@ -1,5 +1,41 @@
 # Logbook
 
+
+## 2026-03-16: Spectral waterfall — seed_start, PSD y-limits, log-spaced ticks
+
+**Script:** `scripts/processing_chain/run_spectral_waterfall.py`. **Config:** `time.seed_start` in process_budget YAML. **Utilities:** `process_budget_data.py`.
+
+- **First frame time / seed_start:** The first frame was always 12:30 regardless of `seed_start` in the YAML. Two fixes: (1) In `run_spectral_waterfall.py`, `_build_time_window` used `cfg_loaded[""]` instead of `cfg_loaded["seed_start"]`; corrected to use `seed_start` from the loaded config. (2) In `process_budget_data.py`, `_apply_cfg_defaults` only read `time.seed_start_utc` (default 12:30); it now reads `time.seed_start` first, then `time.seed_start_utc`, so YAML `seed_start: "2023-01-25T12:25:00"` is respected and the first frame matches.
+- **PSD y-limits and ticks:** PSD strip y-axis showed 0.01–100 instead of configured `psd_ylim_W`/`psd_ylim_F` (e.g. [1e-10, 1]). Cause: `_format_psd_ax` called `get_yticks()` before `set_ylim()`, then reapplied those ticks after `set_ylim()`, so the axis expanded to the old tick range. Fix: set scale and `set_ylim(*ylim)` first; for `psd_yscale == "log"` use `LogLocator(base=10)` for major and minor ticks so limits are honoured and y-ticks are uniformly log-spaced; enable minor grid for clearer log grid lines. Removed debug prints (`safety check psd_ylim`, `args.psd_ylim_*`).
+
+
+## 2026-03-13: Spectral waterfall (View D) — liq/ice split axes, units, ylim fix, outline
+
+**Script:** `scripts/processing_chain/run_spectral_waterfall.py`. **Config:** `notebooks/config/process_budget.yaml`. **Utilities:** `process_rates.py`, `process_budget_data.py`.
+
+- **Liquid vs ice on separate axes:** Each height-layer panel is split into upper (liquid) and lower (ice) sub-axes via nested `GridSpec`; shared x-axis, independent ylim/linthresh per phase (`ylim_W`/`ylim_F`, `linthresh_W`/`linthresh_F`). No more merged symlog stack; bars/lines/steps unchanged.
+- **Y-axis limits fix:** YAML values like `1e1` were parsed as strings → `ax.set_ylim("-1e1","1e1")` fell back to (0,1). Config now coerces xlim/ylim/linthresh to `float` in `_waterfall_cfg`; YAML uses decimal form (e.g. `1.0e-2`) where needed. Symlog negative range visible.
+- **Units g cm⁻³ s⁻¹ → g m⁻³ s⁻¹:** `_CONV` in `process_rates.py` set to `N: 1.0`, `Q: 1e3`; unit strings to `m⁻³ s⁻¹` / `g m⁻³ s⁻¹`. Same in `process_budget_data.py` synthetic. YAML ylim/linthresh adjusted for new scale (e.g. ylim ±0.01, linthresh 1e-6).
+- **Layout:** Reduced vertical gap between liquid/ice pairs (`subgridspec` `hspace` 0.08 → 0.02). Phase labels “Liquid”/“Ice” on each sub-axis; height-range annotation on liquid only.
+- **Overlap clarity:** Thin black outline drawn on top of colored line/step curves (`outline_linewidth`, default 0.25) so overlapping processes are easier to distinguish. Bars already use `bar_edge_color`/`bar_edge_linewidth`.
+
+
+## 2026-03-13: Process budget notebook (05) — multi-exp/station, display names, immersion freezing
+
+### Key changes
+
+
+
+### Scope
+- **Notebook `05-process-budget.ipynb`**: plot selection for multiple experiments and stations without re-running from the top; process display names (condensation vs deposition); immersion freezing visible in both liquid sinks and ice sources; summary table by station and optional stat selection; base64 image outputs removed.
+- **Style/utilities**: `DEPOSITION_NUCLEATION` added to `PROC_COLORS` in `style_profiles.py` for deposition-nucleation (aerosol→ice) when present in data.
+- **Process labels:** `PROCESS_DISPLAY_NAMES` and `get_process_display_name(grp, spectrum)` so liquid/ice views show "Condensational growth (liq)", "Depositional growth (ice)", "Deposition (on ice)". Legend uses (process, spectrum) for distinct labels. Optional `DEPOSITION_NUCLEATION` (deponi/depoqia) when present in Zarr.
+- **Immersion freezing:** Model outputs it as liquid loss (W) only. Ice budget now includes the ice-gain side (`rates_N_ice["IMMERSION_FREEZING"] = -rates_N_liq["IMMERSION_FREEZING"]`) so it appears in Ice – Sources after seeding; unchanged in Liquid – Sinks.
+- **View A:** Stacked area liquid/ice with mode `fraction` | `rate`; sinks left (inverted x), sources right; time in minutes since seeding start.
+- **View B:** Single figure, 4×2 (Liquid N/Q, Ice N/Q × Sinks | Sources), sinks left with inverted x-axis.
+- **Summary table:** `budget_summary(..., station_ids=None, stat_names=None, spectrum=None)` prints four tables (Mean, Mean(+), Mean(-), %pos) with stations as columns; `BUDGET_STAT_NAMES` and `stat_names` kwarg to choose which tables to print; display names when `spectrum` is set.
+- **Notebook hygiene:** All base64 image outputs stripped from cells to avoid truncation and reduce file size.
+
 ## 2026-03-07: Archive obsolete notebooks and scripts
 
 Moved obsolete notebooks and scripts to `notebooks/archive/obsolete/` so active thematic dirs only contain in-use material. Stopped tracking `processed/` (already gitignored; removed stray manifest). Docs updated to point to archive paths for 02/03 cloudlab comparison notebooks.
