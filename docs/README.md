@@ -18,7 +18,7 @@
   - New reusable helpers should be added here first, then used in notebooks.
 
 - `web/cs_data_viewer/`
-  - Browser-based viewer files (`cosmo-viewer.html`, manifest tools).
+  - Browser-based QuicklookBrowser files (`cosmo-viewer.html`, manifest tools, helper server).
 
 - `docs/`
   - Project notes, workflow docs, and reproducibility notes.

@@ -28,6 +28,19 @@ This repo bundles:
 2. Run one-time notebook bootstrap setup: `bash scripts/ipython_startup/install.sh`.
 3. Run notebooks from `notebooks/` using kernels that include dependencies from `src/utilities`.
 
+## QuicklookBrowser
+
+`QuicklookBrowser` is a lightweight browser for quicklook plots and videos in
+`scripts/processing_chain/output` and `notebooks/output`.
+
+Use it like this:
+1. Run `python web/cs_data_viewer/generate_manifest.py` from the repo root.
+2. Start and open it with `./qlb`.
+
+It will try to load `web/cs_data_viewer/manifest.json` automatically, sort the
+indexed media by modification time with newest files first, and can refresh the
+manifest from the browser when the helper server is running.
+
 ## Notes
 
 - Data folders are intentionally included to keep analyses reproducible.

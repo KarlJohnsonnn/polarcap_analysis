@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cosmo-Specs Data Viewer</title>
+<title>QuicklookBrowser</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -701,54 +701,159 @@
     text-align: center;
     margin-top: 12px;
   }
+
+  .setup-actions,
+  .helper-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .setup-box .btn-secondary,
+  .helper-panel .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .setup-box .btn-secondary:hover,
+  .helper-panel .btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .helper-panel {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    width: 360px;
+    background: rgba(18, 21, 28, 0.96);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    z-index: 2500;
+    padding: 16px;
+    backdrop-filter: blur(10px);
+  }
+
+  .helper-panel.hidden { display: none; }
+
+  .helper-panel h3 {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .helper-panel p {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+
+  .helper-panel label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .helper-panel input[type="text"] {
+    width: 100%;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+  }
+
+  .helper-panel input[type="text"]:focus { border-color: var(--accent); }
+
+  .helper-status {
+    min-height: 16px;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
 </style>
 </head>
 <body>
 
 <!-- Setup Modal -->
-<div class="setup-modal" id="setupModal">
+<div class="setup-modal hidden" id="setupModal">
   <div class="setup-box">
-    <h2>Cosmo-Specs <span style="color:var(--accent)">Viewer</span></h2>
+    <h2>Quicklook<span style="color:var(--accent)">Browser</span></h2>
     <p>
-      Load your output figures by selecting folders from disk, or paste a path
-      if running via a local server. Supports PNG, MP4, and GIF files from
-      <code>figures/</code> and <code>QL-*/</code> directories.
+      QuicklookBrowser opens the latest quicklooks automatically when a manifest
+      is available. If the manifest is missing or stale, set the repository
+      root below and refresh it directly from the browser helper server.
     </p>
 
-    <label>Option 1 — Select Folder(s)</label>
-    <div class="drop-zone" id="dropZone" onclick="document.getElementById('folderInput').click()">
-      <div class="drop-icon">📂</div>
-      Drop folder here or click to browse
-      <input type="file" id="folderInput" webkitdirectory multiple style="display:none">
+    <label>Repository Root</label>
+    <input type="text" id="repoRootInput" placeholder="/absolute/path/to/polarcap_analysis">
+
+    <div class="setup-actions">
+      <button class="btn-primary" id="refreshManifestBtn">Refresh Manifest</button>
+      <button class="btn-secondary" id="retryLoadBtn">Retry Load</button>
     </div>
 
-    <div class="or-divider">or</div>
-
-    <label>Option 2 — Local base path (if served via http-server)</label>
-    <input type="text" id="basePathInput" placeholder="/path/to/pngs/" value="http://localhost:8877/python/plotting_scripts">
-
-    <button class="btn-primary" id="launchBtn">Launch Viewer</button>
-    <div class="demo-note">Tip: run <code>python -m http.server 8000</code> in your data directory, then use <code>http://localhost:8000</code> as base path.</div>
+    <p class="demo-note">
+      Serve with <code>python web/cs_data_viewer/serve_quicklookbrowser.py</code>
+      for one-click refresh. The manifest indexes PNG, MP4, and GIF files from
+      <code>scripts/processing_chain/output</code> and
+      <code>notebooks/output</code>.
+    </p>
+    <div class="helper-status" id="setupStatus"></div>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('folderInput').click()">
+      <div class="drop-icon">📂</div>
+      Fallback: select folders manually
+      <input type="file" id="folderInput" webkitdirectory multiple style="display:none">
+    </div>
   </div>
 </div>
 
+<aside class="helper-panel hidden" id="helperPanel">
+  <h3>Manifest Tools</h3>
+  <p id="helperPanelText">
+    Update the bundled manifest if the quicklooks changed or the current repo root is wrong.
+  </p>
+  <label>Repository Root</label>
+  <input type="text" id="helperRepoRootInput" placeholder="/absolute/path/to/polarcap_analysis">
+  <div class="helper-actions">
+    <button class="btn-secondary" id="saveRepoRootBtn">Save Root</button>
+    <button class="btn-primary" id="panelRefreshManifestBtn">Refresh Manifest</button>
+  </div>
+  <div class="helper-status" id="helperStatus"></div>
+</aside>
+
 <!-- Header -->
 <header>
-  <div class="logo">Cosmo<span>Specs</span></div>
+  <div class="logo">Quicklook<span>Browser</span></div>
   <div class="breadcrumb" id="breadcrumb">
     <span class="crumb active">root</span>
   </div>
   <div class="header-controls">
-    <input class="search-box" type="text" id="searchBox" placeholder="Filter files…">
+    <input class="search-box" type="text" id="searchBox" placeholder="Filter files, *_M_* or /regex/">
     <div class="sort-controls">
       <span class="sort-label">Sort</span>
       <select class="sort-select" id="sortSelect" onchange="onSortChange()">
+        <option value="mtime">Modified</option>
         <option value="filename">Filename</option>
         <option value="csrun">CS Run</option>
         <option value="experiment_name">Experiment (date)</option>
         <option value="figure_type">Figure Type</option>
       </select>
-      <button class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDir()" title="Toggle sort direction">↑</button>
+      <button class="sort-dir-btn desc" id="sortDirBtn" onclick="toggleSortDir()" title="Descending (click to reverse)">↓</button>
     </div>
     <div class="view-toggle">
       <button class="active" data-view="grid" onclick="setView('grid')">Grid</button>
@@ -797,21 +902,140 @@ let fileTree = {};          // nested folder structure
 let allFiles = [];          // flat list of {path, name, folder, type}
 let currentPath = '';       // current folder path being viewed
 let currentView = 'grid';
-let currentSort = 'filename';  // filename | csrun | experiment_name | figure_type
-let currentSortDir = 'asc';   // asc | desc
+let currentSort = 'mtime';  // mtime | filename | csrun | experiment_name | figure_type
+let currentSortDir = 'desc';   // asc | desc
 let currentFiles = [];      // files shown in current view
 let lightboxIndex = 0;
 let lightboxFiles = [];
 let basePath = '';
 let isLocalFiles = false;   // true if loaded via folder picker
 let localFileMap = {};      // path -> File object or ObjectURL
-const DEFAULT_BASE_PATH = 'http://localhost:8877/python/plotting_scripts';
+let prefetchStarted = false;
+let backendStatus = null;
+const BUILTIN_MANIFEST_URL = new URL('./manifest.json', window.location.href).href;
+const BACKEND_STATUS_URL = new URL('/__quicklookbrowser/status', window.location.href).href;
+const BACKEND_REFRESH_URL = new URL('/__quicklookbrowser/refresh-manifest', window.location.href).href;
+const STORAGE_REPO_ROOT = 'quicklookbrowser.repoRoot';
+
+function sanitizeBasePath(value) {
+  return (value || '').trim().replace(/\/$/, '');
+}
+
+function getRepoBasePath() {
+  return sanitizeBasePath(new URL('../../', window.location.href).href);
+}
+
+function getDefaultBasePath() {
+  return window.location.protocol.startsWith('http')
+    ? getRepoBasePath()
+    : 'http://localhost:8000';
+}
+
+function canUseHelperServer() {
+  return window.location.protocol.startsWith('http');
+}
+
+function withTrailingSlash(value) {
+  return value.endsWith('/') ? value : `${value}/`;
+}
+
+function sameURL(a, b) {
+  return sanitizeBasePath(a) === sanitizeBasePath(b);
+}
+
+function readStoredRepoRoot() {
+  try {
+    return sanitizeBasePath(localStorage.getItem(STORAGE_REPO_ROOT) || '');
+  } catch {
+    return '';
+  }
+}
+
+function writeStoredRepoRoot(value) {
+  const clean = sanitizeBasePath(value);
+  try {
+    if (clean) localStorage.setItem(STORAGE_REPO_ROOT, clean);
+  } catch {}
+  return clean;
+}
+
+function setRepoRootInputs(value) {
+  const clean = sanitizeBasePath(value);
+  document.getElementById('repoRootInput').value = clean;
+  document.getElementById('helperRepoRootInput').value = clean;
+}
+
+function syncRepoRootInputs(source) {
+  setRepoRootInputs(source.value);
+  updateHelperPanel();
+}
+
+function getRepoRootValue() {
+  return sanitizeBasePath(document.getElementById('repoRootInput').value);
+}
+
+function setStatusMessage(targetId, message, isError = false) {
+  const el = document.getElementById(targetId);
+  el.textContent = message || '';
+  el.style.color = isError ? 'var(--warning)' : 'var(--text-muted)';
+}
+
+function updateHelperPanel(forceVisible = false) {
+  const panel = document.getElementById('helperPanel');
+  const rootValue = getRepoRootValue() || readStoredRepoRoot();
+  const lines = [];
+
+  if (!canUseHelperServer()) {
+    lines.push('Manifest refresh requires the QuicklookBrowser helper server.');
+  } else if (!backendStatus?.available) {
+    lines.push('Helper server not detected. Start serve_quicklookbrowser.py for one-click manifest refresh.');
+  } else {
+    lines.push(`Repo root: ${backendStatus.repoRoot}`);
+    if (backendStatus.manifestNeedsUpdate) {
+      lines.push('Manifest is older than the newest quicklook output.');
+    } else if (backendStatus.manifestExists) {
+      lines.push('Manifest is up to date.');
+    } else {
+      lines.push('Manifest is missing. Refresh it to load quicklooks.');
+    }
+  }
+
+  if (!rootValue) {
+    lines.push('Set the repository root path to reuse it next session.');
+  }
+
+  const show =
+    forceVisible ||
+    !canUseHelperServer() ||
+    !backendStatus?.available ||
+    !backendStatus?.manifestExists ||
+    Boolean(backendStatus?.manifestNeedsUpdate) ||
+    !rootValue;
+
+  panel.classList.toggle('hidden', !show);
+  document.getElementById('helperPanelText').textContent = lines.join(' ');
+}
+
+async function fetchBackendStatus() {
+  if (!canUseHelperServer()) {
+    return { available: false, error: 'helper server unavailable in file mode' };
+  }
+
+  try {
+    const resp = await fetch(BACKEND_STATUS_URL, { cache: 'no-cache' });
+    if (!resp.ok) throw new Error(`status ${resp.status}`);
+    const data = await resp.json();
+    return { available: true, ...data };
+  } catch (err) {
+    return { available: false, error: String(err) };
+  }
+}
 
 function readSetupConfig() {
   const params = new URLSearchParams(window.location.search);
   return {
-    autoload: params.get('autoload') === '1',
-    basePath: (params.get('basePath') || DEFAULT_BASE_PATH).replace(/\/$/, ''),
+    autoload: params.get('autoload') !== '0',
+    basePath: sanitizeBasePath(params.get('basePath') || getDefaultBasePath()),
     pngOnly: params.get('pngOnly') === '1'
   };
 }
@@ -819,6 +1043,13 @@ function readSetupConfig() {
 // ─── Setup ───
 const folderInput = document.getElementById('folderInput');
 const dropZone = document.getElementById('dropZone');
+const repoRootInput = document.getElementById('repoRootInput');
+const helperRepoRootInput = document.getElementById('helperRepoRootInput');
+
+repoRootInput.addEventListener('input', () => syncRepoRootInputs(repoRootInput));
+helperRepoRootInput.addEventListener('input', () => syncRepoRootInputs(helperRepoRootInput));
+repoRootInput.addEventListener('change', () => writeStoredRepoRoot(getRepoRootValue()));
+helperRepoRootInput.addEventListener('change', () => writeStoredRepoRoot(getRepoRootValue()));
 
 folderInput.addEventListener('change', (e) => {
   loadLocalFiles(e.target.files);
@@ -864,26 +1095,45 @@ async function readEntriesRecursive(entries) {
   return files;
 }
 
-document.getElementById('launchBtn').addEventListener('click', () => {
-  if (allFiles.length > 0) {
-    // already loaded via folder picker
-    finishSetup();
-  } else {
-    basePath = document.getElementById('basePathInput').value.replace(/\/$/, '');
-    isLocalFiles = false;
-    // For path-based mode, we need a manifest — try to fetch index
-    tryFetchManifest({ pngOnly: false });
-  }
+document.getElementById('refreshManifestBtn').addEventListener('click', () => {
+  refreshManifest();
 });
 
-function initializeSetup() {
+document.getElementById('panelRefreshManifestBtn').addEventListener('click', () => {
+  refreshManifest();
+});
+
+document.getElementById('saveRepoRootBtn').addEventListener('click', () => {
+  const root = writeStoredRepoRoot(getRepoRootValue());
+  setRepoRootInputs(root);
+  setStatusMessage('helperStatus', root ? 'Repository root stored for next session.' : 'Enter a repository root first.');
+  updateHelperPanel();
+});
+
+document.getElementById('retryLoadBtn').addEventListener('click', () => {
+  attemptAutoLoad({ allowRefresh: false });
+});
+
+async function initializeSetup() {
   const cfg = readSetupConfig();
-  const input = document.getElementById('basePathInput');
-  if (!input.value || input.value === '/path/to/pngs/') input.value = cfg.basePath;
-  if (cfg.autoload) {
-    basePath = cfg.basePath;
-    isLocalFiles = false;
-    tryFetchManifest({ silent: true, pngOnly: cfg.pngOnly });
+  const storedRoot = readStoredRepoRoot();
+  setRepoRootInputs(storedRoot);
+  backendStatus = await fetchBackendStatus();
+  if (backendStatus?.repoRoot && !storedRoot) {
+    const root = writeStoredRepoRoot(backendStatus.repoRoot);
+    setRepoRootInputs(root);
+  }
+
+  if (!cfg.autoload) {
+    document.getElementById('setupModal').classList.remove('hidden');
+    updateHelperPanel(true);
+    return;
+  }
+
+  const loaded = await attemptAutoLoad({ allowRefresh: true });
+  if (!loaded) {
+    document.getElementById('setupModal').classList.remove('hidden');
+    updateHelperPanel(true);
   }
 }
 
@@ -891,7 +1141,7 @@ function loadLocalFiles(fileList) {
   const supported = /\.(png|jpg|jpeg|gif|mp4|webm|svg)$/i;
   allFiles = [];
   localFileMap = {};
-  const urlCache = {};
+  prefetchStarted = false;
 
   for (const file of fileList) {
     const relPath = file.webkitRelativePath || file.name;
@@ -904,55 +1154,151 @@ function loadLocalFiles(fileList) {
     const folder = cleanPath.includes('/') ? cleanPath.substring(0, cleanPath.lastIndexOf('/')) : '';
     const name = parts[parts.length - 1];
 
-    allFiles.push({ path: cleanPath, name, folder, type, ext });
+    allFiles.push({
+      path: cleanPath,
+      name,
+      folder,
+      type,
+      ext,
+      mtime: file.lastModified || 0
+    });
     localFileMap[cleanPath] = file;
   }
 
   isLocalFiles = true;
   if (allFiles.length) {
     dropZone.innerHTML = `<div class="drop-icon">✅</div>${allFiles.length} files loaded`;
+    finishSetup();
   }
 }
 
-async function tryFetchManifest({ silent = false, pngOnly = false } = {}) {
-  // Try fetching a manifest.json, otherwise ask user to generate one
+async function attemptAutoLoad({ allowRefresh = true } = {}) {
+  const cfg = readSetupConfig();
+  isLocalFiles = false;
+
+  let loaded = await tryFetchManifest({
+    silent: true,
+    pngOnly: cfg.pngOnly,
+    preferredBasePath: cfg.basePath
+  });
+  if (loaded) {
+    updateHelperPanel();
+    return true;
+  }
+
+  if (allowRefresh && canUseHelperServer()) {
+    const repoRoot = getRepoRootValue() || backendStatus?.repoRoot;
+    if (repoRoot) {
+      loaded = await refreshManifest({ silent: true });
+      if (loaded) return true;
+    }
+  }
+
+  return false;
+}
+
+async function refreshManifest({ silent = false } = {}) {
+  const repoRoot = writeStoredRepoRoot(getRepoRootValue());
+  setRepoRootInputs(repoRoot);
+
+  if (!canUseHelperServer()) {
+    const msg = 'QuicklookBrowser refresh only works with the helper server.';
+    setStatusMessage('setupStatus', msg, true);
+    setStatusMessage('helperStatus', msg, true);
+    updateHelperPanel(true);
+    return false;
+  }
+
   try {
-    const resp = await fetch(basePath + '/manifest.json');
-    if (resp.ok) {
+    setStatusMessage('setupStatus', 'Refreshing manifest...');
+    setStatusMessage('helperStatus', 'Refreshing manifest...');
+    const resp = await fetch(BACKEND_REFRESH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repoRoot })
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) {
+      throw new Error(data.error || `refresh failed (${resp.status})`);
+    }
+
+    backendStatus = { available: true, ...data };
+    if (backendStatus.repoRoot) setRepoRootInputs(backendStatus.repoRoot);
+
+    const loaded = await tryFetchManifest({
+      silent: true,
+      pngOnly: readSetupConfig().pngOnly,
+      preferredBasePath: getDefaultBasePath()
+    });
+    const okMsg = loaded ? 'Manifest refreshed and loaded.' : 'Manifest refreshed. Click retry to reload.';
+    setStatusMessage('setupStatus', okMsg);
+    setStatusMessage('helperStatus', okMsg);
+    updateHelperPanel(!loaded || Boolean(backendStatus.manifestNeedsUpdate));
+    return loaded;
+  } catch (err) {
+    const msg = `Manifest refresh failed: ${err}`;
+    backendStatus = await fetchBackendStatus();
+    setStatusMessage('setupStatus', msg, true);
+    setStatusMessage('helperStatus', msg, true);
+    updateHelperPanel(true);
+    if (!silent) console.error(err);
+    return false;
+  }
+}
+
+async function tryFetchManifest({ silent = false, pngOnly = false, preferredBasePath = '' } = {}) {
+  const candidates = [
+    {
+      manifestURL: BUILTIN_MANIFEST_URL,
+      mediaBasePath: getRepoBasePath()
+    }
+  ];
+
+  const externalBasePath = sanitizeBasePath(preferredBasePath);
+  if (externalBasePath && !sameURL(externalBasePath, getRepoBasePath())) {
+    candidates.push({
+      manifestURL: `${externalBasePath}/manifest.json`,
+      mediaBasePath: externalBasePath
+    });
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const resp = await fetch(candidate.manifestURL, { cache: 'no-cache' });
+      if (!resp.ok) continue;
+
       const data = await resp.json();
-      const loaded = data.files || data;
+      const loaded = Array.isArray(data) ? data : (data.files || []);
       allFiles = pngOnly
         ? loaded.filter(f => (f.ext || '').toLowerCase() === 'png' || /\.png$/i.test(f.path || ''))
         : loaded;
+      prefetchStarted = false;
+      basePath = candidate.mediaBasePath;
       finishSetup();
-      return;
+      return true;
     }
-  } catch {}
+    catch {}
+  }
 
-  if (silent) return;
+  if (silent) return false;
 
-  // Show instructions to generate manifest
-  alert(
-    'No manifest.json found at the base path.\n\n' +
-    'Generate one by running this in your data directory:\n\n' +
-    'python3 -c "\nimport json, os, pathlib\n' +
-    'exts = {\'.png\',\'.jpg\',\'.jpeg\',\'.gif\',\'.mp4\',\'.webm\',\'.svg\'}\n' +
-    'files = []\n' +
-    'for p in pathlib.Path(\'.\').rglob(\'*\'):\n' +
-    '    if p.suffix.lower() in exts:\n' +
-    '        ext = p.suffix[1:].lower()\n' +
-    '        t = \'video\' if ext in (\'mp4\',\'webm\') else \'image\'\n' +
-    '        folder = str(p.parent) if str(p.parent) != \'.\' else \'\'\n' +
-    '        files.append({\'path\':str(p),\'name\':p.name,\'folder\':folder,\'type\':t,\'ext\':ext})\n' +
-    'json.dump({\'files\':files},open(\'manifest.json\',\'w\'),indent=1)\n' +
-    'print(f\'{len(files)} files indexed\')\n"'
+  setStatusMessage(
+    'setupStatus',
+    'Manifest not found. Refresh it with the helper server or verify the repo root path.',
+    true
   );
+  updateHelperPanel(true);
+  return false;
 }
 
 function finishSetup() {
   document.getElementById('setupModal').classList.add('hidden');
+  document.getElementById('sortSelect').value = currentSort;
+  setStatusMessage('setupStatus', '');
   buildTree();
   navigateTo('');
+  schedulePrefetch();
+  updateHelperPanel();
 }
 
 // ─── File URL ───
@@ -966,7 +1312,61 @@ function getFileURL(file) {
     }
     return objectURLCache[file.path] || '';
   }
-  return basePath + '/' + file.path;
+  return new URL(file.path, withTrailingSlash(basePath || getRepoBasePath())).href;
+}
+
+function schedulePrefetch() {
+  if (prefetchStarted || isLocalFiles || !allFiles.length) return;
+  prefetchStarted = true;
+  const queue = [...sortFiles(allFiles)];
+
+  const run = () => prefetchQueue(queue);
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(run, { timeout: 1500 });
+  } else {
+    setTimeout(run, 200);
+  }
+}
+
+async function prefetchQueue(queue) {
+  const batchSize = 8;
+  for (let i = 0; i < queue.length; i += batchSize) {
+    const batch = queue.slice(i, i + batchSize);
+    await Promise.all(batch.map(prefetchFile));
+  }
+}
+
+function preloadImage(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+    img.src = url;
+  });
+}
+
+async function prefetchFile(file) {
+  const url = getFileURL(file);
+  try {
+    if (file.type === 'image') {
+      await preloadImage(url);
+    } else {
+      await fetch(url, { method: 'GET', cache: 'force-cache' });
+    }
+  } catch {}
+}
+
+function formatModifiedTime(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString([], {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
 // ─── Tree ───
@@ -1153,6 +1553,9 @@ function extractSortKey(file, mode) {
 
   switch (mode) {
 
+    case 'mtime':
+      return Number(file.mtime || 0);
+
     case 'csrun': {
       // First folder segment is typically the csrun identifier
       if (parts.length >= 2) return parts[0];
@@ -1206,25 +1609,78 @@ function sortFiles(files) {
   return [...files].sort((a, b) => {
     const ka = extractSortKey(a, currentSort);
     const kb = extractSortKey(b, currentSort);
+    if (currentSort === 'mtime') {
+      const delta = dir * (ka - kb);
+      return delta !== 0 ? delta : dir * natCompare(a.name, b.name);
+    }
     return dir * natCompare(ka, kb);
   });
+}
+
+function getSortMeta(file) {
+  if (currentSort === 'mtime') return formatModifiedTime(file.mtime);
+  if (currentSort === 'filename') return '';
+  return extractSortKey(file, currentSort);
 }
 
 function truncate(str, max) {
   return str.length > max ? str.slice(0, max) + '…' : str;
 }
 
+function escapeRegex(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function compileSearchMatcher(query) {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    return () => true;
+  }
+
+  const explicitRegex = trimmed.match(/^\/(.+)\/([a-z]*)$/);
+  if (explicitRegex) {
+    try {
+      const regex = new RegExp(explicitRegex[1], explicitRegex[2] || 'i');
+      return (value) => regex.test(value);
+    } catch {}
+  }
+
+  if (trimmed.startsWith('re:')) {
+    try {
+      const regex = new RegExp(trimmed.slice(3), 'i');
+      return (value) => regex.test(value);
+    } catch {}
+  }
+
+  if (/[*?]/.test(trimmed)) {
+    const pattern = `^${trimmed
+      .split('')
+      .map((char) => {
+        if (char === '*') return '.*';
+        if (char === '?') return '.';
+        return escapeRegex(char);
+      })
+      .join('')}$`;
+    const regex = new RegExp(pattern, 'i');
+    return (value) => regex.test(value);
+  }
+
+  const needle = trimmed.toLowerCase();
+  return (value) => value.toLowerCase().includes(needle);
+}
+
 // ─── Rendering ───
 function renderContent() {
   const main = document.getElementById('mainContent');
-  const query = document.getElementById('searchBox').value.toLowerCase();
+  const query = document.getElementById('searchBox').value;
+  const matchesSearch = compileSearchMatcher(query);
 
   // Get files in current folder (direct children only for non-root)
   let files, subfolders;
 
   if (currentPath === '') {
-    // Show root-level folders and root-level files
-    files = allFiles.filter(f => f.folder === '');
+    // Show top-level folders and all indexed files so latest plots appear immediately.
+    files = [...allFiles];
     subfolders = Object.keys(fileTree).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   } else {
     // Files directly in this folder
@@ -1238,8 +1694,11 @@ function renderContent() {
 
   // Apply search filter
   if (query) {
-    files = files.filter(f => f.name.toLowerCase().includes(query));
-    subfolders = subfolders.filter(f => f.toLowerCase().includes(query));
+    files = files.filter(f => matchesSearch(f.path || f.name));
+    subfolders = subfolders.filter((folderName) => {
+      const fullPath = currentPath ? `${currentPath}/${folderName}` : folderName;
+      return matchesSearch(fullPath);
+    });
   }
 
   // Apply sorting
@@ -1286,7 +1745,7 @@ function renderGrid(main, subfolders, files) {
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
     const isVideo = f.type === 'video';
-    const sortKey = currentSort !== 'filename' ? extractSortKey(f, currentSort) : '';
+    const sortKey = getSortMeta(f);
     const metaExtra = sortKey ? ` · <span style="color:var(--accent);opacity:0.7">${truncate(sortKey, 20)}</span>` : '';
     html += `<div class="card" onclick="openLightbox(${i})">
       <div class="thumb-wrapper">
@@ -1322,7 +1781,7 @@ function renderList(main, subfolders, files) {
 
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
-    const sortKey = currentSort !== 'filename' ? extractSortKey(f, currentSort) : '';
+    const sortKey = getSortMeta(f);
     html += `<div class="list-row" onclick="openLightbox(${i})">
       <div class="list-thumb">
         ${f.type === 'image'
