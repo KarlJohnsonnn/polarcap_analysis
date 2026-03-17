@@ -1,6 +1,12 @@
 ensemble:
   cs_run: cs-eriswil__20260304_110254
 
+# LV1 tracking (run_chain): which flare/ref pair. Defaults: flare_idx=0, ref_idx=0.
+# flare_idx and ref_idx index two separate lists (flare-only vs ref-only, split by lflare in run JSON).
+# Uncomment to override; use ref_idx: -1 in run_lv1_tracking for auto-match.
+# flare_idx: 0
+# ref_idx: 0
+
 paths:
   # Optional explicit roots; leave null to use notebook defaults.
   server_root: "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/"
@@ -25,10 +31,7 @@ selection:
 
 time:
   seed_start: "2023-01-25T12:28:00"
-  # coarsen: "30s"
-  # rate_floor: 1.0e-18
-  # # Add time window offsets in minutes relative to seed_start_utc
-  # window_offsets_min: [0.0, 0.25, 0.5, 1.0, 2.5, 5.0, 7.5]
+
 
 size_ranges:
   AERLBB:

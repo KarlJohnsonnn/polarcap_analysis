@@ -131,28 +131,20 @@ Examples:
         epilog=epilog.strip(),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("--cs-run", required=True,
-                   help="Run ID (e.g. cs-eriswil__YYYYMMDD_HHMMSS)")
-    p.add_argument("--config", type=Path, default=None,
-                   help="YAML/JSON config: model_data_root, output_root, domain, run_lv*, overwrite, debug")
-    p.add_argument("--root", default=os.environ.get("CS_RUNS_DIR"),
-                   help="Model data root for LV1/LV2 (default: $CS_RUNS_DIR)")
-    p.add_argument("--out", default="processed",
-                   help="Output root; writes <out>/<cs_run>/lv1_tracking|lv1_paths|lv2_meteogram|lv3_rates")
-    p.add_argument("--domain", default="200x160",
-                   help="Domain for LV1 (e.g. 50x40 or 200x160)")
-    p.add_argument("--skip-tracking", action="store_true",
-                   help="Skip LV1a and LV1b")
-    p.add_argument("--skip-meteogram", action="store_true",
-                   help="Skip LV2 (meteogram Zarr)")
-    p.add_argument("--skip-lv3", action="store_true",
-                   help="Skip LV3 (process rates)")
-    p.add_argument("--overwrite", action="store_true",
-                   help="Overwrite existing stage outputs")
-    p.add_argument("--debug", action="store_true",
-                   help="Debug mode for LV2 (small subset)")
-    p.add_argument("--dry-run", action="store_true",
-                   help="Print commands only, do not run")
+    p.add_argument("--cs-run", required=True, help="Run ID (e.g. cs-eriswil__YYYYMMDD_HHMMSS)")
+    p.add_argument("--config", type=Path, default=None, help="YAML/JSON config: model_data_root, output_root, domain, run_lv*, overwrite, debug")
+    p.add_argument("--root", default=os.environ.get("CS_RUNS_DIR"), help="Model data root for LV1/LV2 (default: $CS_RUNS_DIR)")
+    p.add_argument("--out", default="processed", help="Output root; writes <out>/<cs_run>/lv1_tracking|lv1_paths|lv2_meteogram|lv3_rates")
+    p.add_argument("--domain", default="200x160", help="Domain for LV1 (e.g. 50x40 or 200x160)")
+    p.add_argument("--skip-tracking", action="store_true", help="Skip LV1a and LV1b")
+    p.add_argument("--skip-meteogram", action="store_true", help="Skip LV2 (meteogram Zarr)")
+    p.add_argument("--skip-lv3", action="store_true", help="Skip LV3 (process rates)")
+    p.add_argument("--overwrite", action="store_true", help="Overwrite existing stage outputs")
+    p.add_argument("--debug", action="store_true", help="Debug mode for LV2 (small subset)")
+    p.add_argument("--dry-run", action="store_true", help="Print commands only, do not run")
+    p.add_argument("--flare-idx", type=int, default=0, help="Index of the flare experiment (0-based). Experiments are split into two lists by metadata (lflare): flare_idx indexes the flare-only list, ref_idx the ref-only list.")
+    p.add_argument("--ref-idx", type=int, default=-1, help="Index of the reference experiment in the ref-only list. -1 (default) = auto-select the reference that matches the chosen flare in all non-emission parameters.")
+    p.add_argument("--threshold", type=float, default=1.0, help="Tobac detection threshold in 1/L (default: 1.0 = 1 per liter)")
     return p.parse_args()
 
 
@@ -225,17 +217,20 @@ def main() -> None:
     }
     if dry_run:
         print("Dry-run (commands not executed):")
+    # LV1 uses flare_idx/ref_idx from config (defaults 0, 0). They index two separate lists:
+    # flare experiments vs reference experiments (split by lflare in run JSON). ref_idx=-1 in
+    # run_lv1_tracking means auto-match; run_chain passes config values (default 0) unless set in YAML.
     if not skip_tracking:
-        cmd = [sys.executable, 
-        str(_script_dir / "run_lv1_tracking.py"), 
-        "--cs-run", 
-        args.cs_run,
-        "--out", out, 
-        "--domain", domain,
-        "--flare-idx", str(cfg.get("flare_idx", 0)),
-        "--ref-idx", str(cfg.get("ref_idx", 0)),
-        "--threshold", str(cfg.get("threshold", 1e-6)),
-    ]
+        cmd = [
+            sys.executable,
+            str(_script_dir / "run_lv1_tracking.py"),
+            "--cs-run", args.cs_run,
+            "--out", out,
+            "--domain", domain,
+            "--flare-idx", str(args.flare_idx),
+            "--ref-idx", str(args.ref_idx),
+            "--threshold", str(args.threshold),
+        ]
         if overwrite:
             cmd.append("--overwrite")
         if root:

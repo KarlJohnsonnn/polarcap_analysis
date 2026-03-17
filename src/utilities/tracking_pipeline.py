@@ -144,8 +144,14 @@ def discover_3d_runs(
 ) -> Optional[RunContext]:
     """
     Build RunContext for one (cs_run, flare_idx, ref_idx).
-    ref_idx < 0: auto-select reference that matches flare in non-emission params only.
-    Returns None if no flare/ref or no matching ref when ref_idx < 0.
+
+    Experiments from the run's 3D NetCDFs are split into two lists by metadata (lflare):
+    - flare_names: experiments with lflare=true
+    - ref_names: experiments with lflare=false
+
+    flare_idx indexes flare_names (which flare run); ref_idx indexes ref_names (which reference).
+    ref_idx < 0: auto-select the reference that matches the chosen flare in non-emission params only.
+    Returns None if no flare/ref exist or no matching ref when ref_idx < 0.
     """
     model_data_path = f"{model_data_root}/RUN_ERISWILL_{domain_xy}x100/ensemble_output/{cs_run}/"
     extpar_file = f"{model_data_root}/RUN_ERISWILL_{domain_xy}x100/COS_in/extPar_Eriswil_{domain_xy}.nc"

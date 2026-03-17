@@ -6,6 +6,10 @@ Reads 3D NetCDFs and run JSON from ensemble_output/<cs_run>/, writes:
   - lv1_tracking/: features CSV, tracks CSV, features_mask CSV, segmentation_mask NetCDF
   - lv1_paths/: per-cell plume path NetCDFs (integrated, extreme, vertical)
 
+Experiment selection: For each cs_run, 3D runs are split into flare experiments (lflare=true)
+and reference experiments (lflare=false). --flare-idx and --ref-idx index into those two
+separate lists (0-based). Use --ref-idx -1 to auto-match the reference to the chosen flare.
+
 Usage:
   python run_tracking.py --root /path/to/cosmo-specs-runs --cs-run cs-eriswil__20260123_180947
   python run_tracking.py --root /path/to/runs --cs-run cs-eriswil__20260123_180947 --domain 200x160 --out processed
@@ -35,15 +39,13 @@ from utilities.tracking_pipeline import (
 
 def parse_args():
     p = argparse.ArgumentParser(description="LV1a/LV1b: Tobac tracking + plume path extraction")
-    p.add_argument("--root", default=None,
-                   help="Model data root (default: $CS_RUNS_DIR; should contain RUN_ERISWILL_*/)")
+    p.add_argument("--root", default=None, help="Model data root (default: $CS_RUNS_DIR; should contain RUN_ERISWILL_*/)")
     p.add_argument("--cs-run", required=True, help="Run ID, e.g. cs-eriswil__20260123_180947")
     p.add_argument("--domain", default="200x160", help="Domain e.g. 50x40 or 200x160")
-    p.add_argument("--flare-idx", type=int, default=0, help="Flare experiment index")
-    p.add_argument("--ref-idx", type=int, default=-1,
-                   help="Reference experiment index; -1 = auto (match flare by non-emission params only)")
-    p.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD,
-                   help="Tobac detection threshold in 1/L (default: 1.0 = 1 per liter)")
+    p.add_argument("--flare-idx", type=int, default=0, help="Index of the flare experiment (0-based). Experiments are split into two lists by "
+             "metadata (lflare): flare_idx indexes the flare-only list, ref_idx the ref-only list.")
+    p.add_argument("--ref-idx", type=int, default=-1, help="Index of the reference experiment in the ref-only list. -1 (default) = auto-select the reference that matches the chosen flare in all non-emission parameters.")
+    p.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD, help="Tobac detection threshold in 1/L (default: 1.0 = 1 per liter)")
     p.add_argument("--out", default="processed", help="Output root; <out>/<cs_run>/lv1_*")
     p.add_argument("--skip-tracking", action="store_true", help="Skip LV1a, only run LV1b path extraction")
     p.add_argument("--skip-paths", action="store_true", help="Skip LV1b, only run LV1a tracking")
