@@ -5,11 +5,11 @@
 **/__pycache__/
 *.pyc
 *.pyo
+*.tmp
 *.pyd
 .pytest_cache/
 .mypy_cache/
 **/.cursor/
-
 
 # Notebook runtime files
 .ipynb_checkpoints/
@@ -24,8 +24,8 @@ env/
 .idea/
 
 # Temporary outputs
-tmp/
-logs/
+**/tmp*
+**/logs*
 
 # NetCDF data files
 **/*.nc
@@ -36,11 +36,21 @@ logs/
 
 # log files
 **/*.log
+docs/log_commands_lev.md
+scripts/processing_chain/logs/*
+scripts/analysis/logs/*
 
+# pngs
+notebooks/output
+scripts/processing_chain/output
+scripts/analysis/output
 
 # Project data (kept local; publish via Zenodo)
 **/processed/*
 **/observations/holimo_data/*
+
+data/meteograms
+data/plan_pc
 !data/processed/README.md
 !data/observations/holimo_data/README.md
 
