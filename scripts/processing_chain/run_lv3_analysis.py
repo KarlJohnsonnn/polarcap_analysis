@@ -8,7 +8,8 @@ with full provenance.
 
 Usage:
   python run_lv3.py --cs-run cs-eriswil__20260304_110254
-  python run_lv3.py --zarr /path/to/Meteogram_*.zarr --out processed --exp-ids 0 1 2
+  python run_lv3.py --zarr /path/to/Meteogram_*.zarr --exp-ids 0 1 2
+  POLARCAP_OUTPUT_ROOT=/work/.../RUN_ERISWILL_200x160x100/ensemble_output python run_lv3.py --cs-run cs-eriswil__20260304_110254
 """
 
 from __future__ import annotations
@@ -25,13 +26,18 @@ if _src.is_dir() and str(_src) not in sys.path:
 import xarray as xr
 
 from utilities.process_rates import build_rates_for_experiments
+from utilities.processing_paths import get_output_root
 
 
 def parse_args():
     p = argparse.ArgumentParser(description="LV3: Process-rate datasets from meteogram Zarr")
     p.add_argument("--cs-run", default=None, help="Run ID; used to find Zarr under --out/<cs_run>/lv2_meteogram/")
     p.add_argument("--zarr", default=None, help="Direct path to Meteogram_*.zarr (overrides --cs-run lookup)")
-    p.add_argument("--out", default="processed", help="Output root for lv3_rates and for Zarr lookup")
+    p.add_argument(
+        "--out",
+        default=None,
+        help="Output root for lv3_rates and LV2 lookup (default: $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else ./processed)",
+    )
     p.add_argument("--exp-ids", type=int, nargs="*", default=None,
                    help="Experiment indices to process (default: all)")
     p.add_argument("--overwrite", action="store_true", help="Overwrite existing NetCDFs")
@@ -40,6 +46,7 @@ def parse_args():
 
 def main():
     args = parse_args()
+    out = get_output_root(args.out, cs_run=args.cs_run)
     if args.zarr:
         zarr_path = Path(args.zarr)
         if not zarr_path.exists():
@@ -51,7 +58,7 @@ def main():
             print("Provide --cs-run or --zarr", file=sys.stderr)
             sys.exit(1)
         cs_run = args.cs_run
-        out_root = Path(args.out) / cs_run / "lv2_meteogram"
+        out_root = Path(out) / cs_run / "lv2_meteogram"
         if not out_root.is_dir():
             print(f"LV2 directory not found: {out_root}", file=sys.stderr)
             sys.exit(1)
@@ -83,7 +90,7 @@ def main():
         LBB=slice(30, 50), CBB=slice(30, 50),
         repo_root=_script_dir.parent.parent,
     )
-    out_dir = Path(args.out) / cs_run / "lv3_rates"
+    out_dir = Path(out) / cs_run / "lv3_rates"
     out_dir.mkdir(parents=True, exist_ok=True)
     for eid, rates_ds in rates_ds_by_exp.items():
         nc_path = out_dir / f"process_rates_exp{eid}.nc"

@@ -309,10 +309,10 @@ def build_rates_dataset(
     ds_out = xr.Dataset(attrs={
         "title": "PolarCAP microphysical process budget rates",
         "created_utc": now,
-        "processing_commit": commit,
-        "processing_commit_short": commit[:12] if commit else None,
+        "processing_commit": commit or "",
+        "processing_commit_short": commit[:12] if commit else "",
         "exp_id": int(eid),
-        "exp_label": R.get("exp_label"),
+        "exp_label": R.get("exp_label") or "",
         "sign_convention": "+ source, - sink",
         "notes": "Rates derived from SUM_* microphysical tendencies; aggregated over bin ranges.",
         "metadata_config": "src/utilities/metadata_config.json",
@@ -391,6 +391,18 @@ def build_rates_dataset(
     return ds_out
 
 
+def mirror_immersion_freezing(rate_map: Dict[str, Dict[str, xr.DataArray]]) -> None:
+    """Mirror immersion freezing as liquid loss and ice gain."""
+    for kind in ("N", "Q"):
+        liq_key = f"rates_{kind}_liq"
+        ice_key = f"rates_{kind}_ice"
+        liq = rate_map.get(liq_key, {})
+        ice = rate_map.get(ice_key, {})
+        if "IMMERSION_FREEZING" in liq:
+            ice["IMMERSION_FREEZING"] = liq["IMMERSION_FREEZING"]
+            del liq["IMMERSION_FREEZING"]
+
+
 def build_rates_for_experiments(
     ds: xr.Dataset,
     exp_ids: List[int],
@@ -430,10 +442,7 @@ def build_rates_for_experiments(
             "spec_rates_Q_W": build_spectral_rates(ds_exp, rho, proc_vars, "Q", spectrum="W"),
             "spec_rates_Q_F": build_spectral_rates(ds_exp, rho, proc_vars, "Q", spectrum="F"),
         }
-        # if "IMMERSION_FREEZING" in R["rates_N_liq"]:
-        #     R["rates_N_ice"]["IMMERSION_FREEZING"] = -R["rates_N_liq"]["IMMERSION_FREEZING"]
-        # if "IMMERSION_FREEZING" in R["rates_Q_liq"]:
-        #     R["rates_Q_ice"]["IMMERSION_FREEZING"] = -R["rates_Q_liq"]["IMMERSION_FREEZING"]
+        mirror_immersion_freezing(R)
         rates_by_exp[eid] = R
         rates_ds_by_exp[eid] = build_rates_dataset(R, eid, ds_exp=ds_exp, config=config, repo_root=repo_root)
     return rates_by_exp, rates_ds_by_exp

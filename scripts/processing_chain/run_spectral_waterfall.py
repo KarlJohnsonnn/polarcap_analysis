@@ -709,7 +709,7 @@ def main() -> None:
             "  python scripts/processing_chain/run_spectral_waterfall.py --mp4-only   # build MP4 from existing PNGs only\n"
         ),
     )
-    parser.add_argument("--config", type=Path, default=REPO_ROOT / "notebooks" / "config" / "process_budget.yaml", help="Path to process_budget.yaml")
+    parser.add_argument("--config", type=Path, default=REPO_ROOT / "scripts" / "processing_chain" / "config" / "cfg_spectral_waterfall.yaml", help="Path to cfg_spectral_waterfall.yaml")
     parser.add_argument("--workers", type=int, default=None, help="Thread workers for frame rendering.")
     parser.add_argument("--exp-ids", type=str, default=None, help="Comma-separated experiment indices, e.g. '1,2'.")
     parser.add_argument("--range-keys", type=str, default=None, help="Comma-separated range keys, e.g. 'ALLBB,CRYBB'.")

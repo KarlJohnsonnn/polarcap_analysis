@@ -22,11 +22,12 @@ WINDOW_MIN = 2.5
 
 
 def _height_slice(da: xr.DataArray, h_low: float, h_high: float) -> xr.DataArray:
-    z = np.asarray(da["height_level"].values)
+    z = np.asarray(da["height_level"].values, dtype=float)
     lo, hi = min(h_low, h_high), max(h_low, h_high)
-    if z[-1] > z[0]:
-        return da.sel(height_level=slice(lo, hi))
-    return da.sel(height_level=slice(hi, lo))
+    mask = (z >= lo) & (z <= hi)
+    if not np.any(mask):
+        return da
+    return da.isel(height_level=np.where(mask)[0])
 
 
 def _seed_start(cs_run: str, flare_expname: str, time0: np.datetime64) -> np.datetime64:
@@ -46,16 +47,22 @@ def _mean_diff(ds_flare: xr.Dataset, ds_ref: xr.Dataset, rate_name: str, label_n
     flare = _height_slice(flare, H_LOW, H_HIGH).mean(dim=("time", "height_level"))
     ref = _height_slice(ref, H_LOW, H_HIGH).mean(dim=("time", "height_level"))
     labels = [str(v) for v in ds_flare[label_name].values]
-    diffs = np.asarray(flare.values - ref.values, dtype=float)
-    pos_total = float(np.maximum(diffs, 0.0).sum())
+    flare_vals = np.asarray(flare.values, dtype=float)
+    ref_vals = np.asarray(ref.values, dtype=float)
+    mask = np.isfinite(flare_vals) & np.isfinite(ref_vals)
+    diffs = np.full(flare_vals.shape, np.nan, dtype=float)
+    np.subtract(flare_vals, ref_vals, out=diffs, where=mask)
+    pos_total = float(np.nansum(np.maximum(np.nan_to_num(diffs, nan=0.0), 0.0)))
     rows = []
     for label, diff in zip(labels, diffs):
+        diff = float(diff) if np.isfinite(diff) else np.nan
+        pos_part = max(diff, 0.0) if np.isfinite(diff) else 0.0
         rows.append(
             {
                 "phase_rate": rate_name,
                 "process_label": label,
-                "mean_rate_diff": float(diff),
-                "positive_fraction": float(max(diff, 0.0) / pos_total) if pos_total > 0 else 0.0,
+                "mean_rate_diff": diff,
+                "positive_fraction": float(pos_part / pos_total) if pos_total > 0 else 0.0,
             }
         )
     return rows

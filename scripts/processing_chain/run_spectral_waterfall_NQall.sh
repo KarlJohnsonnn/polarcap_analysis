@@ -8,7 +8,7 @@ cd "$REPO_ROOT"
 
 # Mass concentration (Q)
 python "$SCRIPT_DIR/run_spectral_waterfall.py" \
-    --config "$REPO_ROOT/scripts/processing_chain/config/process_budget_NQall.yaml" \
+    --config "$REPO_ROOT/scripts/processing_chain/config/cfg_spectral_waterfall.yaml" \
     --kind Q \
     --linthresh-w 1e-8 \
     --linthresh-f 1e-8 \
@@ -23,7 +23,7 @@ python "$SCRIPT_DIR/run_spectral_waterfall.py" \
 
 # Number concentration (N)
 python "$SCRIPT_DIR/run_spectral_waterfall.py" \
-    --config "$REPO_ROOT/scripts/processing_chain/config/process_budget_NQall.yaml" \
+    --config "$REPO_ROOT/scripts/processing_chain/config/cfg_spectral_waterfall.yaml" \
     --kind N \
     --linthresh-w 1e-2 \
     --linthresh-f 1e-2 \

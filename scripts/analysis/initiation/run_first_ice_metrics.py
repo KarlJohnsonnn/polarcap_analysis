@@ -83,7 +83,11 @@ def main() -> None:
         zarr_path = _local_zarr(row.cs_run)
         if zarr_path is None:
             continue
-        ds = xr.open_zarr(zarr_path)
+        try:
+            ds = xr.open_zarr(zarr_path)
+        except Exception as exc:
+            print(f"Skip unreadable LV2 zarr for {row.cs_run}: {exc}")
+            continue
         for station_idx in range(int(ds.sizes.get("station", 0))):
             ice_flare = _number_abs(ds, "NF", int(row.exp_id), station_idx)
             ice_ref = _number_abs(ds, "NF", int(row.ref_exp_id), station_idx)

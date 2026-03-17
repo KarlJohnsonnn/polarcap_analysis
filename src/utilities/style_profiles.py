@@ -114,7 +114,7 @@ PROC_COLORS: dict[str, str] = {
     "MELTING": "#8c564b",
     "DEPOSITION": "#6A3D9A",
     "DEPOSITION_NUCLEATION": "#9E77B5",
-    "REFREEZING": "#b5e0f0",
+    "REFREEZING": "#C44E52",  # brick red; distinct from IMMERSION_FREEZING and DEPOSITION
 }
 
 # Per-process hatching for visual distinction beyond colour (grayscale-safe).

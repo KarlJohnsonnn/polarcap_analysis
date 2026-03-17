@@ -1,0 +1,13 @@
+{
+  "exclude": [
+    "data",
+    "notebooks/output",
+    "scripts/processing_chain/output",
+    "scripts/analysis/output",
+    "**/processed",
+    "article_draft",
+    "scripts/meteogram2zarr",
+    "**/logs",
+    "**/tmp*"
+  ]
+}

@@ -13,15 +13,15 @@ Use --skip-* to skip stages; --overwrite to recompute existing outputs.
 
 Usage:
   python run_chain.py --cs-run cs-eriswil__20260123_180947
-  python run_chain.py --cs-run cs-eriswil__20260123_180947 --skip-tracking --out processed
-  python run_chain.py --root $CS_RUNS_DIR --cs-run cs-eriswil__20260314_103039 --skip-tracking --out processed
+  python run_chain.py --cs-run cs-eriswil__20260123_180947 --skip-tracking
+  python run_chain.py --root $CS_RUNS_DIR --cs-run cs-eriswil__20260314_103039 --skip-tracking
+  POLARCAP_OUTPUT_ROOT=/work/.../RUN_ERISWILL_200x160x100/ensemble_output python run_chain.py --cs-run cs-eriswil__20260314_103039
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import subprocess
 import sys
@@ -67,20 +67,6 @@ def _validate_cs_run(cs_run: str, pattern: re.Pattern[str] | None = None) -> Non
         )
 
 
-def _expand_path(p: str) -> str:
-    """Expand environment variables and user home in a path string.
-
-    Args:
-        p: Path string, possibly with $VAR or ~.
-
-    Returns:
-        Expanded path with leading/trailing whitespace stripped, or "" if p is falsy.
-    """
-    if not p or not isinstance(p, str):
-        return ""
-    return (os.path.expandvars(os.path.expanduser(str(p))) or "").strip()
-
-
 def _load_config(path: Path | None) -> dict[str, Any]:
     """Load YAML or JSON config file into a dict.
 
@@ -120,7 +106,8 @@ Examples:
   %(prog)s --config config.yaml --cs-run cs-eriswil__20260304_110254
 
   # Skip stages and control output:
-  %(prog)s --cs-run cs-eriswil__20260304_110254 --skip-tracking --out processed
+  %(prog)s --cs-run cs-eriswil__20260304_110254 --skip-tracking
+  %(prog)s --cs-run cs-eriswil__20260304_110254 --out /path/to/processed
   %(prog)s --cs-run cs-eriswil__20260304_110254 --skip-lv3 --overwrite
 
   # Dry-run (print commands only):
@@ -133,8 +120,17 @@ Examples:
     )
     p.add_argument("--cs-run", required=True, help="Run ID (e.g. cs-eriswil__YYYYMMDD_HHMMSS)")
     p.add_argument("--config", type=Path, default=None, help="YAML/JSON config: model_data_root, output_root, domain, run_lv*, overwrite, debug")
-    p.add_argument("--root", default=os.environ.get("CS_RUNS_DIR"), help="Model data root for LV1/LV2 (default: $CS_RUNS_DIR)")
-    p.add_argument("--out", default="processed", help="Output root; writes <out>/<cs_run>/lv1_tracking|lv1_paths|lv2_meteogram|lv3_rates")
+    from utilities.processing_paths import get_runs_root
+
+    p.add_argument("--root", default=get_runs_root(), help="Model data root for LV1/LV2 (default: $CS_RUNS_DIR)")
+    p.add_argument(
+        "--out",
+        default=None,
+        help=(
+            "Output root; writes <out>/<cs_run>/lv1_tracking|lv1_paths|lv2_meteogram|lv3_rates "
+            "(default: --out, else $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else ./processed)"
+        ),
+    )
     p.add_argument("--domain", default="200x160", help="Domain for LV1 (e.g. 50x40 or 200x160)")
     p.add_argument("--skip-tracking", action="store_true", help="Skip LV1a and LV1b")
     p.add_argument("--skip-meteogram", action="store_true", help="Skip LV2 (meteogram Zarr)")
@@ -188,11 +184,11 @@ def main() -> None:
         print(e, file=sys.stderr)
         sys.exit(1)
 
-    from utilities.processing_paths import get_runs_root
+    from utilities.processing_paths import expand_path, get_output_root, get_runs_root
 
-    cfg_root = _expand_path(str(cfg.get("model_data_root") or ""))
+    cfg_root = expand_path(str(cfg.get("model_data_root") or ""))
     root = get_runs_root(cfg_root or args.root)
-    out = _expand_path(str(cfg.get("output_root") or args.out)) or "processed"
+    out = get_output_root(cfg.get("output_root") or args.out, runs_root=root, cs_run=args.cs_run)
     domain = str(cfg.get("domain") or args.domain)
     skip_tracking = args.skip_tracking or (
         cfg.get("run_lv1a_tracking", True) is False and cfg.get("run_lv1b_paths", True) is False

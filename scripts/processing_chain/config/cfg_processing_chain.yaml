@@ -1,10 +1,12 @@
 # Example config for processing_chain (YAML). Not required; CLI flags override.
 # Paths can be absolute or relative to cwd.
 # model_data_root defaults to environment variable CS_RUNS_DIR if set (directory
-# containing RUN_ERISWILL_200x160x100/, RUN_ERISWILL_50x42x100/, etc.).
+# containing RUN_ERISWILL_200x160x100/, RUN_ERISWILL_50x40x100/, etc.).
 
-model_data_root: "${CS_RUNS_DIR}/RUN_ERISWILL_50x40x100/"  # expanded via os.path.expandvars; or use absolute path
-output_root: "processed"
+model_data_root: "${CS_RUNS_DIR}"  # parent containing RUN_ERISWILL_*x100/; or use absolute path
+# Leave blank to use the launcher default:
+# 1) explicit --out, 2) $POLARCAP_OUTPUT_ROOT, 3) matching RUN_ERISWILL_*x100/ensemble_output, 4) local ./processed
+output_root: ""
 # Ensemble run ID validation: regex pattern for --cs-run (default below)
 cs_run_pattern: "^cs-eriswil__\\d{8}_\\d{6}$"
 # cs_run: "cs-eriswil__20260123_180947"

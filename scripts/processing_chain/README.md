@@ -39,25 +39,29 @@ Plume tracking follows the approach in Omanovic et al. 2024 and the archive note
 
 ## Usage
 
-Set `CS_RUNS_DIR` to the directory containing run subdirs (e.g. `RUN_ERISWILL_200x160x100/`, `RUN_ERISWILL_50x42x100/`). You can set it in the environment or have `scripts/ipython_startup/install.sh` prompt you and embed it in the IPython startup file.
+Set `CS_RUNS_DIR` to the directory containing run subdirs (e.g. `RUN_ERISWILL_200x160x100/`, `RUN_ERISWILL_50x40x100/`). You can set it in the environment or have `scripts/ipython_startup/install.sh` prompt you and embed it in the IPython startup file.
+
+For generated outputs, the launchers resolve the default output root in this order: explicit `--out`, then `$POLARCAP_OUTPUT_ROOT`, then the matching `RUN_ERISWILL_*x100/ensemble_output` path for the active run, else local `./processed`.
 
 **Full chain (from repo root or `scripts/processing_chain`):**
 ```bash
 python run_chain.py --cs-run cs-eriswil__20260123_180947
 python run_chain.py --cs-run cs-eriswil__20260123_180947 --out /path/to/processed --overwrite
+POLARCAP_OUTPUT_ROOT=/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/ensemble_output \
+  python run_chain.py --cs-run cs-eriswil__20260123_180947
 ```
 
 **Single stages:**
 ```bash
 # LV1 only (--root defaults to $CS_RUNS_DIR if set)
-python run_lv1_tracking.py --cs-run cs-eriswil__20260123_180947 --out processed
-python run_lv1_tracking.py --cs-run cs-eriswil__20260123_180947 --root /path/to/cosmo-specs-runs --out processed
+python run_lv1_tracking.py --cs-run cs-eriswil__20260123_180947
+python run_lv1_tracking.py --cs-run cs-eriswil__20260123_180947 --root /path/to/cosmo-specs-runs --out /path/to/processed
 
 # LV2 only (--root defaults to $CS_RUNS_DIR; scripts resolve RUN_ERISWILL_*/ensemble_output/)
-python run_lv2_meteogram_zarr.py -r cs-eriswil__20260123_180947 --out processed
+python run_lv2_meteogram_zarr.py -r cs-eriswil__20260123_180947
 
 # LV3 only (needs LV2 Zarr)
-python run_lv3_analysis.py --cs-run cs-eriswil__20260123_180947 --out processed
+python run_lv3_analysis.py --cs-run cs-eriswil__20260123_180947
 ```
 
 **Restart / skip:**
@@ -73,11 +77,11 @@ All written datasets receive global attributes: `stage`, `processing_level`, `cr
 
 ## Config
 
-Optional YAML/JSON config via `--config` (e.g. `config_example.yaml`). Keys: `model_data_root`, `output_root`, `domain`, `run_lv1a_tracking`, `run_lv1b_paths`, `run_lv2_meteogram`, `run_lv3_rates`, `overwrite`, `debug`. `model_data_root` supports `${CS_RUNS_DIR}`; CLI flags override config.
+Optional YAML/JSON config via `--config` (e.g. `config/cfg_processing_chain.yaml`). Keys: `model_data_root`, `output_root`, `domain`, `run_lv1a_tracking`, `run_lv1b_paths`, `run_lv2_meteogram`, `run_lv3_rates`, `overwrite`, `debug`. `model_data_root` supports `${CS_RUNS_DIR}` and should usually point to the parent containing multiple `RUN_ERISWILL_*x100/` trees; CLI flags override config. Leave `output_root` blank to inherit the launcher default.
 
 ## Library modules
 
-- `src/utilities/processing_paths.py`: get_runs_root, resolve_ensemble_output.
+- `src/utilities/processing_paths.py`: expand_path, get_runs_root, get_output_root, resolve_ensemble_output.
 - `src/utilities/processing_metadata.py`: git commit, provenance_attrs, Zarr-safe attr normalization.
 - `src/utilities/tracking_pipeline.py`: RunContext, discover_3d_runs, find_matching_reference, prep_tobac_input, run_tobac_tracking, extract_segmented_tracks_paths, run_plume_path_extraction; DEFAULT_TRACER_SPECS (nf), DEFAULT_THRESHOLD (1 L⁻¹), FLARE_REF_DIFF_KEYS.
 - `src/utilities/process_rates.py`: PHYSICS_GROUPS, build_proc_vars, build_rates, build_spectral_rates, build_rates_dataset, build_rates_for_experiments.
@@ -92,6 +96,7 @@ Optional YAML/JSON config via `--config` (e.g. `config_example.yaml`). Keys: `mo
 - **Empty Zarr / no experiments**: LV3 exits with a clear message if the Zarr has no `expname` dimension or `--exp-ids` is empty.
 - **Multiple Zarrs**: LV3 prefers a non-`_dbg` Zarr when both exist under `lv2_meteogram/`.
 - **Config paths**: `model_data_root` and `output_root` in YAML support `$VAR` and `~`; they are expanded before use. Missing `RUN_ERISWILL_*x100/ensemble_output` under the data root is reported instead of using a non-existent fallback path.
+- **Remote output policy**: On lev, new generated products should go to `/work/.../ensemble_output`, not `/home/.../processed`. The default resolver supports both low-resolution and high-resolution ensemble trees; set `$POLARCAP_OUTPUT_ROOT` explicitly when you want to force a specific output tree.
 - **Failure and manifest**: If a stage fails, `run_chain.py` writes a partial manifest so you can see which stage ran.
 - **Root required for LV1 and LV2**: Set `CS_RUNS_DIR` or pass `--root` (or `model_data_root` in config); otherwise the script exits. LV2 accepts two layouts: (1) model data root with `RUN_ERISWILL_*x100/ensemble_output/<cs_run>/`, or (2) flat meteogram root with `<cs_run>/` dirs containing the run JSON and M_*.nc.
 - **Spectral waterfall** (`run_spectral_waterfall.py`): Time window and first frame use `time.seed_start` from the process_budget YAML (fallback `time.seed_start_utc`); ensure that key is set for the desired start time. PSD strip y-axis uses configured `psd_ylim_W`/`psd_ylim_F` with log-spaced major/minor ticks and grid. Numeric CLI args (e.g. `--xlim-w`, `--ylim-w`, `--psd-ylim-w`, `--psd-ylim-f`) take MIN MAX; for exponents use no decimal in mantissa: `--psd-ylim-w 1e-2 1e8` (avoid `1.0e-2` in shell).

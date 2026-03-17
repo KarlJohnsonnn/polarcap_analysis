@@ -17,9 +17,9 @@ selection:
   plot_experiment_ids: [0]
   plot_station_ids: [0,1,2]
   station_labels: {
-    0: "S1 — Seeding loc.",
-    1: "S2 — Observation site",
-    2: "S3 — Precipitation loc."
+    0: "S1 — Seeding",
+    1: "S2 — Observations",
+    2: "S3 — Precipitation"
     }
 
 

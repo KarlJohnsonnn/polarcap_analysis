@@ -7,7 +7,8 @@ with provenance attrs (git commit, stage, processing_level, cs_run, input_files)
 
 Usage:
   python run_meteogram_zarr.py -r cs-eriswil__20250710_105311
-  python run_meteogram_zarr.py -r cs-eriswil__20250710_105311 --out processed --debug
+  python run_meteogram_zarr.py -r cs-eriswil__20250710_105311 --debug
+  POLARCAP_OUTPUT_ROOT=/work/.../RUN_ERISWILL_200x160x100/ensemble_output python run_meteogram_zarr.py -r cs-eriswil__20250710_105311
 """
 
 from __future__ import annotations
@@ -32,16 +33,20 @@ from utilities.meteogram_io import (
 from utilities.init_common import get_station_coords_from_cfg
 from utilities.processing_metadata import provenance_attrs
 from utilities.compute_fabric import allocate_resources, calculate_optimal_scaling
-from utilities.processing_paths import get_runs_root, resolve_ensemble_output
+from utilities.processing_paths import get_output_root, get_runs_root, resolve_ensemble_output
 
 
 def parse_args():
     p = argparse.ArgumentParser(description="LV2: Meteogram NetCDF → Zarr")
     p.add_argument("-r", "--cs-run", required=True,
                    help="Run ID (e.g. cs-eriswil__YYYYMMDD_HHMMSS)")
-    p.add_argument("--root", default=None,
+    p.add_argument("--root", default=get_runs_root(),
                    help="Root: either RUN_ERISWILL_*x100/ parent, or flat meteogram root with <cs_run>/ subdirs")
-    p.add_argument("--out", default="processed", help="Output root; <out>/<cs_run>/lv2_meteogram/")
+    p.add_argument(
+        "--out",
+        default=None,
+        help="Output root; <out>/<cs_run>/lv2_meteogram/ (default: $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else ./processed)",
+    )
     p.add_argument("-d", "--debug", action="store_true", help="Small subset, no SLURM")
     p.add_argument("-s", "--slurm", action="store_true", help="Use SLURM/Dask cluster")
     p.add_argument("--overwrite", action="store_true", help="Overwrite existing Zarr")
@@ -91,7 +96,8 @@ def main():
     if debug_mode:
         variables = ["RGRENZ_left", "RGRENZ_right", "U", "V", "W", "T", "QV", "QC", "HMLd", "HHLd"]
 
-    out_root = Path(args.out) / args.cs_run / "lv2_meteogram"
+    out = get_output_root(args.out, runs_root=runs_root, cs_run=args.cs_run)
+    out_root = Path(out) / args.cs_run / "lv2_meteogram"
     out_root.mkdir(parents=True, exist_ok=True)
     zarr_path = str(out_root / f"Meteogram_{args.cs_run}_nVar{len(variables)}_nMet{len(station_coords)}_nExp{len(file_dict)}{debug_flag}.zarr")
 

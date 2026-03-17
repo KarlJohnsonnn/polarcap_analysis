@@ -14,6 +14,7 @@ from utilities.process_rates import (
     build_rates,
     build_spectral_rates,
     build_proc_vars,
+    mirror_immersion_freezing,
     spectral_rate,
 )
 from polarcap_runtime import is_server
@@ -218,6 +219,12 @@ def load_process_budget_data(
             rates_by_exp[eid][f"rates_Q_liq_{range_key}"] = build_rates(ds_exp, rho, proc_vars, "Q", b, spectrum="W")
             rates_by_exp[eid][f"rates_N_ice_{range_key}"] = build_rates(ds_exp, rho, proc_vars, "N", b, spectrum="F")
             rates_by_exp[eid][f"rates_Q_ice_{range_key}"] = build_rates(ds_exp, rho, proc_vars, "Q", b, spectrum="F")
+            mirror_immersion_freezing({
+                "rates_N_liq": rates_by_exp[eid][f"rates_N_liq_{range_key}"],
+                "rates_Q_liq": rates_by_exp[eid][f"rates_Q_liq_{range_key}"],
+                "rates_N_ice": rates_by_exp[eid][f"rates_N_ice_{range_key}"],
+                "rates_Q_ice": rates_by_exp[eid][f"rates_Q_ice_{range_key}"],
+            })
 
         sum_vars = sorted(v for v in ds_exp.data_vars if v.startswith("SUM_"))
         proc_vars_pos = {}
