@@ -1,0 +1,35 @@
+== LOCAL plan_pc files ==
+OK      INPUT_FILES
+OK      INPUT_FILES/INPUT_ASS_50x40xZ
+OK      INPUT_FILES/INPUT_DIA_50x40xZ
+OK      INPUT_FILES/INPUT_DYN_50x40xZ
+OK      INPUT_FILES/INPUT_IDEAL_50x40xZ
+OK      INPUT_FILES/INPUT_IO_50x40xZ
+OK      INPUT_FILES/INPUT_ORG_50x40xZ
+OK      INPUT_FILES/INPUT_PHY_50x40xZ
+OK      run_COSMO-SPECS_levante_v3
+OK      start_ensemble_simulation3.sh
+
+== LOCAL cs_run json files ==
+OK      cs-eriswil__20260120_204218.json
+OK      cs-eriswil__20260121_131528.json
+OK      cs-eriswil__20260127_211338.json
+OK      cs-eriswil__20260210_113944.json
+OK      cs-eriswil__20260211_194236.json
+OK      cs-eriswil__20260304_110254.json
+OK      cs-eriswil__20260313_111441.json
+OK      cs-eriswil__20260313_140150.json
+OK      cs-eriswil__20260314_103039.json
+
+== REMOTE availability via: ssh lev ==
+run_id|local_json|remote_run_dir|remote_json|M_count|3D_count|Y_count|mp_par|lv1_ready|lv2_ready
+cs-eriswil__20260120_204218|OK|OK|OK|0|3|5|OK|YES|NO
+cs-eriswil__20260121_131528|OK|OK|OK|0|3|5|OK|YES|NO
+cs-eriswil__20260127_211338|OK|OK|OK|0|4|5|OK|YES|NO
+cs-eriswil__20260210_113944|OK|OK|OK|12|4|5|OK|YES|YES
+cs-eriswil__20260211_194236|OK|OK|OK|12|4|5|OK|YES|YES
+cs-eriswil__20260304_110254|OK|OK|OK|15|0|0|MISSING|NO|YES
+cs-eriswil__20260313_111441|OK|OK|OK|0|4|5|OK|YES|NO
+cs-eriswil__20260313_140150|OK|OK|OK|0|2|5|OK|YES|NO
+cs-eriswil__20260314_103039|OK|OK|OK|12|4|5|OK|YES|YES
+

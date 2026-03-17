@@ -6,6 +6,8 @@ REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 PLAN_PC="${PLAN_PC:-$REPO_ROOT/data/plan_pc}"
 REMOTE_BASE="${REMOTE_BASE:-/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output}"
 REMOTE_SSH="${REMOTE_SSH:-lev}"
+# Disable X11 forwarding to avoid "untrusted X11 forwarding setup failed" warnings when no display
+SSH_OPTS="-o ForwardX11=no"
 
 OUT_DIR="${OUT_DIR:-$REPO_ROOT/data/registry}"
 OUT_CSV="$OUT_DIR/availability_check.csv"
@@ -66,7 +68,7 @@ echo "run_id,local_json,remote_run_dir,remote_json,meteogram_count,three_d_count
 } | tee -a "$OUT_TXT"
 
 for run in "${RUNS[@]}"; do
-  remote_line=$(ssh "$REMOTE_SSH" "bash -c '
+  remote_line=$(ssh $SSH_OPTS "$REMOTE_SSH" "bash -c '
     shopt -s nullglob
     run_dir=\"$REMOTE_BASE/$run\"
     json_file=\"\$run_dir/$run.json\"
