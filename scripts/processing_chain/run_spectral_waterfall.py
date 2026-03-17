@@ -120,10 +120,91 @@ def _draw_steps(ax, d, order, net_merged, cfg_plot):
 def _draw_phase(ax, plot_style, d, widths, order, net_map, cfg_plot):
     """Dispatch to bars/lines/steps based on plot_style."""
     if plot_style == "lines":
-        return _draw_lines(ax, d, order, net_map, cfg_plot)
-    if plot_style == "steps":
-        return _draw_steps(ax, d, order, net_map, cfg_plot)
-    return _draw_bars(ax, d, widths, order, net_map, cfg_plot)
+        any_data = _draw_lines(ax, d, order, net_map, cfg_plot)
+    elif plot_style == "steps":
+        any_data = _draw_steps(ax, d, order, net_map, cfg_plot)
+    else:
+        any_data = _draw_bars(ax, d, widths, order, net_map, cfg_plot)
+
+    if any_data:
+        for p in order:
+            c, net_arr = net_map[p]
+            if not np.any(np.abs(net_arr) > 0):
+                continue
+            mean_rate = float(np.nanmean(net_arr))
+            if not np.isfinite(mean_rate):
+                continue
+            # Triangle points left, vertex aligned with right end of y-axis major tick
+            ax.plot(
+                0.985,
+                mean_rate,
+                marker="<",
+                color=c,
+                transform=ax.get_yaxis_transform(),
+                clip_on=False,
+                markersize=5,
+                markeredgecolor="black",
+                markeredgewidth=0.4,
+                zorder=10,
+            )
+
+    return any_data
+
+
+def _plot_psd_mean_triangle(ax, x, color, *, markersize=6, y_offset_pt=-6.0) -> None:
+    """Place an upward triangle below the PSD axis with its tip aligned to the tick end."""
+    trans = ax.get_xaxis_transform() + matplotlib.transforms.ScaledTranslation(
+        0.0,
+        y_offset_pt / 72.0,
+        ax.figure.dpi_scale_trans,
+    )
+    ax.plot(
+        x,
+        0.0,
+        marker="^",
+        color=color,
+        transform=trans,
+        clip_on=False,
+        markersize=markersize,
+        markeredgecolor="black",
+        markeredgewidth=0.5,
+        zorder=10,
+    )
+
+
+def _plot_psd_max_triangle(ax, y, color, *, markersize=6) -> None:
+    """Place a phase-colored triangle on the left PSD boundary; vertex at left end of y-axis tick."""
+    # Center slightly right of spine so tip (left edge of ">") aligns with spine
+    ax.plot(
+        0.015,
+        y,
+        marker=">",
+        color=color,
+        transform=ax.get_yaxis_transform(),
+        clip_on=False,
+        markersize=markersize,
+        markeredgecolor="black",
+        markeredgewidth=0.5,
+        zorder=10,
+    )
+
+
+def _add_psd_max_textbox(ax, labels) -> None:
+    """Show PSD maxima for liquid and ice as a compact textbox in the upper-left half."""
+    if not labels:
+        return
+    ax.text(
+        0.12,
+        0.78,
+        "\n".join(labels),
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize="xx-small",
+        color="0.15",
+        bbox=dict(facecolor="white", alpha=0.85, edgecolor="0.75", boxstyle="round,pad=0.18"),
+        zorder=11,
+    )
 
 
 def _format_psd_ax(ax, *, row, col, n_cols, xlim, ylim, grid_linewidth, psd_yscale, conc_unit_label, station_idx, station_labels, spec_label) -> None:
@@ -140,14 +221,17 @@ def _format_psd_ax(ax, *, row, col, n_cols, xlim, ylim, grid_linewidth, psd_ysca
     if psd_yscale == "log":
         ax.yaxis.set_major_locator(LogLocator(base=10.0))
         ax.yaxis.set_minor_locator(LogLocator(base=10.0, subs=np.arange(2, 10) * 0.1))
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:g}"))
+    # Match rates style: label only every second tick
+    def _psd_ytick_fmt(y, pos):
+        return f"{y:g}" if pos % 2 == 0 else ""
+    ax.yaxis.set_major_formatter(FuncFormatter(_psd_ytick_fmt))
     ax.grid(True, which="major", linestyle="--", linewidth=grid_linewidth, color="k", alpha=0.18)
     if psd_yscale == "log":
         ax.grid(True, which="minor", linestyle=":", linewidth=grid_linewidth * 0.7, color="k", alpha=0.12)
     ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:g}"))
-    ax.tick_params(which="both", direction="out", labelbottom=False, bottom=False)
+    ax.tick_params(which="both", direction="out", bottom=True, top=False, labelbottom=False, labeltop=False)
     ax.set_ylabel(conc_unit_label, fontsize="xx-small")
-    ax.yaxis.set_ticks_position("right")
+    ax.yaxis.set_ticks_position("both")
     ax.yaxis.set_label_position("right")
     ax.tick_params(axis="y", labelsize="xx-small")
     ax.text(
@@ -257,7 +341,7 @@ def plot_spectral_waterfall(
     axes_ice = np.empty((n_hl, n_cols), dtype=object)
     for r in range(n_hl):
         for c in range(n_cols):
-            sub = gs[r, c].subgridspec(3, 1, height_ratios=[1.5, 2.3, 2.3], hspace=0.005)
+            sub = gs[r, c].subgridspec(3, 1, height_ratios=[1.5, 2.3, 2.3], hspace=0.001)
             axes_psd[r, c] = fig.add_subplot(sub[0])
             axes_liq[r, c] = fig.add_subplot(sub[1], sharex=axes_psd[r, c])
             axes_ice[r, c] = fig.add_subplot(sub[2], sharex=axes_psd[r, c])
@@ -277,6 +361,7 @@ def plot_spectral_waterfall(
             ax_psd = axes_psd[row, col]
             ax_liq = axes_liq[row, col]
             ax_ice = axes_ice[row, col]
+            psd_max_labels: list[str] = []
             net_w = panel_process_values(spec_rates_w, list(spec_rates_w.keys()), station_idx, h0, h1, twindow, bin_slice)
             net_f = panel_process_values(spec_rates_f, list(spec_rates_f.keys()), station_idx, h0, h1, twindow, bin_slice)
             psd_ylim = (
@@ -340,13 +425,28 @@ def plot_spectral_waterfall(
                                 linewidth=1.2,
                             )
                             ax_psd.step(d, conc_arr, where="mid", color='black', alpha=1.0, linewidth=cfg_plot.get("psd_black_linewidth", 0.8))
+                            
+                            max_val = float(np.nanmax(conc_arr))
+                            psd_ylim_phase = cfg_plot["psd_ylim_W"] if phase == "liq" else cfg_plot["psd_ylim_F"]
+                            within_ylim = (
+                                np.isfinite(max_val)
+                                and max_val > 0.0
+                                and psd_ylim_phase[0] <= max_val <= psd_ylim_phase[1]
+                            )
+                            if within_ylim:
+                                mean_d = float(np.average(d, weights=conc_arr))
+                                _plot_psd_mean_triangle(ax_psd, mean_d, psd_color)
+                                _plot_psd_max_triangle(ax_psd, max_val, psd_color)
+                                phase_tag = "Liq" if phase == "liq" else "Ice"
+                                psd_max_labels.append(f"{phase_tag} max: {max_val:.1e}")
                         
             if cfg_plot.get("show_psd_twin", False):
+                _add_psd_max_textbox(ax_psd, psd_max_labels)
                 _add_psd_legend(ax_psd, cfg_plot)
 
     for r in range(n_hl):
         for c in range(n_cols):
-            for ax in (axes_liq[r, c], axes_ice[r, c]):
+            for ax in (axes_psd[r, c], axes_liq[r, c], axes_ice[r, c]):
                 ax.spines["top"].set_visible(False)
                 ax.spines["bottom"].set_visible(False)
 
@@ -363,6 +463,11 @@ def plot_spectral_waterfall(
     tw_str = f"{str(twindow.start)[11:19]} - {str(twindow.stop)[11:19]}"
     norm_tag = f" (relative:{normalize_mode})" if normalize_mode != "none" else ""
     fig.suptitle(f"View D - {kind_label} spectral budget [{unit_label}]{norm_tag} -- {tw_str}", fontweight="semibold")
+    
+    fig.supxlabel("Diameter [µm]", fontsize="medium")
+    y_lbl = f"Process Rates [{unit_label}]" if normalize_mode == "none" else "Relative Process Rates [-]"
+    fig.supylabel(y_lbl, fontsize="medium")
+    
     return fig, (axes_psd, axes_liq, axes_ice)
 
 
@@ -403,16 +508,9 @@ def _format_ax(ax, *, phase, row, col, n_hl, n_cols, xlim, ylim, linthresh,
     )
 
     if phase == "liq":
-        ax.tick_params(axis="x", labelbottom=False)
+        ax.tick_params(axis="x", bottom=False, labelbottom=False)
     elif row < n_hl - 1:
-        ax.tick_params(axis="x", labelbottom=False)
-
-    if phase == "ice" and row == n_hl - 1:
-        ax.set_xlabel("Diameter [µm]")
-    # if phase == "liq" and row == 0:
-    #     ax.set_title(stn_label(station_idx, station_labels) if n_cols > 1 else spec_label)
-    if col == 0:
-        ax.set_ylabel(f"[{unit_label}]" if normalize_mode == "none" else "Rel. [-]", fontsize="x-small")
+        ax.tick_params(axis="x", bottom=False, labelbottom=False)
     if phase == "liq":
         panel_txt = f"{h1:.0f} – {h0:.0f} m"
         ax.text(0.95, 0.92, panel_txt, transform=ax.transAxes, ha="right", va="top", fontweight="semibold",

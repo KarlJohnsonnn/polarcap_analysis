@@ -10,14 +10,14 @@ cd "$REPO_ROOT"
 python "$SCRIPT_DIR/run_spectral_waterfall.py" \
     --config "$REPO_ROOT/scripts/processing_chain/config/process_budget_NQall.yaml" \
     --kind Q \
-    --linthresh-w 1e-7 \
-    --linthresh-f 1e-7 \
+    --linthresh-w 1e-8 \
+    --linthresh-f 1e-8 \
     --xlim-w=1e-1,4e3 \
     --xlim-f=1e-1,4e3 \
-    --ylim-w=-1e0,1e0 \
-    --ylim-f=-1e0,1e0 \
-    --psd-ylim-w=1e-7,1e1 \
-    --psd-ylim-f=1e-7,1e1 \
+    --ylim-w=-1e-2,1e-2 \
+    --ylim-f=-1e-2,1e-2 \
+    --psd-ylim-w=1e-6,1e0 \
+    --psd-ylim-f=1e-6,1e0 \
     --mp4 &
 
 

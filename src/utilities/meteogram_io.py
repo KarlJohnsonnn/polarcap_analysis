@@ -208,7 +208,24 @@ def _open_experiment(
         datasets.append(ds)
 
     ds_exp = xr.concat(datasets, dim="station", coords="minimal", compat="override")
+    ds_exp = ds_exp.assign_coords(station=station_ids)
     return ds_exp, station_ids
+
+
+def _coerce_station_id(value: Any) -> int | str:
+    """Return numeric station ids when possible, otherwise preserve the string."""
+    try:
+        return int(value)
+    except Exception:
+        return str(value)
+
+
+def _station_id_array(values: Sequence[Any]) -> np.ndarray:
+    """Return a compact station-id array with numeric dtype when possible."""
+    vals = [_coerce_station_id(v) for v in values]
+    if vals and all(isinstance(v, int) for v in vals):
+        return np.asarray(vals, dtype="i4")
+    return np.asarray([str(v) for v in vals], dtype="U")
 
 
 # ---------------------------------------------------------------------------
@@ -348,7 +365,7 @@ def build_meteogram_zarr(
     # 1. Open all experiments lazily
     # -----------------------------------------------------------
     exp_datasets: List[xr.Dataset] = []
-    station_ids = None
+    station_ids_seen: List[Any] = []
 
     for i, exp in enumerate(expnames):
         files = sorted(file_dict[exp])
@@ -356,11 +373,16 @@ def build_meteogram_zarr(
         ds_exp, sids = _open_experiment(
             files, variables, max_time, max_height_level, target_chunks,
         )
+        station_ids_seen.extend([_coerce_station_id(s) for s in sids.tolist()])
         exp_datasets.append(ds_exp)
-        if station_ids is None:
-            station_ids = sids
 
-    n_stations = exp_datasets[0].sizes["station"]
+    if station_coords is not None:
+        station_ids = _station_id_array(sorted({_coerce_station_id(k) for k in station_coords.keys()}))
+    else:
+        station_ids = _station_id_array(sorted(set(station_ids_seen)))
+
+    exp_datasets = [ds_exp.reindex(station=station_ids) for ds_exp in exp_datasets]
+    n_stations = len(station_ids)
     target_chunks["station"] = min(target_station_chunk, n_stations)
 
     # -----------------------------------------------------------
@@ -385,21 +407,27 @@ def build_meteogram_zarr(
     # 3. Assign coordinates and metadata
     # -----------------------------------------------------------
     experiments_da = xr.DataArray(
-        np.array(expnames, dtype="S"), dims="expname",
+        np.asarray(expnames, dtype="U"), dims="expname",
         attrs={"long_name": "Experiment name"},
     )
-    station_ids_da = xr.DataArray(
-        station_ids, dims="station",
-        attrs={"long_name": "Station ID"},
-    )
+    station_ids_da = xr.DataArray(station_ids, dims="station", attrs={"long_name": "Station ID"})
     ds_all = ds_all.assign_coords(expname=experiments_da, station=station_ids_da)
 
     if station_coords is not None:
-        coords_arr = np.array(list(station_coords.values()), dtype="f8")
+        station_lat = []
+        station_lon = []
+        for sid in station_ids:
+            lat_lon = station_coords.get(str(sid))
+            if lat_lon is None:
+                station_lat.append(np.nan)
+                station_lon.append(np.nan)
+            else:
+                station_lat.append(float(lat_lon[0]))
+                station_lon.append(float(lat_lon[1]))
         ds_all = ds_all.assign_coords(
-            station_lat=xr.DataArray(coords_arr[:n_stations, 0], dims="station",
+            station_lat=xr.DataArray(np.asarray(station_lat, dtype="f8"), dims="station",
                                      attrs={"units": "deg", "long_name": "Latitude"}),
-            station_lon=xr.DataArray(coords_arr[:n_stations, 1], dims="station",
+            station_lon=xr.DataArray(np.asarray(station_lon, dtype="f8"), dims="station",
                                      attrs={"units": "deg", "long_name": "Longitude"}),
         )
 
