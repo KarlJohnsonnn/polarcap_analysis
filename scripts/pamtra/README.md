@@ -71,6 +71,33 @@ Example on `lev`:
 
 For a quick smoke test, add `--limit-times 2`.
 
+## Local driver
+
+From this repo, you can sync the maintained workflow to `lev`, rebuild PAMTRA,
+run the remote smoke test, and optionally process one real vertical plume file:
+
+```bash
+./scripts/pamtra/enable_remote_levante.sh \
+  lev \
+  /home/b/b382237/code/radar_forward/pamtra \
+  /home/b/b382237/code/radar_forward/pamtra/test_output \
+  --real-input /home/b/b382237/code/jupyterhub_nbs/processed/data_cs-eriswil__20251125_114053_20251125114238_vertical_plume_path_qs_cell1.nc \
+  --real-output-dir /home/b/b382237/code/radar_forward/pamtra/real_test_output
+```
+
+To submit the real-file processing through SLURM instead of running on the
+login node, add `--submit-slurm`. Defaults are `4` CPUs, `16G`, and `01:00:00`.
+
+```bash
+./scripts/pamtra/enable_remote_levante.sh \
+  --real-input /home/b/b382237/code/jupyterhub_nbs/processed/data_cs-eriswil__20251125_114053_20251125114238_vertical_plume_path_qs_cell1.nc \
+  --real-output-dir /home/b/b382237/code/radar_forward/pamtra/real_test_output \
+  --submit-slurm \
+  --slurm-cpus 8 \
+  --slurm-mem 32G \
+  --slurm-time 02:00:00
+```
+
 ## Output format
 
 Each output file is written as:
