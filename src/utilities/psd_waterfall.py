@@ -27,6 +27,9 @@ from utilities.plume_loader import load_plume_path_runs
 from utilities.plume_path_plot import build_common_xlim, diagnostics_table
 from utilities.style_profiles import FULL_COL_IN, MAX_H_IN, SINGLE_COL_IN
 
+# Scale factor for gallery/publication: larger figure for higher effective resolution
+PSD_WATERFALL_FIG_SCALE = 1.3
+
 xr.set_options(keep_attrs=True)
 
 DEFAULT_PROCESSED_ROOT = Path("data") / "processed"
@@ -690,8 +693,8 @@ def plot_psd_waterfall(
 
     n_panels = len(panel_data)
     n_rows = -(-n_panels // n_cols)
-    fig_width = FULL_COL_IN if n_cols > 1 else SINGLE_COL_IN
-    fig_height = min(fig_width * (n_rows / max(n_cols, 1)) * (2.8 / 4.5), MAX_H_IN)
+    fig_width = (FULL_COL_IN if n_cols > 1 else SINGLE_COL_IN) * PSD_WATERFALL_FIG_SCALE
+    fig_height = min(fig_width * (n_rows / max(n_cols, 1)) * (2.8 / 4.5), MAX_H_IN) * PSD_WATERFALL_FIG_SCALE
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(fig_width, fig_height), layout="constrained")
 
     for idx, ax in enumerate(np.atleast_1d(axes).flat):
