@@ -65,3 +65,7 @@ scripts/pamtra/pamtra
 !data/processed/README.md
 !data/observations/holimo
 !output/
+!output/gallery/*.png
+!output/gallery/*.mp4
+!output/gallery/*.yaml
+!output/gallery/*.ipynb

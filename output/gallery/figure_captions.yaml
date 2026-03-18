@@ -1,0 +1,26 @@
+# Figure captions for paper-draft gallery (output/gallery).
+# Keys are filenames; notebook loads PNGs/MP4s and displays with these captions.
+
+fig01_cloud_field_overview.png: |
+  Cloud field overview: time–height mass concentration profiles (symlog) for all
+  meteogram stations (ALLBB). Droplet and ice mass from COSMO-SPECS ensemble.
+
+fig12_plume_path.png: |
+  Ensemble-mean Lagrangian plume path. Trajectories from selected plume realisations
+  with altitude and time; used for PAMTRA forward sampling.
+
+fig13_psd_mass.png: |
+  PSD altitude–time evolution (mass). Particle size distribution mass mixing ratio
+  along the plume path as a function of altitude and time.
+
+fig13_psd_number.png: |
+  PSD altitude–time evolution (number). Particle size distribution number concentration
+  along the plume path as a function of altitude and time.
+
+spectral_waterfall_N_cs-eriswil__20260304_110254_exp0_stn0-1-2_ALLBB_evolution_nframes242.mp4: |
+  Spectral waterfall (number concentration). Time evolution of the droplet number
+  size distribution at the station; cs-eriswil, run 20260304, ALLBB.
+
+spectral_waterfall_Q_cs-eriswil__20260304_110254_exp0_stn0-1-2_ALLBB_evolution_nframes242.mp4: |
+  Spectral waterfall (mass mixing ratio). Time evolution of the droplet mass
+  size distribution at the station; cs-eriswil, run 20260304, ALLBB.
