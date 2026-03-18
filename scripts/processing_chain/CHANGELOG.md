@@ -8,12 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - **Meteogram Zarr Rechunking on Open** – Added optional in-memory rechunking for meteogram Zarrs when opening (`src/utilities/process_budget_data.py`) to optimize compute for the current machine (server vs laptop). Controlled via `zarr.rechunk_on_open` in the config file.
+- **Publication figure runner** – Added `scripts/processing_chain/run_publication_figures.py` to dispatch the curated publication-ready figure scripts from `scripts/analysis/` from one processing-chain entry point.
+- **PSD structured stats export** – `scripts/analysis/growth/run_psd_waterfall.py` now writes machine-readable window statistics CSVs alongside the figure13 LaTeX tables, and `run_growth_summary.py` joins PSD and ridge metrics into one registry product.
 
 ### Changed
 - **Meteogram Zarr Chunk Defaults** – Updated `build_meteogram_zarr` (`src/utilities/meteogram_io.py`) default chunk sizes to be optimal for time-frame and single-station analysis: `time=100`, `station=1`, `bins=30` (added `target_bins_chunk` parameter).
 - **Compression** – Moved to `scripts/nc_compression/`: `compress_nc.sh`, `compress_nc_slurm.sh`. Processing chain README now points to that directory.
 - **`_paths.py`** → `src/utilities/processing_paths.py` – Path resolution moved into utilities for reuse by notebooks and other scripts.
 - **Output root defaults** – `run_chain.py`, `run_lv1_tracking.py`, `run_lv2_meteogram_zarr.py`, and `run_lv3_analysis.py` now resolve output roots via explicit `--out`, then `$POLARCAP_OUTPUT_ROOT`, then the matching `RUN_ERISWILL_*x100/ensemble_output` tree for the run, else local `processed`.
+- **Spectral waterfall entrypoint** – The preferred launcher is now `scripts/analysis/growth/run_spectral_waterfall.py`; the processing-chain script stays in place for compatibility.
 
 ## [0.1.1] - 2025-03-06
 

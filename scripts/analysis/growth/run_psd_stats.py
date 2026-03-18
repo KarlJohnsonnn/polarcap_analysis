@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect PSD statistics from existing figure13-style LaTeX tables into one CSV."""
+"""Collect structured PSD waterfall statistics into one registry CSV."""
 from __future__ import annotations
 
 import argparse
@@ -10,20 +10,25 @@ import numpy as np
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-TABLE_DIR = REPO_ROOT / "notebooks" / "output" / "tables"
+STATS_DIR = REPO_ROOT / "scripts" / "processing_chain" / "output" / "04" / "stats"
+LEGACY_TABLE_DIR = REPO_ROOT / "scripts" / "processing_chain" / "output" / "04" / "tables"
 REGISTRY_CSV = REPO_ROOT / "data" / "registry" / "experiment_registry.csv"
 OUT_CSV = REPO_ROOT / "data" / "registry" / "psd_stats.csv"
 
 KNOWN_VARIANTS = ("mass_small", "number_small", "mass", "number")
-RAW_COLS = [
-    "time_frame_min",
-    "cdnc_mean_um",
-    "cdnc_std_um",
-    "cdnc_growth_rate",
-    "icnc_mean_um",
-    "icnc_std_um",
-    "icnc_growth_rate",
-    "alpha",
+NUMERIC_COLS = [
+    "t_lo_min",
+    "t_hi_min",
+    "t_mid_min",
+    "liq_mean_diam_um",
+    "liq_std_diam_um",
+    "liq_net_tendency_per_min",
+    "ice_mean_diam_um",
+    "ice_std_diam_um",
+    "ice_net_tendency_per_min",
+    "obs_ice_mean_diam_um",
+    "obs_ice_std_diam_um",
+    "alpha_ice_mean_diam",
 ]
 
 
@@ -52,10 +57,41 @@ def _parse_time_bounds(label: str) -> tuple[float, float]:
     return float(lo), float(hi)
 
 
-def collect_psd_stats(table_dir: Path = TABLE_DIR) -> pd.DataFrame:
-    exp = pd.read_csv(REGISTRY_CSV, dtype={"expname": str})
-    exp_map = exp[["expname", "cs_run", "exp_id"]].rename(columns={"expname": "run_id"})
-    exp_map["run_id"] = exp_map["run_id"].astype(str)
+def _registry_lookup(registry_csv: Path) -> pd.DataFrame:
+    reg = pd.read_csv(registry_csv, dtype=str)
+    rows = []
+    for row in reg.itertuples(index=False):
+        for key in {str(getattr(row, "expname", "")).strip(), str(getattr(row, "exp_id", "")).strip()}:
+            if not key:
+                continue
+            rows.append(
+                {
+                    "run_id": key,
+                    "cs_run": getattr(row, "cs_run", ""),
+                    "exp_id": getattr(row, "exp_id", ""),
+                    "expname": getattr(row, "expname", ""),
+                }
+            )
+    return pd.DataFrame(rows).drop_duplicates(subset=["run_id"])
+
+
+def _collect_structured_stats(stats_dir: Path) -> pd.DataFrame:
+    frames: list[pd.DataFrame] = []
+    for path in sorted(stats_dir.glob("figure13_psd_stats_*.csv")):
+        df = pd.read_csv(path, dtype={"run_id": str, "run_label": str, "variant": str, "basis": str})
+        variant, run_id = _parse_file_name(path)
+        if "variant" not in df.columns:
+            df["variant"] = variant
+        if "run_id" not in df.columns:
+            df["run_id"] = str(run_id)
+        if "basis" not in df.columns:
+            df["basis"] = "mass" if str(df["variant"].iloc[0]).startswith("mass") else "number"
+        df["source_stats_csv"] = str(path.relative_to(REPO_ROOT))
+        frames.append(df)
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
+def _collect_legacy_latex(table_dir: Path) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     for path in sorted(table_dir.glob("figure13_psd_stats_*.tex")):
         variant, run_id = _parse_file_name(path)
@@ -77,36 +113,71 @@ def collect_psd_stats(table_dir: Path = TABLE_DIR) -> pd.DataFrame:
             rows.append(
                 {
                     "variant": variant,
+                    "basis": "mass" if variant.startswith("mass") else "number",
                     "run_id": str(run_id),
                     "time_frame_min": parts[0],
                     "t_lo_min": t_lo,
                     "t_hi_min": t_hi,
                     "t_mid_min": 0.5 * (t_lo + t_hi),
-                    RAW_COLS[1]: _parse_numeric(parts[1]),
-                    RAW_COLS[2]: _parse_numeric(parts[2]),
-                    RAW_COLS[3]: _parse_numeric(parts[3]),
-                    RAW_COLS[4]: _parse_numeric(parts[4]),
-                    RAW_COLS[5]: _parse_numeric(parts[5]),
-                    RAW_COLS[6]: _parse_numeric(parts[6]),
-                    RAW_COLS[7]: _parse_numeric(parts[7]),
+                    "liq_mean_diam_um": _parse_numeric(parts[1]),
+                    "liq_std_diam_um": _parse_numeric(parts[2]),
+                    "liq_net_tendency_per_min": _parse_numeric(parts[3]),
+                    "ice_mean_diam_um": _parse_numeric(parts[4]),
+                    "ice_std_diam_um": _parse_numeric(parts[5]),
+                    "ice_net_tendency_per_min": _parse_numeric(parts[6]),
+                    "alpha_ice_mean_diam": _parse_numeric(parts[7]),
+                    "obs_match_ids": "",
+                    "obs_ice_mean_diam_um": np.nan,
+                    "obs_ice_std_diam_um": np.nan,
                     "source_table": str(path.relative_to(REPO_ROOT)),
                 }
             )
-    df = pd.DataFrame(rows)
+    return pd.DataFrame(rows)
+
+
+def collect_psd_stats(
+    stats_dir: Path = STATS_DIR,
+    legacy_table_dir: Path = LEGACY_TABLE_DIR,
+    registry_csv: Path = REGISTRY_CSV,
+) -> pd.DataFrame:
+    df = _collect_structured_stats(stats_dir)
+    if df.empty:
+        df = _collect_legacy_latex(legacy_table_dir)
     if df.empty:
         return df
-    return df.merge(exp_map, on="run_id", how="left")
+
+    if "run_id" in df.columns:
+        df["run_id"] = df["run_id"].astype(str)
+    for col in NUMERIC_COLS:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    lookup = _registry_lookup(registry_csv)
+    if not lookup.empty:
+        df = df.merge(lookup, on="run_id", how="left")
+    return df.sort_values(["variant", "run_id", "t_lo_min"]).reset_index(drop=True)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Collect figure13-style PSD stats tables into one CSV.")
-    parser.add_argument("--table-dir", type=Path, default=TABLE_DIR, help="Directory with figure13_psd_stats_*.tex files.")
+    parser = argparse.ArgumentParser(description="Collect PSD waterfall window statistics into one CSV.")
+    parser.add_argument(
+        "--stats-dir",
+        type=Path,
+        default=STATS_DIR,
+        help="Directory with structured figure13_psd_stats_*.csv files.",
+    )
+    parser.add_argument(
+        "--legacy-table-dir",
+        type=Path,
+        default=LEGACY_TABLE_DIR,
+        help="Fallback directory with legacy figure13_psd_stats_*.tex files.",
+    )
     parser.add_argument("--output", type=Path, default=OUT_CSV, help="Output CSV path.")
     args = parser.parse_args()
 
-    df = collect_psd_stats(args.table_dir)
+    df = collect_psd_stats(args.stats_dir, args.legacy_table_dir, REGISTRY_CSV)
     if df.empty:
-        raise SystemExit(f"No PSD stats tables found in {args.table_dir}")
+        raise SystemExit(f"No PSD stats found in {args.stats_dir} or {args.legacy_table_dir}")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(args.output, index=False)
     print(f"Wrote {len(df)} rows to {args.output}")

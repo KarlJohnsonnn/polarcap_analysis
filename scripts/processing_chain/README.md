@@ -64,6 +64,25 @@ python run_lv2_meteogram_zarr.py -r cs-eriswil__20260123_180947
 python run_lv3_analysis.py --cs-run cs-eriswil__20260123_180947
 ```
 
+**Publication-ready figures:**
+```bash
+# Run all curated paper figures from scripts/analysis/
+python run_publication_figures.py
+
+# Show available figure jobs
+python run_publication_figures.py --list
+
+# Run only a subset
+python run_publication_figures.py --figures cloud_field_overview,plume_lagrangian
+```
+
+The runner currently dispatches the promoted figure scripts in `scripts/analysis/forcing/` and
+`scripts/analysis/growth/`. Add future figure drivers by appending a new entry to
+`PUBLICATION_FIGURES` in `run_publication_figures.py`.
+
+The preferred spectral waterfall launcher now lives in `scripts/analysis/growth/run_spectral_waterfall.py`.
+`scripts/processing_chain/run_spectral_waterfall.py` remains available as a compatibility entry point.
+
 **Restart / skip:**
 - By default, existing outputs are **not** overwritten. Use `--overwrite` to recompute.
 - Use `--skip-tracking`, `--skip-meteogram`, `--skip-lv3` in `run_chain.py` to run only later stages.
