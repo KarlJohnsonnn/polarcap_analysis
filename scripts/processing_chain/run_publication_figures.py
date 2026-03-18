@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Run the curated publication-ready figure scripts from `scripts/analysis`.
+Run the curated publication products from `scripts/analysis`.
 
-This wrapper lives in the processing chain so the reproducible LV1-LV3 products
-and the promoted paper figures can be generated from one place. Extend
-`PUBLICATION_FIGURES` when new figure drivers are added in the future.
+This wrapper lives in the processing chain so the reproducible LV1-LV3 products,
+paper figures, supporting tables, and registry metrics can be generated from one
+place. Extend `PUBLICATION_PRODUCTS` when new promoted analysis drivers are
+added in the future.
 """
 
 from __future__ import annotations
@@ -14,9 +15,14 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
+DEFAULT_MIRA_DIR = Path("/Users/schimmel/data/observations/eriswil/mira35/20230125")
+PAMTRA_MISSIONS = ("composite", "SM059", "SM058", "SM060")
+
+ArgBuilder = Callable[[argparse.Namespace], tuple[str, ...]]
 
 
 @dataclass(frozen=True)
@@ -25,17 +31,52 @@ class FigureJob:
     rel_script: str
     description: str
     default_args: tuple[str, ...] = ()
+    arg_builder: ArgBuilder | None = None
 
     @property
     def script_path(self) -> Path:
         return REPO_ROOT / self.rel_script
 
+    def resolve_args(self, cli_args: argparse.Namespace) -> tuple[str, ...]:
+        if self.arg_builder is not None:
+            return self.arg_builder(cli_args)
+        return self.default_args
 
-PUBLICATION_FIGURES: tuple[FigureJob, ...] = (
+
+def _pamtra_quicklook_args(args: argparse.Namespace) -> tuple[str, ...]:
+    if args.pamtra_file is None:
+        raise ValueError(
+            "The pamtra_mira35_quicklook job requires --pamtra-file <path-to-*_pamtra.nc>."
+        )
+    pamtra_file = args.pamtra_file.expanduser().resolve()
+    mira_dir = args.mira_dir.expanduser().resolve()
+    out: list[str] = [
+        str(pamtra_file),
+        "--mira-dir",
+        str(mira_dir),
+        "--observation-mission",
+        args.pamtra_observation_mission,
+    ]
+    if args.pamtra_output is not None:
+        out.extend(["--output", str(args.pamtra_output.expanduser().resolve())])
+    return tuple(out)
+
+
+PUBLICATION_PRODUCTS: tuple[FigureJob, ...] = (
+    FigureJob(
+        key="analysis_registry",
+        rel_script="scripts/analysis/registry/build_analysis_registry.py",
+        description="Merged paper-ready registry plus the paper-core subset CSV.",
+    ),
     FigureJob(
         key="cloud_field_overview",
         rel_script="scripts/analysis/forcing/run_cloud_field_overview.py",
         description="Notebook 01 cloud-field overview figure.",
+    ),
+    FigureJob(
+        key="cloud_phase_budget_table",
+        rel_script="scripts/analysis/forcing/run_cloud_phase_budget_table.py",
+        description="Phase-integrated budget summary tables for the overview figure.",
     ),
     FigureJob(
         key="plume_lagrangian",
@@ -43,13 +84,49 @@ PUBLICATION_FIGURES: tuple[FigureJob, ...] = (
         description="Notebook 03 plume-lagrangian evolution figure.",
     ),
     FigureJob(
+        key="ridge_metrics",
+        rel_script="scripts/analysis/growth/run_ridge_metrics.py",
+        description="LV1 plume-ridge metrics plus uncertainty time series CSVs.",
+    ),
+    FigureJob(
         key="psd_waterfall",
         rel_script="scripts/analysis/growth/run_psd_waterfall.py",
-        description="Notebook 04 PSD waterfall figure suite.",
+        description="Notebook 04 PSD waterfall figure suite with stats and LaTeX tables.",
+    ),
+    FigureJob(
+        key="psd_stats",
+        rel_script="scripts/analysis/growth/run_psd_stats.py",
+        description="Registry CSV assembled from PSD waterfall window statistics.",
+    ),
+    FigureJob(
+        key="growth_summary",
+        rel_script="scripts/analysis/growth/run_growth_summary.py",
+        description="Joined growth-summary registry built from ridge and PSD metrics.",
+    ),
+    FigureJob(
+        key="spectral_waterfall",
+        rel_script="scripts/analysis/growth/run_spectral_waterfall.py",
+        description="Spectral waterfall frame suite promoted from the processing chain.",
+    ),
+    FigureJob(
+        key="first_ice_metrics",
+        rel_script="scripts/analysis/initiation/run_first_ice_metrics.py",
+        description="First excess-ice onset metrics from local LV2 meteogram outputs.",
+    ),
+    FigureJob(
+        key="initiation_process_summary",
+        rel_script="scripts/analysis/initiation/run_initiation_process_summary.py",
+        description="Early-window initiation process fractions from local LV3 rates.",
+    ),
+    FigureJob(
+        key="pamtra_mira35_quicklook",
+        rel_script="scripts/analysis/impacts/run_pamtra_mira35_quicklook.py",
+        description="Publication PAMTRA vs MIRA35 quicklook example.",
+        arg_builder=_pamtra_quicklook_args,
     ),
 )
 
-FIGURE_MAP = {job.key: job for job in PUBLICATION_FIGURES}
+JOB_MAP = {job.key: job for job in PUBLICATION_PRODUCTS}
 
 
 def _parse_csv(raw: str | None) -> list[str] | None:
@@ -60,17 +137,17 @@ def _parse_csv(raw: str | None) -> list[str] | None:
 
 
 def _resolve_jobs(selected: list[str] | None, skipped: list[str] | None) -> list[FigureJob]:
-    jobs = list(PUBLICATION_FIGURES)
+    jobs = list(PUBLICATION_PRODUCTS)
     if selected:
-        unknown = [name for name in selected if name not in FIGURE_MAP]
+        unknown = [name for name in selected if name not in JOB_MAP]
         if unknown:
-            valid = ", ".join(FIGURE_MAP)
+            valid = ", ".join(JOB_MAP)
             raise ValueError(f"Unknown figure key(s): {', '.join(unknown)}. Valid: {valid}")
-        jobs = [FIGURE_MAP[name] for name in selected]
+        jobs = [JOB_MAP[name] for name in selected]
     if skipped:
-        unknown = [name for name in skipped if name not in FIGURE_MAP]
+        unknown = [name for name in skipped if name not in JOB_MAP]
         if unknown:
-            valid = ", ".join(FIGURE_MAP)
+            valid = ", ".join(JOB_MAP)
             raise ValueError(f"Unknown skip key(s): {', '.join(unknown)}. Valid: {valid}")
         jobs = [job for job in jobs if job.key not in set(skipped)]
     return jobs
@@ -80,6 +157,8 @@ def _print_jobs(jobs: list[FigureJob]) -> None:
     for job in jobs:
         print(f"{job.key:22s} {job.rel_script}")
         print(f"  {job.description}")
+        if job.key == "pamtra_mira35_quicklook":
+            print("  requires: --pamtra-file /path/to/*_pamtra.nc")
 
 
 def parse_args() -> argparse.Namespace:
@@ -89,9 +168,10 @@ Examples:
   python run_publication_figures.py --list
   python run_publication_figures.py --figures cloud_field_overview,plume_lagrangian
   python run_publication_figures.py --skip psd_waterfall --dry-run
+  python run_publication_figures.py --figures pamtra_mira35_quicklook --pamtra-file /path/to/example_pamtra.nc
 """
     parser = argparse.ArgumentParser(
-        description="Run the promoted publication-ready figure scripts under scripts/analysis.",
+        description="Run the promoted publication figure, table, and metric scripts under scripts/analysis.",
         epilog=epilog.strip(),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -99,7 +179,7 @@ Examples:
         "--figures",
         type=str,
         default=None,
-        help="Comma-separated subset of figure keys to run. Default: all curated figure scripts.",
+        help="Comma-separated subset of publication job keys to run. Default: all curated jobs.",
     )
     parser.add_argument(
         "--skip",
@@ -122,13 +202,38 @@ Examples:
         action="store_true",
         help="Keep running later figure jobs if one job fails.",
     )
+    parser.add_argument(
+        "--pamtra-file",
+        type=Path,
+        default=None,
+        help="Example PAMTRA NetCDF used by the pamtra_mira35_quicklook job.",
+    )
+    parser.add_argument(
+        "--mira-dir",
+        type=Path,
+        default=DEFAULT_MIRA_DIR,
+        help="Directory with raw MIRA35 *.mmclx files for the PAMTRA quicklook example.",
+    )
+    parser.add_argument(
+        "--pamtra-observation-mission",
+        type=str,
+        default="composite",
+        choices=PAMTRA_MISSIONS,
+        help="Observation mission passed to the PAMTRA quicklook example.",
+    )
+    parser.add_argument(
+        "--pamtra-output",
+        type=Path,
+        default=None,
+        help="Optional explicit PNG output path for the PAMTRA quicklook example.",
+    )
     return parser.parse_args()
 
 
-def _run_job(job: FigureJob, *, dry_run: bool = False) -> int:
+def _run_job(job: FigureJob, cli_args: argparse.Namespace, *, dry_run: bool = False) -> int:
     if not job.script_path.is_file():
         raise FileNotFoundError(f"Figure script not found: {job.script_path}")
-    cmd = [sys.executable, str(job.script_path), *job.default_args]
+    cmd = [sys.executable, str(job.script_path), *job.resolve_args(cli_args)]
     print(f"[figure] {job.key}")
     print(" ", " ".join(cmd))
     if dry_run:
@@ -154,7 +259,14 @@ def main() -> None:
 
     failures: list[str] = []
     for job in jobs:
-        rc = _run_job(job, dry_run=args.dry_run)
+        try:
+            rc = _run_job(job, args, dry_run=args.dry_run)
+        except ValueError as exc:
+            failures.append(job.key)
+            print(f"{job.key} failed: {exc}", file=sys.stderr)
+            if not args.continue_on_error:
+                break
+            continue
         if rc != 0:
             failures.append(job.key)
             print(f"{job.key} failed with exit code {rc}", file=sys.stderr)
