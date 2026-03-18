@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """Render spectral waterfall PNG frames (and optional MP4) from YAML config.
 
-Each height-layer panel is split into upper (liquid) and lower (ice) sub-axes
-with independent y-limits (ylim_W / ylim_F) and shared x-axis.
+Compatibility note: the preferred user-facing entry point now lives at
+`scripts/analysis/growth/run_spectral_waterfall.py`. This processing-chain
+script remains available so existing commands do not break.
+
+Each station panel is split into upper (liquid) and lower (ice) sub-axes
+with independent y-limits (ylim_W / ylim_F) and shared x-axis. By default,
+the spectral rates are sampled along the frozen-plume ridge, producing one row
+across the selected stations.
 
 Plot styles (--plot-style): bars | lines | steps.
 Y-axis scaling (--yscale):  symlog (default) | linear | log.
 
 Outputs
 -------
-- Frames: notebooks/output/05/<cs_run>/spectral_waterfall_<kind>_exp<id>_stn_all_<range>_itime<k>.png
-- MP4:    notebooks/output/05/spectral_waterfall_<kind>_..._evolution_nframes<n>.mp4  (--mp4)
+- Frames: scripts/processing_chain/output/05/<cs_run>/spectral_waterfall_<kind>_exp<id>_stn_all_<range>_itime<k>.png
+- MP4:    scripts/processing_chain/output/05/spectral_waterfall_<kind>_..._evolution_nframes<n>.mp4  (--mp4)
 """
 from __future__ import annotations
 
@@ -46,6 +52,8 @@ from utilities import (  # noqa: E402
     normalize_net_stacks,
     panel_process_values,
     panel_concentration_profile,
+    ridge_process_values,
+    ridge_concentration_profile,
     proc_color,
     proc_hatch,
     stn_label,
@@ -314,6 +322,7 @@ def plot_spectral_waterfall(
     yscale: str = "symlog",
     spec_conc_w: Optional[xr.DataArray] = None,
     spec_conc_f: Optional[xr.DataArray] = None,
+    ridge_conc_f: Optional[xr.DataArray] = None,
     conc_unit_label: str = "",
 ) -> tuple[Any, Any]:
     """Spectral waterfall with one shared PSD strip above liquid and ice rate panels.
@@ -322,12 +331,13 @@ def plot_spectral_waterfall(
     yscale     : 'symlog' | 'linear' | 'log'.
     """
     bin_slice = size_ranges[range_key]["slice"]
+    use_plume_ridge = bool(cfg_plot.get("use_plume_ridge", True))
     xlim = (min(cfg_plot["xlim_W"][0], cfg_plot["xlim_F"][0]), max(cfg_plot["xlim_W"][1], cfg_plot["xlim_F"][1]))
     ylim_W, ylim_F = tuple(cfg_plot["ylim_W"]), tuple(cfg_plot["ylim_F"])
     linthresh_W, linthresh_F = cfg_plot["linthresh_W"], cfg_plot["linthresh_F"]
     spec_label = f"Liq / Ice ({range_key})"
 
-    n_hl = len(height_sel_m) - 1
+    n_hl = 1 if use_plume_ridge else len(height_sel_m) - 1
     n_cols = len(station_ids)
     fig = plt.figure(
         figsize=(SINGLE_COL_IN * max(1, n_cols), min(n_hl * 125 * MM, MAX_H_IN)),
@@ -356,14 +366,20 @@ def plot_spectral_waterfall(
     widths = cfg_plot["bar_width_frac_merged"] * bin_width
 
     for row in range(n_hl):
-        h0, h1 = height_sel_m[row], height_sel_m[row + 1]
+        h0, h1 = (height_sel_m[row], height_sel_m[row + 1]) if not use_plume_ridge else (np.nan, np.nan)
         for col, station_idx in enumerate(station_ids):
             ax_psd = axes_psd[row, col]
             ax_liq = axes_liq[row, col]
             ax_ice = axes_ice[row, col]
             psd_max_labels: list[str] = []
-            net_w = panel_process_values(spec_rates_w, list(spec_rates_w.keys()), station_idx, h0, h1, twindow, bin_slice)
-            net_f = panel_process_values(spec_rates_f, list(spec_rates_f.keys()), station_idx, h0, h1, twindow, bin_slice)
+            if use_plume_ridge:
+                if ridge_conc_f is None:
+                    raise ValueError("ridge_conc_f is required when use_plume_ridge=True")
+                net_w = ridge_process_values(spec_rates_w, list(spec_rates_w.keys()), ridge_conc_f, station_idx, twindow, bin_slice)
+                net_f = ridge_process_values(spec_rates_f, list(spec_rates_f.keys()), ridge_conc_f, station_idx, twindow, bin_slice)
+            else:
+                net_w = panel_process_values(spec_rates_w, list(spec_rates_w.keys()), station_idx, h0, h1, twindow, bin_slice)
+                net_f = panel_process_values(spec_rates_f, list(spec_rates_f.keys()), station_idx, h0, h1, twindow, bin_slice)
             psd_ylim = (
                 min(cfg_plot["psd_ylim_W"][0], cfg_plot["psd_ylim_F"][0]),
                 max(cfg_plot["psd_ylim_W"][1], cfg_plot["psd_ylim_F"][1]),
@@ -404,12 +420,17 @@ def plot_spectral_waterfall(
                     ax_ph.text(0.5, 0.5, "no signal", transform=ax_ph.transAxes, ha="center", va="center", color="grey")
                 _format_ax(ax_ph, phase=phase, row=row, col=col, n_hl=n_hl, n_cols=n_cols, xlim=xlim, ylim=ylim_ph, linthresh=linthresh_ph,
                            normalize_mode=normalize_mode, yscale=yscale, cfg_plot=cfg_plot, unit_label=unit_label,
-                           station_idx=station_idx, station_labels=station_labels, spec_label=spec_label, h0=h0, h1=h1)
+                           station_idx=station_idx, station_labels=station_labels, spec_label=spec_label, h0=h0, h1=h1,
+                           panel_label="Ice plume ridge" if use_plume_ridge else None)
                 
                 if cfg_plot.get("show_psd_twin", False):
                     spec_conc = spec_conc_w if phase == "liq" else spec_conc_f
                     if spec_conc is not None:
-                        conc_arr = panel_concentration_profile(spec_conc, station_idx, h0, h1, twindow, bin_slice)
+                        conc_arr = (
+                            ridge_concentration_profile(spec_conc, ridge_conc_f, station_idx, twindow, bin_slice)
+                            if use_plume_ridge
+                            else panel_concentration_profile(spec_conc, station_idx, h0, h1, twindow, bin_slice)
+                        )
                         if np.any(conc_arr > 0):
                             psd_color = cfg_plot["psd_color_W"] if phase == "liq" else cfg_plot["psd_color_F"]
                             psd_alpha = cfg_plot.get("psd_fill_alpha", 0.4)
@@ -462,7 +483,8 @@ def plot_spectral_waterfall(
 
     tw_str = f"{str(twindow.start)[11:19]} - {str(twindow.stop)[11:19]}"
     norm_tag = f" (relative:{normalize_mode})" if normalize_mode != "none" else ""
-    fig.suptitle(f"View D - {kind_label} spectral budget [{unit_label}]{norm_tag} -- {tw_str}", fontweight="semibold")
+    ridge_tag = " along ice-plume ridge" if use_plume_ridge else ""
+    fig.suptitle(f"View D - {kind_label} spectral budget{ridge_tag} [{unit_label}]{norm_tag} -- {tw_str}", fontweight="semibold")
     
     fig.supxlabel("Diameter [µm]", fontsize="medium")
     y_lbl = f"Process Rates [{unit_label}]" if normalize_mode == "none" else "Relative Process Rates [-]"
@@ -473,7 +495,7 @@ def plot_spectral_waterfall(
 
 def _format_ax(ax, *, phase, row, col, n_hl, n_cols, xlim, ylim, linthresh,
                normalize_mode, yscale, cfg_plot, unit_label, station_idx,
-               station_labels, spec_label, h0, h1) -> None:
+               station_labels, spec_label, h0, h1, panel_label=None) -> None:
     """Apply axis formatting for a liquid (upper) or ice (lower) sub-axis."""
     from matplotlib.ticker import FuncFormatter, SymmetricalLogLocator
 
@@ -512,7 +534,7 @@ def _format_ax(ax, *, phase, row, col, n_hl, n_cols, xlim, ylim, linthresh,
     elif row < n_hl - 1:
         ax.tick_params(axis="x", bottom=False, labelbottom=False)
     if phase == "liq":
-        panel_txt = f"{h1:.0f} – {h0:.0f} m"
+        panel_txt = panel_label or f"{h1:.0f} – {h0:.0f} m"
         ax.text(0.95, 0.92, panel_txt, transform=ax.transAxes, ha="right", va="top", fontweight="semibold",
                 bbox=dict(facecolor="white", edgecolor="white", alpha=cfg_plot["panel_bbox_alpha"], boxstyle="round,pad=0.05"))
 
@@ -566,6 +588,7 @@ def _waterfall_cfg(cfg_yaml: dict[str, Any]) -> dict[str, Any]:
         "rate_color_linewidth": 0.8,
         "rate_black_linewidth": 0.5,
         "show_psd_twin": True,
+        "use_plume_ridge": True,
         "psd_color_W": "steelblue",
         "psd_color_F": "sienna",
         "psd_fill_alpha": 0.4,         # 0.25 was too faint; outline uses same alpha
@@ -698,15 +721,15 @@ def main() -> None:
         formatter_class=argparse.RawTextHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python scripts/processing_chain/run_spectral_waterfall.py\n"
-            "  python scripts/processing_chain/run_spectral_waterfall.py --config notebooks/config/process_budget.yaml --mp4\n"
+            "  python scripts/analysis/growth/run_spectral_waterfall.py\n"
+            "  python scripts/analysis/growth/run_spectral_waterfall.py --config notebooks/config/process_budget.yaml --mp4\n"
             "  # Number concentration (N); use = or quoted for negative ylim:\n"
-            "  python scripts/processing_chain/run_spectral_waterfall.py --kind N --ylim-w=-1,1 --ylim-f=-1,1 --linthresh-w 1e-9 --linthresh-f 1e-9 --xlim-w 0.001,4000 --xlim-f 0.001,4000\n"
+            "  python scripts/analysis/growth/run_spectral_waterfall.py --kind N --ylim-w=-1,1 --ylim-f=-1,1 --linthresh-w 1e-9 --linthresh-f 1e-9 --xlim-w 0.001,4000 --xlim-f 0.001,4000\n"
             "  # Mass concentration (Q):\n"
-            "  python scripts/processing_chain/run_spectral_waterfall.py --kind Q --ylim-w=-0.01,0.01 --ylim-f=-0.01,0.01 --linthresh-w 1e-6 --linthresh-f 1e-6 --xlim-w 0.001,4000\n"
-            "  python scripts/processing_chain/run_spectral_waterfall.py --normalize-mode bin --exp-ids 1 --range-keys ALLBB\n"
-            "  python scripts/processing_chain/run_spectral_waterfall.py --workers 8 --mp4\n"
-            "  python scripts/processing_chain/run_spectral_waterfall.py --mp4-only   # build MP4 from existing PNGs only\n"
+            "  python scripts/analysis/growth/run_spectral_waterfall.py --kind Q --ylim-w=-0.01,0.01 --ylim-f=-0.01,0.01 --linthresh-w 1e-6 --linthresh-f 1e-6 --xlim-w 0.001,4000\n"
+            "  python scripts/analysis/growth/run_spectral_waterfall.py --normalize-mode bin --exp-ids 1 --range-keys ALLBB\n"
+            "  python scripts/analysis/growth/run_spectral_waterfall.py --workers 8 --mp4\n"
+            "  python scripts/analysis/growth/run_spectral_waterfall.py --mp4-only   # build MP4 from existing PNGs only\n"
         ),
     )
     parser.add_argument("--config", type=Path, default=REPO_ROOT / "scripts" / "processing_chain" / "config" / "cfg_spectral_waterfall.yaml", help="Path to cfg_spectral_waterfall.yaml")
@@ -829,6 +852,7 @@ def main() -> None:
             yscale=sw_cfg["yscale"],
             spec_conc_w=spec_conc_w,
             spec_conc_f=spec_conc_f,
+            ridge_conc_f=r.get("spec_conc_Q_F"),
             conc_unit_label=conc_unit_label,
         )
         stem = f"spectral_waterfall_{kind}_{cs_run_tag}_exp{eid}_{stn_tag}_{range_key}_itime{itime}"

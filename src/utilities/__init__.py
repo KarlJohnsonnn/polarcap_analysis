@@ -125,7 +125,43 @@ try:
         diagnostics_table,
         compute_holimo_elapsed_anchors,
     )
+    from utilities.cloud_field_overview import (
+        DEFAULT_WINDOW_SPECS_MIN,
+        build_cloud_phase_budget_tables,
+        default_cloud_field_overview_output,
+        default_cloud_phase_budget_outputs,
+        load_cloud_field_overview_context,
+        render_cloud_field_overview,
+        save_cloud_phase_budget_tables,
+        save_cloud_field_overview,
+    )
+    from utilities.plume_lagrangian import (
+        DEFAULT_RUNS as DEFAULT_PLUME_RUNS,
+        build_ensemble_mean_datasets,
+        hist_profile,
+        load_plume_lagrangian_context,
+        median_diameter,
+        peak_indices,
+        plume_lagrangian_output,
+        render_plume_lagrangian_figure,
+        save_plume_lagrangian_figure,
+    )
     from utilities.plume_loader import load_plume_path_runs
+    from utilities.psd_waterfall import (
+        DEFAULT_PLOT_KINDS as DEFAULT_PSD_WATERFALL_KINDS,
+        DEFAULT_RUNS as DEFAULT_PSD_WATERFALL_RUNS,
+        build_psd_stats_dataframe,
+        build_holimo_obs_series,
+        load_psd_waterfall_context,
+        plot_psd_waterfall,
+        prepare_psd_waterfall_data,
+        prepared_to_latex_table,
+        render_all_psd_waterfall_cases,
+        render_psd_waterfall_case,
+        save_latex_table,
+        save_psd_stats_csv,
+        waterfall_output_root,
+    )
 except ImportError:
     pass  # plotting/colormaps optional; processing_chain works without them
 
@@ -159,6 +195,8 @@ from utilities.process_rates import (
     get_process_display_name,
     panel_process_values,
     panel_concentration_profile,
+    ridge_process_values,
+    ridge_concentration_profile,
     merge_liq_ice_net,
     normalize_net_stacks,
 )

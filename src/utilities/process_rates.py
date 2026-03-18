@@ -509,6 +509,80 @@ def panel_concentration_profile(
     return _clean_array(vals)
 
 
+def _ridge_indices(
+    ridge_conc_da: xr.DataArray,
+    station_idx: int,
+    twindow: slice,
+    bin_slice: slice,
+    floor: float = 0.0,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return time and height indices of the per-time frozen-plume ridge."""
+    sliced = ridge_conc_da.isel(station=station_idx).sel(time=twindow)
+    if sliced.sizes.get("time", 0) == 0:
+        return np.zeros(0, dtype=int), np.zeros(0, dtype=int)
+    if "bins" in sliced.dims:
+        sliced = sliced.isel(bins=bin_slice).sum(dim="bins")
+    vals = np.asarray(sliced.transpose("time", "height_level").values, dtype=float)
+    time_idx: list[int] = []
+    height_idx: list[int] = []
+    for idx, row in enumerate(vals):
+        if not np.isfinite(row).any():
+            continue
+        row = np.where(np.isfinite(row), row, -np.inf)
+        ridge_idx = int(np.argmax(row))
+        if row[ridge_idx] <= floor:
+            continue
+        time_idx.append(idx)
+        height_idx.append(ridge_idx)
+    return np.asarray(time_idx, dtype=int), np.asarray(height_idx, dtype=int)
+
+
+def ridge_process_values(
+    proc_map: Dict[str, xr.DataArray],
+    procs: List[str],
+    ridge_conc_da: xr.DataArray,
+    station_idx: int,
+    twindow: slice,
+    bin_slice: slice,
+    *,
+    floor: float = 0.0,
+) -> Dict[str, np.ndarray]:
+    """Time-mean spectral values per process sampled along a frozen-plume ridge."""
+    if not procs:
+        return {}
+    time_idx, height_idx = _ridge_indices(ridge_conc_da, station_idx, twindow, bin_slice, floor=floor)
+    if time_idx.size == 0:
+        return {}
+    stacked = xr.concat([proc_map[p] for p in procs], dim="process")
+    stacked = stacked.isel(station=station_idx).sel(time=twindow).compute()
+    vals = np.asarray(stacked.transpose("process", "time", "height_level", "bins").values, dtype=float)
+    sampled = vals[:, time_idx, height_idx, :]
+    reduced = np.nanmean(sampled, axis=1)
+    reduced = np.asarray(reduced[:, bin_slice], dtype=float)
+    return {p: _clean_array(reduced[i]) for i, p in enumerate(procs)}
+
+
+def ridge_concentration_profile(
+    spec_conc_da: Optional[xr.DataArray],
+    ridge_conc_da: Optional[xr.DataArray],
+    station_idx: int,
+    twindow: slice,
+    bin_slice: slice,
+    *,
+    floor: float = 0.0,
+) -> np.ndarray:
+    """Time-mean spectral concentration sampled along a frozen-plume ridge."""
+    if spec_conc_da is None or ridge_conc_da is None:
+        return np.zeros(0)
+    time_idx, height_idx = _ridge_indices(ridge_conc_da, station_idx, twindow, bin_slice, floor=floor)
+    if time_idx.size == 0:
+        return np.zeros(0)
+    sliced = spec_conc_da.isel(station=station_idx).sel(time=twindow).compute()
+    vals = np.asarray(sliced.transpose("time", "height_level", "bins").values, dtype=float)
+    sampled = vals[time_idx, height_idx, :]
+    return _clean_array(np.nanmean(sampled[:, bin_slice], axis=0))
+
+
 
 def merge_liq_ice_net(
     net_w: Dict[str, np.ndarray],
