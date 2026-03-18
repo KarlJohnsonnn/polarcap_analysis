@@ -15,8 +15,8 @@ Y-axis scaling (--yscale):  symlog (default) | linear | log.
 
 Outputs
 -------
-- Frames: scripts/processing_chain/output/05/<cs_run>/spectral_waterfall_<kind>_exp<id>_stn_all_<range>_itime<k>.png
-- MP4:    scripts/processing_chain/output/05/spectral_waterfall_<kind>_..._evolution_nframes<n>.mp4  (--mp4)
+- Frames: output/gfx/png/05/<cs_run>/exp<eid>/<N|M>/spectral_waterfall_<kind>_..._itime<k>.png
+- MP4:    output/gfx/mp4/spectral_waterfall_<kind>_..._evolution_nframes<n>.mp4  (--mp4)
 """
 from __future__ import annotations
 
@@ -763,8 +763,8 @@ def main() -> None:
     matplotlib.use("Agg")
 
     cs_run = cfg_yaml.get("ensemble", {}).get("cs_run", "unknown_cs_run")
-    frame_root = REPO_ROOT / "scripts" / "processing_chain" / "output" / "05" / cs_run
-    mp4_root = REPO_ROOT / "scripts" / "processing_chain" / "output" / "05"
+    frame_root = REPO_ROOT / "output" / "gfx" / "png" / "05" / cs_run
+    mp4_root = REPO_ROOT / "output" / "gfx" / "mp4"
     frame_root.mkdir(parents=True, exist_ok=True)
     mp4_root.mkdir(parents=True, exist_ok=True)
 

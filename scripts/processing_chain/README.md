@@ -23,6 +23,8 @@ processed/
     manifests/       # run_manifest.json
 ```
 
+Figure and table outputs from scripts and notebooks use a shared layout under **`output/gfx/`** (relative to repo root): PNGs in `output/gfx/png/<nn>/` (e.g. 01, 03, 04, 05, 06), MP4s flat in `output/gfx/mp4/`, LaTeX in `output/gfx/tex/<nn>/`, CSV in `output/gfx/csv/<nn>/`.
+
 ## LV1 tracking (Tobac)
 
 Plume tracking follows the approach in Omanovic et al. 2024 and the archive notebook `01-Generate_Tobac_Tracking_from_3D_output.ipynb`:

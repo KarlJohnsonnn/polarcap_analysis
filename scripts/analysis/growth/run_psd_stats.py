@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-STATS_DIR = REPO_ROOT / "scripts" / "processing_chain" / "output" / "04" / "stats"
-LEGACY_TABLE_DIR = REPO_ROOT / "scripts" / "processing_chain" / "output" / "04" / "tables"
+STATS_DIR = REPO_ROOT / "output" / "gfx" / "csv" / "04"
+LEGACY_TABLE_DIR = REPO_ROOT / "output" / "gfx" / "tex" / "04"
 REGISTRY_CSV = REPO_ROOT / "data" / "registry" / "experiment_registry.csv"
 OUT_CSV = REPO_ROOT / "data" / "registry" / "psd_stats.csv"
 

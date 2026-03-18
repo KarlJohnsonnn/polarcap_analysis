@@ -37,7 +37,7 @@ DEFAULT_HOLIMO_FILE = (
     / "holimo_data"
     / "CL_20230125_1000_1140_SM058_SM060_ts1.nc"
 )
-DEFAULT_OUTPUT = Path("scripts") / "processing_chain" / "output" / "03" / "figure12_ensemble_mean_plume_path_foo.png"
+DEFAULT_OUTPUT = Path("output") / "gfx" / "png" / "03" / "figure12_ensemble_mean_plume_path_foo.png"
 
 DEFAULT_RUNS: list[dict[str, str]] = [
     {"label": "400m, inp 1e6, ccn 0 (spherical)", "cs_run": "cs-eriswil__20251125_114053", "exp_id": "20251125114238"},

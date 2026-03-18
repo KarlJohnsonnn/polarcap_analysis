@@ -1,6 +1,15 @@
 # Logbook
 
 
+## 2026-03-18: Process-budget refactor, multidim pies, cloud-field overview, unified outputs
+
+- **Process-budget notebook split and shared loader**: `05-process-budget.ipynb` was decomposed into `05-00-shared-data.ipynb`, `05a`–`05e`, and `05-heat-release`, with all data loading and rate-building centralized in `src/utilities/process_budget_data.py` (including per-range rates and spectral pos/neg). `08-multidim-pie-hovmoller-prototype.ipynb` was updated to use the same loader, so all process‑budget views share one configuration and dataset path logic.
+- **Spectral waterfall and View A/05 diagnostics**: `scripts/processing_chain/run_spectral_waterfall.py` was refactored to use library helpers, plot net rates instead of pos/neg, and render a fixed legend for stable MP4s; `05d-spectral-waterfall.ipynb` gained improved station/height/time handling plus GIF/MP4 export with ffmpeg. View A stacked-area logic in `05-process-budget.ipynb` was cleaned up (single panel helper, correct sink stacking, shared log-rate twin axis), and several subtle dimension/normalisation bugs were fixed.
+- **Multidimensional Hovmöller pies**: `08-multidim-pie-hovmoller-prototype.ipynb` was rebuilt as a self-contained, publication-style notebook that overlays process-composition pies on a confidence Hovmöller background, uses process colors from `style_profiles`, supports excluding dominant processes (e.g. CONDENSATION) to reveal weaker contributors, and adds size-encoded pies and tuned pie density in height.
+- **Cloud-field overview layout**: `01-cloud-field-overview.ipynb` now combines 50×40 and 200×160 orography panels plus three compact meteogram rows in a single `GridSpec` figure (shared axes, despined, minimal labels) and can highlight a time–height window with a rectangle. The standalone surface/meteogram quicklook was correspondingly simplified.
+- **Ice-number/seeding documentation and notation**: `docs/ice_number_budget_and_seeding.md` was expanded with full tendency formulas from `cloudxd.f90`, a consistent notation for number/mass (N,Q) and their rates (\(\dot{n},\dot{q}\)), a color-coded process legend matching `PROC_COLORS`, and a clarified interpretation of CONDNFROD (redistribution only) and flare‑driven immersion freezing. This ties the View A/B plots directly to the model’s prognostic equations.
+- **Infrastructure and outputs**: `src/utilities/compute_fabric.py` now falls back to a local Dask cluster when `sbatch` is unavailable; NetCDF compression scripts were moved from `scripts/processing_chain/` into `scripts/nc_compression/` with updated README; figure/video/table outputs across scripts and notebooks were consolidated under `output/gfx/` (`png/`, `mp4/`, `tex/`, `csv/`), and the processing-chain README documents this shared layout.
+
 ## 2026-03-16: Spectral waterfall — seed_start, PSD y-limits, log-spaced ticks
 
 **Script:** `scripts/processing_chain/run_spectral_waterfall.py`. **Config:** `time.seed_start` in process_budget YAML. **Utilities:** `process_budget_data.py`.

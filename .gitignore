@@ -58,6 +58,8 @@ _data/README.md
 # ignore all processed data files
 scripts/processing_chain/processed/*
 scripts/meteogram2zarr
+# embedded repo (add as submodule if needed)
+scripts/pamtra/pamtra
 
 # includes:
 !data/processed/README.md

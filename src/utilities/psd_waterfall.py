@@ -36,7 +36,7 @@ DEFAULT_HOLIMO_FILE = (
     / "holimo_data"
     / "CL_20230125_1000_1140_SM058_SM060_ts1.nc"
 )
-DEFAULT_OUTPUT_ROOT = Path("scripts") / "processing_chain" / "output" / "04"
+DEFAULT_OUTPUT_ROOT = Path("output") / "gfx"
 DEFAULT_MODEL_SEED = np.datetime64("2023-01-25T12:30:00")
 DEFAULT_HOLIMO_WINDOW = (
     np.datetime64("2023-01-25T10:10:00"),
@@ -98,6 +98,7 @@ def _net_tendency_label(basis: str) -> str:
 
 
 def waterfall_output_root(repo_root: Path) -> Path:
+    """Return the shared gfx output root (output/gfx). PNG/CSV/TeX subdirs live under it."""
     return repo_root / DEFAULT_OUTPUT_ROOT
 
 
@@ -805,10 +806,11 @@ def load_psd_waterfall_context(
     }
 
 
-def _output_paths(output_root: Path, var_kind: str, run_id: str) -> tuple[Path, Path, Path]:
-    figure_path = output_root / f"figure13_psd_alt_time_{var_kind}_{run_id}.png"
-    table_path = output_root / "tables" / f"figure13_psd_stats_{var_kind}_{run_id}.tex"
-    stats_path = output_root / "stats" / f"figure13_psd_stats_{var_kind}_{run_id}.csv"
+def _output_paths(gfx_root: Path, var_kind: str, run_id: str) -> tuple[Path, Path, Path]:
+    """Return (figure_path, table_path, stats_path) under output/gfx/png|tex|csv/04."""
+    figure_path = gfx_root / "png" / "04" / f"figure13_psd_alt_time_{var_kind}_{run_id}.png"
+    table_path = gfx_root / "tex" / "04" / f"figure13_psd_stats_{var_kind}_{run_id}.tex"
+    stats_path = gfx_root / "csv" / "04" / f"figure13_psd_stats_{var_kind}_{run_id}.csv"
     return figure_path, table_path, stats_path
 
 
@@ -872,9 +874,11 @@ def render_psd_waterfall_case(
             weight="semibold",
         )
 
-    out_root = context["output_root"] if output_root is None else Path(output_root)
-    figure_path, table_path, stats_path = _output_paths(Path(out_root), var_kind, run_id)
+    gfx_root = context["output_root"] if output_root is None else Path(output_root)
+    figure_path, table_path, stats_path = _output_paths(Path(gfx_root), var_kind, run_id)
     figure_path.parent.mkdir(parents=True, exist_ok=True)
+    table_path.parent.mkdir(parents=True, exist_ok=True)
+    stats_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(figure_path, bbox_inches="tight", dpi=dpi)
 
     stats_df = build_psd_stats_dataframe(

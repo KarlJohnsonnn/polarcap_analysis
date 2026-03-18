@@ -39,7 +39,7 @@ DEFAULT_SYMLOG_MAJOR_NTICKS = 3
 DEFAULT_SYMLOG_LABEL_MIN_ABS = 1.0e-8
 DEFAULT_TERRAIN_LIMS = (100.0, 1750.0)
 DEFAULT_N_QLEVELS = 5
-DEFAULT_OUTPUT_DIR = Path("scripts") / "processing_chain" / "output" / "01"
+DEFAULT_OUTPUT_DIR = Path("output") / "gfx" / "png" / "01"
 
 DEFAULT_WINDOW_SPECS_MIN: list[tuple[str, str, float, float, str]] = [
     ("seeding", "Early ice", 2.0, 12.0, "#4C78A8"),
@@ -400,12 +400,12 @@ def default_cloud_phase_budget_outputs(
     active_range_key: str,
 ) -> dict[str, Path]:
     """Return default output paths for phase-integrated budget summaries."""
-    base = repo_root / DEFAULT_OUTPUT_DIR / "tables"
+    gfx = repo_root / "output" / "gfx"
     stem = f"cloud_phase_budget_summary_{exp_label}_{active_range_key}"
     return {
-        "long_csv": base / f"{stem}_long.csv",
-        "summary_csv": base / f"{stem}.csv",
-        "summary_tex": base / f"{stem}.tex",
+        "long_csv": gfx / "csv" / "01" / f"{stem}_long.csv",
+        "summary_csv": gfx / "csv" / "01" / f"{stem}.csv",
+        "summary_tex": gfx / "tex" / "01" / f"{stem}.tex",
     }
 
 

@@ -357,7 +357,7 @@ def main() -> None:
 
     cs_run = cfg_yaml.get("ensemble", {}).get("cs_run", "unknown_cs_run")
     if args.out_dir is None:
-        out_dir = REPO_ROOT / "scripts" / "processing_chain" / "output" / "06" / cs_run / f"exp{seed_exp_id}"
+        out_dir = REPO_ROOT / "output" / "gfx" / "png" / "06" / cs_run / f"exp{seed_exp_id}"
     else:
         out_dir = args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)

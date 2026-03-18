@@ -77,7 +77,7 @@ def main() -> None:
     parser.add_argument(
         "--output-root",
         type=Path,
-        default=REPO_ROOT / "scripts" / "processing_chain" / "output" / "04",
+        default=REPO_ROOT / "output" / "gfx",
         help="Output root for PNG figures plus structured CSV and LaTeX stats tables.",
     )
     parser.add_argument(

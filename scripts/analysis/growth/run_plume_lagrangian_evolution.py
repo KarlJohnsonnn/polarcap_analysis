@@ -54,7 +54,7 @@ def main() -> None:
         "--output",
         type=Path,
         default=None,
-        help="Output PNG path. Defaults to scripts/processing_chain/output/03/figure12_ensemble_mean_plume_path_foo.png.",
+        help="Output PNG path. Defaults to output/gfx/png/03/figure12_ensemble_mean_plume_path_foo.png.",
     )
     parser.add_argument(
         "--dpi",
