@@ -1,0 +1,8 @@
+# Five plume-following meteogram stations for the 200x160xZ setup.
+# Anchors come from the existing INPUT_DIA template, and the three interior points
+# follow `20260123181143_qi+qs_tobac_track.csv`, cell 2, in cs-eriswil__20260123_180947.
+0,    0,  47.0745,  7.9009,  '83_00_20260123181143',
+0,    0,  47.0705,  7.8950,  '74_00_20260123181143',
+0,    0,  47.0685,  7.8877,  '65_00_20260123181143',
+0,    0,  47.0665,  7.8803,  '56_00_20260123181143',
+0,    0,  47.0695,  7.8730,  '48_00_20260123181143',
