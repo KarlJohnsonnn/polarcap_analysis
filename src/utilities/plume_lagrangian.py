@@ -67,6 +67,7 @@ DEFAULT_SEEDING_START_TIMES = [
 DEFAULT_MODEL_SEED = np.datetime64("2023-01-25T12:30:00")
 DEFAULT_KIND = "extreme"
 DEFAULT_VARIABLE = "nf"
+DEFAULT_MODEL_DIAMETER_SMOOTHING_BINS = 0
 DEFAULT_HOLIMO_VAR = "Ice_PSDlogNorm"
 DEFAULT_UNIT_CONVERSION = 1000.0
 DEFAULT_THRESHOLD = 1.0e-10
@@ -161,6 +162,48 @@ def plot_hist_line(
     ax.fill_between(diam, values, step="pre", color=color, alpha=0.2, zorder=zorder)
     ax.step(diam, values, color=color, lw=linewidth, alpha=0.7, zorder=zorder + 1, label=label)
     ax.step(diam, values, color="black", lw=0.7, alpha=0.95, zorder=zorder + 2)
+
+
+def _smooth_diameter_rectangular(
+    da: xr.DataArray,
+    *,
+    window_bins: int,
+) -> xr.DataArray:
+    """Apply a centered rectangular moving average along `diameter`."""
+    window_bins = int(window_bins)
+    if window_bins <= 1 or "diameter" not in da.dims:
+        return da
+    attrs = da.attrs.copy()
+    da_smoothed = da.rolling(diameter=window_bins, center=True, min_periods=1).mean()
+    da_smoothed.attrs = attrs
+    return da_smoothed
+
+
+def smooth_model_diameter_distributions(
+    datasets: dict[str, dict[str, xr.Dataset]],
+    *,
+    variable: str = DEFAULT_VARIABLE,
+    window_bins: int = DEFAULT_MODEL_DIAMETER_SMOOTHING_BINS,
+) -> dict[str, dict[str, xr.Dataset]]:
+    """Return a copy with model distributions smoothed along `diameter`."""
+    window_bins = int(window_bins)
+    if window_bins <= 1:
+        return datasets
+
+    smoothed: dict[str, dict[str, xr.Dataset]] = {}
+    for label, run in datasets.items():
+        smoothed[label] = {}
+        for kind, ds in run.items():
+            if not isinstance(ds, xr.Dataset) or variable not in ds:
+                smoothed[label][kind] = ds
+                continue
+            ds_smoothed = ds.copy(deep=True)
+            ds_smoothed[variable] = _smooth_diameter_rectangular(
+                ds_smoothed[variable],
+                window_bins=window_bins,
+            )
+            smoothed[label][kind] = ds_smoothed
+    return smoothed
 
 
 def build_ensemble_mean_datasets(
@@ -331,6 +374,7 @@ def load_plume_lagrangian_context(
     runs: list[dict[str, str]] | None = None,
     kinds: tuple[str, ...] = DEFAULT_KINDS,
     kind: str = DEFAULT_KIND,
+    smooth_model_diameter_bins: int = DEFAULT_MODEL_DIAMETER_SMOOTHING_BINS,
 ) -> dict[str, Any]:
     processed_root = repo_root / DEFAULT_PROCESSED_ROOT if processed_root is None else Path(processed_root)
     holimo_file = repo_root / DEFAULT_HOLIMO_FILE if holimo_file is None else Path(holimo_file)
@@ -343,6 +387,11 @@ def load_plume_lagrangian_context(
         xlim_integrated = [np.datetime64("2023-01-25T12:29:00"), np.datetime64("2023-01-25T13:04:00")]
     diag = diagnostics_table(datasets, kind="integrated", variable=DEFAULT_VARIABLE, xlim=xlim_integrated)
     ensemble_datasets = build_ensemble_mean_datasets(datasets, variable=DEFAULT_VARIABLE)
+    ensemble_datasets = smooth_model_diameter_distributions(
+        ensemble_datasets,
+        variable=DEFAULT_VARIABLE,
+        window_bins=smooth_model_diameter_bins,
+    )
     ds_holimo = prepare_holimo_for_overlay(
         str(holimo_file),
         DEFAULT_TIME_WINDOW_HOLIMO,
@@ -359,6 +408,7 @@ def load_plume_lagrangian_context(
         "ensemble_datasets": ensemble_datasets,
         "ds_holimo": ds_holimo,
         "kind": kind,
+        "smooth_model_diameter_bins": int(smooth_model_diameter_bins),
         "output_path": plume_lagrangian_output(repo_root),
     }
 
@@ -524,8 +574,9 @@ def render_plume_lagrangian_figure(
     if not (f_obs.size and np.isfinite(f_obs).any()):
         raise ValueError("No valid HOLIMO histogram data found.")
 
-    plot_hist_line(ax_hist, d_obs, f_obs, "royalblue", 2.2, label="HOLIMO", zorder=5)
     hist_xlim, hist_ylim = DEFAULT_PANEL_LIMS["hist"][:2]
+    f_obs_plot = f_obs * DEFAULT_UNIT_CONVERSION
+    plot_hist_line(ax_hist, d_obs, f_obs_plot, "royalblue", 2.2, label="HOLIMO", zorder=5)
     ax_hist.set(xscale="log", yscale="log", xlim=hist_xlim, ylim=hist_ylim)
     ax_hist.set(ylabel="avg. concentration / bin / (L)", xlabel="equivalent diameter / (um)")
     ax_hist.grid(True, which="major", ls="--", lw=0.25, alpha=0.6)
@@ -540,10 +591,10 @@ def render_plume_lagrangian_figure(
     y_bottom = 1.2 * ax_hist.get_ylim()[0]
     for idx in peak_indices(f_mod, n=2):
         ax_hist.scatter(x_edge, f_mod[idx], color="orange", **DEFAULT_PEAK_MK)
-    for idx in peak_indices(f_obs, n=1):
-        ax_hist.scatter(x_edge, f_obs[idx], color="royalblue", **DEFAULT_PEAK_MK)
+    for idx in peak_indices(f_obs_plot, n=1):
+        ax_hist.scatter(x_edge, f_obs_plot[idx], color="royalblue", **DEFAULT_PEAK_MK)
     ax_hist.scatter(median_diameter(d_mod, f_mod), y_bottom, color="orange", **DEFAULT_MED_MK)
-    ax_hist.scatter(median_diameter(d_obs, f_obs), y_bottom, color="royalblue", **DEFAULT_MED_MK)
+    ax_hist.scatter(median_diameter(d_obs, f_obs_plot), y_bottom, color="royalblue", **DEFAULT_MED_MK)
 
     ax_hist.legend(
         [Line2D([], [], color="orange", lw=3, alpha=0.8), Line2D([], [], color="royalblue", lw=2.2, alpha=0.8)],

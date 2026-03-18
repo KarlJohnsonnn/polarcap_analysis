@@ -17,6 +17,7 @@ if str(SRC_DIR) not in sys.path:
 
 from utilities.plume_lagrangian import (  # noqa: E402
     DEFAULT_KIND,
+    DEFAULT_MODEL_DIAMETER_SMOOTHING_BINS,
     load_plume_lagrangian_context,
     render_plume_lagrangian_figure,
     save_plume_lagrangian_figure,
@@ -62,6 +63,12 @@ def main() -> None:
         default=500,
         help="PNG output DPI.",
     )
+    parser.add_argument(
+        "--smooth-model-diameter-bins",
+        type=int,
+        default=DEFAULT_MODEL_DIAMETER_SMOOTHING_BINS,
+        help="Centered rectangular smoothing window along model diameter bins. Use 3 for the requested smoothing.",
+    )
     args = parser.parse_args()
 
     apply_publication_style()
@@ -70,8 +77,10 @@ def main() -> None:
         processed_root=args.processed_root,
         holimo_file=args.holimo_file,
         kind=args.kind,
+        smooth_model_diameter_bins=args.smooth_model_diameter_bins,
     )
     print(context["diag"].to_string(index=False))
+    print(f"model diameter smoothing bins -> {context['smooth_model_diameter_bins']}")
     fig, output_path = render_plume_lagrangian_figure(context, output_path=args.output)
     save_plume_lagrangian_figure(fig, output_path, dpi=args.dpi)
 
