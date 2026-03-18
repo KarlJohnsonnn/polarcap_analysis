@@ -52,6 +52,6 @@ Latest paper-ready figures and videos. **Quicklook on GitHub:** images below ren
 | `figure_captions.yaml` | Caption text for each figure; edit to match the manuscript. |
 | `gallery.ipynb` | Jupyter notebook that loads all images/videos with captions. Run from repo root. |
 
-Figures are merged from `notebooks/output` and `output/gfx`; this directory is the canonical set for the draft.
+Figures are merged from `notebooks/output` and `output/gfx`; this directory is the canonical set for the draft. **Fig 01** uses the ridge-sampled cloud field overview from `output/gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_<exp>_ALLBB.png`.
 
 **Live gallery page:** Enable [GitHub Pages](https://docs.github.com/en/pages) with **Source: branch `main`, folder `/` (root)** so that `output/gallery` is served. Then open **[docs/gallery.html](../docs/gallery.html)** or `https://<owner>.github.io/polarcap_analysis/docs/gallery.html` for a single page with all figures and embedded videos.
