@@ -1,4 +1,0 @@
-[submodule "article_draft/PolarCAP"]
-	path = article_draft/PolarCAP
-	url = https://github.com/KarlJohnsonnn/PolarCAP.git
-	branch = main
