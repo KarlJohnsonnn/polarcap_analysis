@@ -2,6 +2,8 @@
 
 Structured analysis repository for PolarCAP model output, plume-tracking workflows, HOLIMO observations, and article drafting assets.
 
+**Latest figures (PNGs/videos):** [output/gallery/](output/gallery/) — paper-draft figures and captions; [live gallery](https://KarlJohnsonnn.github.io/polarcap_analysis/docs/gallery.html) (GitHub Pages).
+
 ## Scope
 
 This repo bundles:
@@ -27,6 +29,15 @@ This repo bundles:
 1. Create/activate your analysis environment.
 2. Run one-time notebook bootstrap setup: `bash scripts/ipython_startup/install.sh`.
 3. Run notebooks from `notebooks/` using kernels that include dependencies from `src/utilities`.
+
+## Figure gallery (GitHub Pages)
+
+Paper-draft figures and videos are in **output/gallery/** and can be viewed as a single live page on GitHub Pages:
+
+- **Enable:** Settings → Pages → Source: branch **main**, folder **/ (root)**. The repo root includes `.nojekyll` so static files are served as-is.
+- **URL after deploy:** `https://<owner>.github.io/polarcap_analysis/docs/gallery.html`
+
+See [docs/README.md](docs/README.md#github-pages-figure-gallery) for details.
 
 ## QuicklookBrowser
 

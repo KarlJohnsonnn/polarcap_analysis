@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PolarCAP — Paper draft figure gallery</title>
+  <style>
+    :root { --bg: #0d1117; --card: #161b22; --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1rem 2rem 2rem; line-height: 1.5; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+    a { color: var(--accent); }
+    section { margin-bottom: 2.5rem; }
+    section h2 { font-size: 1.1rem; color: var(--muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .figure { background: var(--card); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; max-width: 900px; }
+    .figure img { max-width: 100%; height: auto; display: block; border-radius: 4px; }
+    .figure video { max-width: 100%; border-radius: 4px; display: block; margin: 0 auto; }
+    .figure .caption { font-size: 0.9rem; color: var(--muted); margin-top: 0.5rem; font-style: italic; }
+    .back { font-size: 0.9rem; margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+  <p class="back"><a href="../">← Repository</a></p>
+  <h1>PolarCAP — Paper draft figure gallery</h1>
+  <p class="subtitle">Live view of figures and videos from <code>output/gallery</code>. Enable GitHub Pages with <strong>Source: branch <code>main</code>, folder <code>/</code> (root)</strong> so assets are served, then this page works at your Pages URL.</p>
+
+  <section>
+    <h2>Fig 1 — Cloud field overview</h2>
+    <div class="figure">
+      <img src="../output/gallery/fig01_cloud_field_overview.png" alt="Cloud field overview" loading="lazy">
+      <p class="caption">Time–height mass concentration profiles (symlog) for all meteogram stations (ALLBB). Droplet and ice mass from COSMO-SPECS ensemble.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Fig 12 — Ensemble-mean plume path</h2>
+    <div class="figure">
+      <img src="../output/gallery/fig12_plume_path.png" alt="Plume path" loading="lazy">
+      <p class="caption">Ensemble-mean Lagrangian plume path. Trajectories from selected plume realisations with altitude and time; used for PAMTRA forward sampling.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Fig 13 — PSD altitude–time (mass)</h2>
+    <div class="figure">
+      <img src="../output/gallery/fig13_psd_mass.png" alt="PSD mass" loading="lazy">
+      <p class="caption">PSD mass mixing ratio along the plume path as a function of altitude and time.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Fig 13 — PSD altitude–time (number)</h2>
+    <div class="figure">
+      <img src="../output/gallery/fig13_psd_number.png" alt="PSD number" loading="lazy">
+      <p class="caption">PSD number concentration along the plume path as a function of altitude and time.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Spectral waterfall — number</h2>
+    <div class="figure">
+      <video src="../output/gallery/spectral_waterfall_N_cs-eriswil__20260304_110254_exp0_stn0-1-2_ALLBB_evolution_nframes242.mp4" controls preload="metadata" width="700"></video>
+      <p class="caption">Time evolution of droplet number size distribution at cs-eriswil, run 20260304, ALLBB.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Spectral waterfall — mass</h2>
+    <div class="figure">
+      <video src="../output/gallery/spectral_waterfall_Q_cs-eriswil__20260304_110254_exp0_stn0-1-2_ALLBB_evolution_nframes242.mp4" controls preload="metadata" width="700"></video>
+      <p class="caption">Time evolution of droplet mass size distribution at cs-eriswil, run 20260304, ALLBB.</p>
+    </div>
+  </section>
+
+  <p class="back"><a href="../">← Repository</a></p>
+</body>
+</html>
