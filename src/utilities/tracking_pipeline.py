@@ -141,7 +141,7 @@ def discover_3d_runs(
     flare_idx: int = 0,
     ref_idx: int = -1,
     threshold: float = DEFAULT_THRESHOLD,
-) -> Optional[RunContext]:
+) -> Tuple[Optional[RunContext], str]:
     """
     Build RunContext for one (cs_run, flare_idx, ref_idx).
 
@@ -151,31 +151,71 @@ def discover_3d_runs(
 
     flare_idx indexes flare_names (which flare run); ref_idx indexes ref_names (which reference).
     ref_idx < 0: auto-select the reference that matches the chosen flare in non-emission params only.
-    Returns None if no flare/ref exist or no matching ref when ref_idx < 0.
+
+    Returns (RunContext, "") on success, or (None, reason_str) on failure (missing files, no flare/ref, or no matching ref).
     """
-    model_data_path = f"{model_data_root}/RUN_ERISWILL_{domain_xy}x100/ensemble_output/{cs_run}/"
-    extpar_file = f"{model_data_root}/RUN_ERISWILL_{domain_xy}x100/COS_in/extPar_Eriswil_{domain_xy}.nc"
+    root_path = Path(model_data_root).expanduser().resolve()
+    legacy_run_dir = root_path / f"RUN_ERISWILL_{domain_xy}x100" / "ensemble_output" / cs_run
+    ensemble_run_dir = root_path / cs_run
+
+    # When --root is already .../RUN_ERISWILL_*x100/ensemble_output, use run_dir = root/cs_run
+    # so we never double-append (avoids .../ensemble_output/RUN_ERISWILL_.../ensemble_output/cs_run).
+    if root_path.name == "ensemble_output" and f"RUN_ERISWILL_{domain_xy}x100" in str(root_path):
+        run_dir = ensemble_run_dir
+        run_dir_mode = "ensemble_output_root"
+        extpar_base = root_path.parent
+    elif root_path.name == cs_run:
+        run_dir = root_path
+        run_dir_mode = "direct_run_dir"
+        extpar_base = root_path.parent.parent if root_path.parent.name == "ensemble_output" else root_path.parent / f"RUN_ERISWILL_{domain_xy}x100"
+    elif ensemble_run_dir.is_dir():
+        run_dir = ensemble_run_dir
+        run_dir_mode = "ensemble_output_root"
+        extpar_base = root_path.parent if root_path.name == "ensemble_output" else root_path / f"RUN_ERISWILL_{domain_xy}x100"
+    else:
+        run_dir = legacy_run_dir
+        run_dir_mode = "runs_root_legacy"
+        extpar_base = root_path / f"RUN_ERISWILL_{domain_xy}x100"
+
+    model_data_path = f"{run_dir}/"
+    extpar_file = f"{extpar_base}/COS_in/extPar_Eriswil_{domain_xy}.nc"
     json_files = glob.glob(f"{model_data_path}*.json")
-    filelist_3d = sorted(glob.glob(f"{model_data_path}3D_??????????????.nc"))
+    filelist_3d_strict = sorted(glob.glob(f"{model_data_path}3D_??????????????.nc"))
+    filelist_3d_broad = sorted(glob.glob(f"{model_data_path}3D_*.nc"))
+    filelist_3d = filelist_3d_strict if filelist_3d_strict else filelist_3d_broad
     if not json_files or not filelist_3d:
-        return None
+        n_json = len(json_files)
+        n_3d = len(filelist_3d)
+        return (
+            None,
+            f"No run data in {run_dir}: found {n_json} JSON and {n_3d} 3D NetCDFs. "
+            "Need at least one *.json and one 3D_*.nc.",
+        )
     with open(json_files[0]) as f:
         meta = json.load(f)
-    exp_names = [p.split("/")[-1].split("_")[-1].split(".")[0] for p in filelist_3d]
+    exp_names = [Path(p).name.split("_")[-1].split(".")[0] for p in filelist_3d]
     flare_names = [e for e in exp_names if _is_flare(meta, e)]
     ref_names = [e for e in exp_names if not _is_flare(meta, e)]
     if not flare_names or not ref_names:
-        return None
+        return (
+            None,
+            f"Flare/ref split: {len(flare_names)} flare and {len(ref_names)} ref experiments. "
+            "Need at least one of each (lflare true vs false in run JSON).",
+        )
     if flare_idx >= len(flare_names):
-        return None
+        return (None, f"flare_idx={flare_idx} out of range (only {len(flare_names)} flare experiments).")
     flare_exp_name = flare_names[flare_idx]
     if ref_idx < 0:
         ref_exp_name = find_matching_reference(meta, flare_exp_name, ref_names)
         if ref_exp_name is None:
-            return None
+            return (
+                None,
+                f"No reference matches flare {flare_exp_name} in non-emission params. "
+                f"Candidates: {ref_names}. With --ref-idx -1 ref must match flare in all non-emission params.",
+            )
         ref_idx = ref_names.index(ref_exp_name)
     elif ref_idx >= len(ref_names):
-        return None
+        return (None, f"ref_idx={ref_idx} out of range (only {len(ref_names)} ref experiments).")
     else:
         ref_exp_name = ref_names[ref_idx]
     flare_nc = next(p for p in filelist_3d if flare_exp_name in p)
@@ -184,22 +224,25 @@ def discover_3d_runs(
     resolution = "400m" if "50x40" in domain_str else "100m"
     resolution_deg = 0.004 if "50x40" in domain_str else 0.001
     flare_hight = meta.get(flare_exp_name, {}).get("INPUT_ORG", {}).get("flare_sbm", {}).get("flare_hight", 1)
-    return RunContext(
-        cs_run=cs_run,
-        domain_xy=domain_xy,
-        model_data_path=model_data_path,
-        extpar_file=extpar_file,
-        meta=meta,
-        flare_exp_name=flare_exp_name,
-        ref_exp_name=ref_exp_name,
-        flare_nc_file=flare_nc,
-        ref_nc_file=ref_nc,
-        flare_idx=flare_idx,
-        ref_idx=ref_idx,
-        threshold=threshold,
-        resolution=resolution,
-        resolution_deg=resolution_deg,
-        flare_alt_idx=-int(flare_hight),
+    return (
+        RunContext(
+            cs_run=cs_run,
+            domain_xy=domain_xy,
+            model_data_path=model_data_path,
+            extpar_file=extpar_file,
+            meta=meta,
+            flare_exp_name=flare_exp_name,
+            ref_exp_name=ref_exp_name,
+            flare_nc_file=flare_nc,
+            ref_nc_file=ref_nc,
+            flare_idx=flare_idx,
+            ref_idx=ref_idx,
+            threshold=threshold,
+            resolution=resolution,
+            resolution_deg=resolution_deg,
+            flare_alt_idx=-int(flare_hight),
+        ),
+        "",
     )
 
 

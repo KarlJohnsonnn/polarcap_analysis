@@ -139,7 +139,7 @@ Examples:
     p.add_argument("--debug", action="store_true", help="Debug mode for LV2 (small subset)")
     p.add_argument("--dry-run", action="store_true", help="Print commands only, do not run")
     p.add_argument("--flare-idx", type=int, default=0, help="Index of the flare experiment (0-based). Experiments are split into two lists by metadata (lflare): flare_idx indexes the flare-only list, ref_idx the ref-only list.")
-    p.add_argument("--ref-idx", type=int, default=-1, help="Index of the reference experiment in the ref-only list. -1 (default) = auto-select the reference that matches the chosen flare in all non-emission parameters.")
+    p.add_argument("--ref-idx", type=int, default=-1, help="Index of the reference experiment in the ref-only list. -1 = auto-select ref that matches flare in non-emission params.")
     p.add_argument("--threshold", type=float, default=1.0, help="Tobac detection threshold in 1/L (default: 1.0 = 1 per liter)")
     return p.parse_args()
 
@@ -213,7 +213,7 @@ def main() -> None:
     }
     if dry_run:
         print("Dry-run (commands not executed):")
-    # LV1 uses flare_idx/ref_idx from config (defaults 0, 0). They index two separate lists:
+    # LV1 uses flare_idx/ref_idx from config (defaults 0, -1). They index two separate lists:
     # flare experiments vs reference experiments (split by lflare in run JSON). ref_idx=-1 in
     # run_lv1_tracking means auto-match; run_chain passes config values (default 0) unless set in YAML.
     if not skip_tracking:

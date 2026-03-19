@@ -65,12 +65,12 @@ def main():
         print("Set CS_RUNS_DIR or pass --root", file=sys.stderr)
         sys.exit(1)
     out = get_output_root(args.out, runs_root=root, cs_run=args.cs_run)
-    ctx = discover_3d_runs(
+    ctx, reason = discover_3d_runs(
         root, args.domain, args.cs_run,
         flare_idx=args.flare_idx, ref_idx=args.ref_idx, threshold=args.threshold,
     )
     if ctx is None:
-        print("No flare/ref pair found. With --ref-idx -1 (default) ref must match flare in all non-emission params.", file=sys.stderr)
+        print(reason, file=sys.stderr)
         print("Check --root, --cs-run, --domain, --flare-idx and --ref-idx.", file=sys.stderr)
         sys.exit(1)
     if args.ref_idx < 0:
