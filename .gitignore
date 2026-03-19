@@ -47,7 +47,10 @@ docs/*
 scripts/processing_chain/logs/*
 scripts/analysis/logs/*
 
-# pngs
+# pngs and notebook dirs (local only)
+notebooks/archive
+notebooks/config
+notebooks/exploratory
 notebooks/output
 scripts/processing_chain/output
 scripts/analysis/output
