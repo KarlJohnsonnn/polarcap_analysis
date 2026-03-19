@@ -3,14 +3,14 @@
 # model_data_root defaults to environment variable CS_RUNS_DIR if set (directory
 # containing RUN_ERISWILL_200x160x100/, RUN_ERISWILL_50x40x100/, etc.).
 
-model_data_root: "${CS_RUNS_DIR}"  # parent containing RUN_ERISWILL_*x100/; or use absolute path
+model_data_root: ""  # parent containing RUN_ERISWILL_*x100/; or use absolute path
 # Leave blank to use the launcher default:
 # 1) explicit --out, 2) $POLARCAP_OUTPUT_ROOT, 3) matching RUN_ERISWILL_*x100/ensemble_output, 4) local ./processed
 output_root: ""
 # Ensemble run ID validation: regex pattern for --cs-run (default below)
 cs_run_pattern: "^cs-eriswil__\\d{8}_\\d{6}$"
 # cs_run: "cs-eriswil__20260123_180947"
-domain: "50x40"
+domain: "200x160"
 run_lv1a_tracking: true
 run_lv1b_paths: true
 run_lv2_meteogram: true

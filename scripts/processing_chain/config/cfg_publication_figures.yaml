@@ -28,18 +28,18 @@ default_args:
     - "--psd-ylim-f 1e1 1e9"
     - "--mp4"
     - "--workers 4"
-  # spectral_waterfall_Q:
-  #   - "--kind Q"
-  #   - "--linthresh-w 1e-8"
-  #   - "--linthresh-f 1e-8"
-  #   - "--xlim-w 1e-1 4e3"
-  #   - "--xlim-f 1e-1 4e3"
-  #   - "--ylim-w=-1e-2,1e-2"
-  #   - "--ylim-f=-1e-2,1e-2"
-  #   - "--psd-ylim-w 1e-6 1e0"
-  #   - "--psd-ylim-f 1e-6 1e0"
-  #   - "--mp4"
-  #   - "--workers 4"
+  spectral_waterfall_Q:
+    - "--kind Q"
+    - "--linthresh-w 1e-10"
+    - "--linthresh-f 1e-10"
+    - "--xlim-w 1e-1 4e3"
+    - "--xlim-f 1e-1 4e3"
+    - "--ylim-w=-1e-2,1e-2"
+    - "--ylim-f=-1e-2,1e-2"
+    - "--psd-ylim-w 1e-6 1e0"
+    - "--psd-ylim-f 1e-6 1e0"
+    - "--mp4"
+    - "--workers 4"
   first_ice_metrics: []
   initiation_process_summary: []
   pamtra_mira35_quicklook: []
