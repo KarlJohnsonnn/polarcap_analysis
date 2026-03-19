@@ -29,6 +29,15 @@ figure12_plume_path: |
   tail. The figure tests whether the spectral-bin Lagrangian simulation captures
   the observed timing and size range of ice growth along the plume.
 
+figure12_ensemble_mean_plume_path: |
+  Ensemble-mean Lagrangian plume evolution in equivalent-diameter space with
+  HOLIMO comparison. COSMO-SPECS ice number per bin grows from small newly
+  formed particles into a broad O(100 um) population during the first
+  10-15 min after seeding; the zoom and histogram show that HOLIMO samples the
+  same growth regime, but with spread in concentration and in the large-particle
+  tail. The figure tests whether the spectral-bin Lagrangian simulation captures
+  the observed timing and size range of ice growth along the plume.
+
 fig12_plume_path.png: |
   Ensemble-mean Lagrangian plume evolution in equivalent-diameter space with
   HOLIMO comparison. COSMO-SPECS ice number per bin grows from small newly

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PolarCAP — Paper draft figure gallery</title>
+  <style>
+    :root { --bg: #0d1117; --card: #161b22; --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1rem 2rem 2rem; line-height: 1.5; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+    a { color: var(--accent); }
+    section { margin-bottom: 2.5rem; }
+    section h2 { font-size: 1.1rem; color: var(--muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .figure { background: var(--card); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; max-width: 900px; }
+    .figure img { max-width: 100%; height: auto; display: block; border-radius: 4px; }
+    .figure video { max-width: 100%; border-radius: 4px; display: block; margin: 0 auto; }
+    .figure .caption { font-size: 0.9rem; color: var(--muted); margin-top: 0.5rem; font-style: italic; }
+    .back { font-size: 0.9rem; margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+  <p class="back"><!-- bundle --></p>
+  <h1>PolarCAP — Paper draft figure gallery</h1>
+  <p class="subtitle">Standalone gallery bundle — open in a browser (file://) or host on any static site.</p>
+
+  <section>
+    <h2>Fig 1 — Cloud field overview</h2>
+    <div class="figure">
+      <img src="./fig01_cloud_field_overview.png" alt="Cloud field overview" loading="lazy">
+      <p class="caption">Cloud-scale context for the ALLBB seeded plume. Orography and the three analysis sites (seeding, ice-growth, downstream precipitation) are shown above; below, time-height liquid and frozen water content and ridge-sampled liquid/ice source-sink tendencies summarize the local microphysical regime. The sequence suggests a transition from a liquid-rich source region to a downstream ice-growth and precipitation regime that defines the plume evolution analysed in the later figures.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Fig 12 — Ensemble-mean plume path</h2>
+    <div class="figure">
+      <img src="./fig12_plume_path.png" alt="Plume path" loading="lazy">
+      <p class="caption">Ensemble-mean Lagrangian plume evolution in equivalent-diameter space with HOLIMO comparison. COSMO-SPECS ice number per bin grows from small newly formed particles into a broad O(100 um) population during the first 10-15 min after seeding; the zoom and histogram show that HOLIMO samples the same growth regime, but with spread in concentration and in the large-particle tail. The figure tests whether the spectral-bin Lagrangian simulation captures the observed timing and size range of ice growth along the plume.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Fig 13 — PSD altitude–time (mass)</h2>
+    <div class="figure">
+      <img src="./fig13_psd_mass.png" alt="PSD mass" loading="lazy">
+      <p class="caption">Altitude-resolved liquid and frozen PSD mass in successive post-seeding windows. Early windows are dominated by liquid mass at small diameters, whereas later windows show increasing frozen mass at larger diameters and progressively lower levels. This indicates that, once ice is initiated aloft, subsequent plume evolution is governed mainly by growth and fallout rather than by continued primary formation.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Fig 13 — PSD altitude–time (number)</h2>
+    <div class="figure">
+      <img src="./fig13_psd_number.png" alt="PSD number" loading="lazy">
+      <p class="caption">Altitude-resolved liquid and frozen PSD number concentration in successive post-seeding windows. Frozen number appears first at small-to-intermediate diameters and comparatively high levels, then expands toward larger diameters and lower altitudes with time. This figure isolates where new ice crystals are produced, complementing the mass view that diagnoses their subsequent growth.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Spectral waterfall — number</h2>
+    <div class="figure">
+      <video src="./spectral_waterfall_N_cs-eriswil__20260304_110254_exp0_stn0-1-2_ALLBB_evolution_nframes242.mp4" controls preload="metadata" width="700"></video>
+      <p class="caption">Animated ridge-following spectral budget (View D). At each time step, the particle size distribution is linked to diameter-resolved liquid and frozen process tendencies at the selected stations, in number (N) space. The movie is intended to separate the processes that create new ice number shortly after seeding from those that subsequently grow, redistribute, or remove mass across the spectrum.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Spectral waterfall — mass</h2>
+    <div class="figure">
+      <video src="./spectral_waterfall_Q_cs-eriswil__20260304_110254_exp0_stn0-1-2_ALLBB_evolution_nframes242.mp4" controls preload="metadata" width="700"></video>
+      <p class="caption">Animated ridge-following spectral budget (View D). At each time step, the particle size distribution is linked to diameter-resolved liquid and frozen process tendencies at the selected stations, in mass (Q) space. The movie is intended to separate the processes that create new ice number shortly after seeding from those that subsequently grow, redistribute, or remove mass across the spectrum.</p>
+    </div>
+  </section>
+
+  <p class="back"><!-- bundle --></p>
+</body>
+</html>

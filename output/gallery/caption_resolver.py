@@ -5,6 +5,7 @@ import yaml
 FIGURE_TYPE_PREFIXES = (
     "figure13_psd_alt_time_number",
     "figure13_psd_alt_time_mass",
+    "figure12_ensemble_mean_plume_path",
     "figure12_plume_path",
     "cloud_field_overview",
     "spectral_waterfall",
