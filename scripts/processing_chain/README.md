@@ -39,6 +39,24 @@ Plume tracking follows the approach in Omanovic et al. 2024 and the archive note
 - **`--ref-idx -1` (default)**: Automatically select the reference experiment that matches the chosen flare in all non-emission parameters. If no such reference exists (e.g. flare has different `ishape` than any ref), discovery fails with a clear error.
 - **`--ref-idx N`**: Use the N-th reference experiment by index (previous behaviour). Use when you have multiple refs and want to force a specific one.
 
+## Levante / NumPy
+
+On DKRZ Levante, the base mambaforge + user-site stack may have NumPy 2.x while `numexpr`, `bottleneck`, and `cftime` are built for NumPy 1.x, leading to `AttributeError: _ARRAY_API not found` or `ValueError: numpy.dtype size changed`. Use a NumPy 1.x–compatible environment:
+
+- **Option A:** Create a dedicated env and pin NumPy:
+  ```bash
+  conda create -n polarcap python=3.10 -y && conda activate polarcap
+  pip install -r requirements.txt
+  pip install xarray pandas netCDF4 dask tobac iris
+  ```
+- **Option B:** In the existing env, downgrade NumPy and reinstall dependents:
+  ```bash
+  pip install 'numpy>=1.26,<2'
+  pip install --force-reinstall numexpr bottleneck cftime
+  ```
+
+Then run `run_chain.py` (and other processing scripts) in that environment.
+
 ## Usage
 
 Set `CS_RUNS_DIR` to the directory containing run subdirs (e.g. `RUN_ERISWILL_200x160x100/`, `RUN_ERISWILL_50x40x100/`). You can set it in the environment or have `scripts/ipython_startup/install.sh` prompt you and embed it in the IPython startup file.
