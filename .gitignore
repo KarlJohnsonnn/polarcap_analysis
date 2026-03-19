@@ -19,7 +19,12 @@
 .venv*/
 venv/
 env/
-docs/
+
+# track only README, gallery, live view
+docs/*
+!docs/README.md
+!docs/gallery.md
+!docs/gallery.html
 
 # Local editor
 **/.vscode/
