@@ -991,8 +991,8 @@ def render_cloud_field_overview(context: dict[str, Any]) -> plt.Figure:
         )
 
     fig.suptitle(
-        f"Exp {context['exp_label']} - orography, QW/QWF, liquid/ice ridge-sampled process tendencies "
-        f"({context['active_range_key']})",
+        f"Cloud field overview — Exp {context['exp_label']}: orography, QW/QWF, liquid/ice ridge-sampled "
+        f"process tendencies ({context['active_range_key']})",
         y=1.01,
     )
     return fig

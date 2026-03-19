@@ -484,7 +484,10 @@ def plot_spectral_waterfall(
     tw_str = f"{str(twindow.start)[11:19]} - {str(twindow.stop)[11:19]}"
     norm_tag = f" (relative:{normalize_mode})" if normalize_mode != "none" else ""
     ridge_tag = " along ice-plume ridge" if use_plume_ridge else ""
-    fig.suptitle(f"View D - {kind_label} spectral budget{ridge_tag} [{unit_label}]{norm_tag} -- {tw_str}", fontweight="semibold")
+    fig.suptitle(
+        f"Spectral waterfall — View D: {kind_label} spectral budget{ridge_tag} [{unit_label}]{norm_tag} — {tw_str}",
+        fontweight="semibold",
+    )
     
     fig.supxlabel("Diameter [µm]", fontsize="medium")
     y_lbl = f"Process Rates [{unit_label}]" if normalize_mode == "none" else "Relative Process Rates [-]"

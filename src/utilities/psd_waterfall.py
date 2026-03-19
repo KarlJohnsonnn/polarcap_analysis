@@ -872,7 +872,7 @@ def render_psd_waterfall_case(
     run_id = ds_case.attrs.get("run_id", next((run.get("exp_id") for run in DEFAULT_RUNS if run["label"] == run_label), run_label))
     if show_suptitle:
         fig.suptitle(
-            f"Liquid and frozen PSD waterfall by altitude and time after seeding {var_kind}_{run_id}",
+            f"PSD altitude–time evolution ({var_kind}): liquid and frozen along plume path — {run_id}",
             fontsize=13,
             weight="semibold",
         )

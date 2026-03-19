@@ -603,8 +603,8 @@ def render_quicklook(
         else:
             obs_t0_text = str(context.observation_t0)[:16]
         fig.suptitle(
-            "PAMTRA vs MIRA35 quicklook aligned with plume-lagrangian timing  "
-            f"({context.observation_alignment}; obs t0={obs_t0_text}, model t0={str(context.model_t0)[:16]})",
+            "PAMTRA vs MIRA35 quicklook: reflectivity and mean Doppler velocity along plume path — "
+            f"{context.observation_alignment} (obs t0={obs_t0_text}, model t0={str(context.model_t0)[:16]})",
             y=1.01,
         )
 
