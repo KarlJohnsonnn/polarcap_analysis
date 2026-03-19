@@ -3,41 +3,87 @@
 # the notebook matches by exact name first, then by prefix (e.g. figure13_psd_alt_time_mass).
 
 cloud_field_overview: |
-  Cloud field overview: time–height mass concentration profiles (symlog) for all
-  meteogram stations (ALLBB). Droplet and ice mass from COSMO-SPECS ensemble.
+  Cloud-scale context for the ALLBB seeded plume. Orography and the three
+  analysis sites (seeding, ice-growth, downstream precipitation) are shown
+  above; below, time-height liquid and frozen water content and ridge-sampled
+  liquid/ice source-sink tendencies summarize the local microphysical regime.
+  The sequence suggests a transition from a liquid-rich source region to a
+  downstream ice-growth and precipitation regime that defines the plume
+  evolution analysed in the later figures.
 
 fig01_cloud_field_overview.png: |
-  Cloud field overview: time–height mass concentration profiles (symlog) for all
-  meteogram stations (ALLBB). Droplet and ice mass from COSMO-SPECS ensemble.
+  Cloud-scale context for the ALLBB seeded plume. Orography and the three
+  analysis sites (seeding, ice-growth, downstream precipitation) are shown
+  above; below, time-height liquid and frozen water content and ridge-sampled
+  liquid/ice source-sink tendencies summarize the local microphysical regime.
+  The sequence suggests a transition from a liquid-rich source region to a
+  downstream ice-growth and precipitation regime that defines the plume
+  evolution analysed in the later figures.
 
 figure12_plume_path: |
-  Ensemble-mean Lagrangian plume path. Trajectories from selected plume realisations
-  with altitude and time; used for PAMTRA forward sampling.
+  Ensemble-mean Lagrangian plume evolution in equivalent-diameter space with
+  HOLIMO comparison. COSMO-SPECS ice number per bin grows from small newly
+  formed particles into a broad O(100 um) population during the first
+  10-15 min after seeding; the zoom and histogram show that HOLIMO samples the
+  same growth regime, but with spread in concentration and in the large-particle
+  tail. The figure tests whether the spectral-bin Lagrangian simulation captures
+  the observed timing and size range of ice growth along the plume.
 
 fig12_plume_path.png: |
-  Ensemble-mean Lagrangian plume path. Trajectories from selected plume realisations
-  with altitude and time; used for PAMTRA forward sampling.
+  Ensemble-mean Lagrangian plume evolution in equivalent-diameter space with
+  HOLIMO comparison. COSMO-SPECS ice number per bin grows from small newly
+  formed particles into a broad O(100 um) population during the first
+  10-15 min after seeding; the zoom and histogram show that HOLIMO samples the
+  same growth regime, but with spread in concentration and in the large-particle
+  tail. The figure tests whether the spectral-bin Lagrangian simulation captures
+  the observed timing and size range of ice growth along the plume.
 
 figure13_psd_alt_time_mass: |
-  PSD altitude–time evolution (mass). Particle size distribution mass mixing ratio
-  along the plume path as a function of altitude and time.
+  Altitude-resolved liquid and frozen PSD mass in successive post-seeding
+  windows. Early windows are dominated by liquid mass at small diameters,
+  whereas later windows show increasing frozen mass at larger diameters and
+  progressively lower levels. This indicates that, once ice is initiated aloft,
+  subsequent plume evolution is governed mainly by growth and fallout rather
+  than by continued primary formation.
 
 fig13_psd_mass.png: |
-  PSD altitude–time evolution (mass). Particle size distribution mass mixing ratio
-  along the plume path as a function of altitude and time.
+  Altitude-resolved liquid and frozen PSD mass in successive post-seeding
+  windows. Early windows are dominated by liquid mass at small diameters,
+  whereas later windows show increasing frozen mass at larger diameters and
+  progressively lower levels. This indicates that, once ice is initiated aloft,
+  subsequent plume evolution is governed mainly by growth and fallout rather
+  than by continued primary formation.
 
 figure13_psd_alt_time_number: |
-  PSD altitude–time evolution (number). Particle size distribution number concentration
-  along the plume path as a function of altitude and time.
+  Altitude-resolved liquid and frozen PSD number concentration in successive
+  post-seeding windows. Frozen number appears first at small-to-intermediate
+  diameters and comparatively high levels, then expands toward larger diameters
+  and lower altitudes with time. This figure isolates where new ice crystals
+  are produced, complementing the mass view that diagnoses their subsequent
+  growth.
 
 fig13_psd_number.png: |
-  PSD altitude–time evolution (number). Particle size distribution number concentration
-  along the plume path as a function of altitude and time.
+  Altitude-resolved liquid and frozen PSD number concentration in successive
+  post-seeding windows. Frozen number appears first at small-to-intermediate
+  diameters and comparatively high levels, then expands toward larger diameters
+  and lower altitudes with time. This figure isolates where new ice crystals
+  are produced, complementing the mass view that diagnoses their subsequent
+  growth.
 
 spectral_waterfall: |
-  Spectral waterfall: time evolution of the droplet size distribution at the station
-  (number concentration N or mass mixing ratio Q). View D spectral budget along the ridge.
+  Animated ridge-following spectral budget (View D). At each time step, the
+  particle size distribution is linked to diameter-resolved liquid and frozen
+  process tendencies at the selected stations, in either number (N) or mass (Q)
+  space. The movie is intended to separate the processes that create new ice
+  number shortly after seeding from those that subsequently grow, redistribute,
+  or remove mass across the spectrum.
 
 pamtra_mira35_quicklook: |
-  PAMTRA vs MIRA35 quicklook: radar reflectivity and mean Doppler velocity along the
-  plume path, aligned with plume-lagrangian timing for model–observation comparison.
+  Radar-closure comparison between plume-sampled PAMTRA output and MIRA35
+  observations aligned by elapsed time since seeding. In this example the
+  observed echo is deeper and more intermittent, whereas the forward-modeled
+  echo is smoother and more vertically confined; the Doppler comparison likewise
+  tests whether the simulated plume reproduces the observed fall-speed
+  structure. The figure addresses whether the Lagrangian spectral-bin plume
+  captures the radar-observed timing, depth, and dynamical evolution of the
+  seeded cloud.
