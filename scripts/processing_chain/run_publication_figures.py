@@ -20,8 +20,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+import yaml
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
+CONFIG_DIR = SCRIPT_DIR / "config"
+DEFAULT_CONFIG = CONFIG_DIR / "cfg_publication_figures.yaml"
 GALLERY_DIR = REPO_ROOT / "output" / "gallery"
 GFX_PNG_ROOT = REPO_ROOT / "output" / "gfx" / "png"
 GFX_MP4_DIR = REPO_ROOT / "output" / "gfx" / "mp4"
@@ -32,6 +36,29 @@ PAMTRA_MISSIONS = ("composite", "SM059", "SM058", "SM060")
 SINGLE_FRAME_MARKER = "_itime"
 
 ArgBuilder = Callable[[argparse.Namespace], tuple[str, ...]]
+
+
+def _load_publication_config(path: Path) -> dict[str, list[str]]:
+    """Load default_args per job from YAML. Returns job_key -> list of argv strings.
+    Each list item may be one token (e.g. '--mp4') or 'option value' (e.g. '--kind N');
+    items are split on whitespace so one line per argument is supported."""
+    if not path.is_file():
+        return {}
+    with open(path) as f:
+        data = yaml.safe_load(f) or {}
+    raw = data.get("default_args") or data
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, list[str]] = {}
+    for k, v in raw.items():
+        if isinstance(v, list):
+            tokens: list[str] = []
+            for x in v:
+                tokens.extend(str(x).split())
+            out[str(k)] = tokens
+        else:
+            out[str(k)] = []
+    return out
 
 
 @dataclass(frozen=True)
@@ -46,10 +73,13 @@ class FigureJob:
     def script_path(self) -> Path:
         return REPO_ROOT / self.rel_script
 
-    def resolve_args(self, cli_args: argparse.Namespace) -> tuple[str, ...]:
+    def resolve_args(
+        self, cli_args: argparse.Namespace, config_args: tuple[str, ...] = ()
+    ) -> tuple[str, ...]:
         if self.arg_builder is not None:
-            return self.arg_builder(cli_args)
-        return self.default_args
+            base = self.arg_builder(cli_args)
+            return base + config_args
+        return config_args if config_args else self.default_args
 
 
 def _pamtra_quicklook_args(args: argparse.Namespace) -> tuple[str, ...]:
@@ -113,9 +143,14 @@ PUBLICATION_PRODUCTS: tuple[FigureJob, ...] = (
         description="Joined growth-summary registry built from ridge and PSD metrics.",
     ),
     FigureJob(
-        key="spectral_waterfall",
+        key="spectral_waterfall_N",
         rel_script="scripts/analysis/growth/run_spectral_waterfall.py",
-        description="Spectral waterfall frame suite promoted from the processing chain.",
+        description="Spectral waterfall (number concentration N); args from cfg_publication_figures.",
+    ),
+    FigureJob(
+        key="spectral_waterfall_Q",
+        rel_script="scripts/analysis/growth/run_spectral_waterfall.py",
+        description="Spectral waterfall (mass concentration Q); args from cfg_publication_figures.",
     ),
     FigureJob(
         key="first_ice_metrics",
@@ -148,17 +183,29 @@ def _parse_csv(raw: str | None) -> list[str] | None:
 def _resolve_jobs(selected: list[str] | None, skipped: list[str] | None) -> list[FigureJob]:
     jobs = list(PUBLICATION_PRODUCTS)
     if selected:
+        # Allow "spectral_waterfall" to select both N and Q
+        expanded = []
+        for name in selected:
+            if name == "spectral_waterfall":
+                expanded.extend(["spectral_waterfall_N", "spectral_waterfall_Q"])
+            else:
+                expanded.append(name)
+        selected = expanded
         unknown = [name for name in selected if name not in JOB_MAP]
         if unknown:
             valid = ", ".join(JOB_MAP)
             raise ValueError(f"Unknown figure key(s): {', '.join(unknown)}. Valid: {valid}")
         jobs = [JOB_MAP[name] for name in selected]
     if skipped:
-        unknown = [name for name in skipped if name not in JOB_MAP]
+        # --skip spectral_waterfall skips both N and Q
+        skip_set = set(skipped)
+        if "spectral_waterfall" in skip_set:
+            skip_set.update(("spectral_waterfall_N", "spectral_waterfall_Q"))
+        unknown = [name for name in skipped if name not in JOB_MAP and name != "spectral_waterfall"]
         if unknown:
             valid = ", ".join(JOB_MAP)
             raise ValueError(f"Unknown skip key(s): {', '.join(unknown)}. Valid: {valid}")
-        jobs = [job for job in jobs if job.key not in set(skipped)]
+        jobs = [job for job in jobs if job.key not in skip_set]
     return jobs
 
 
@@ -241,13 +288,26 @@ Examples:
         action="store_true",
         help="Do not copy output/gfx plots and MP4s into output/gallery after a successful run.",
     )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG,
+        help="Path to cfg_publication_figures.yaml (default: config/cfg_publication_figures.yaml).",
+    )
     return parser.parse_args()
 
 
-def _run_job(job: FigureJob, cli_args: argparse.Namespace, *, dry_run: bool = False) -> int:
+def _run_job(
+    job: FigureJob,
+    cli_args: argparse.Namespace,
+    config: dict[str, list[str]],
+    *,
+    dry_run: bool = False,
+) -> int:
     if not job.script_path.is_file():
         raise FileNotFoundError(f"Figure script not found: {job.script_path}")
-    cmd = [sys.executable, str(job.script_path), *job.resolve_args(cli_args)]
+    config_args = tuple(config.get(job.key, ()))
+    cmd = [sys.executable, str(job.script_path), *job.resolve_args(cli_args, config_args)]
     print(f"[figure] {job.key}")
     print(" ", " ".join(cmd))
     if dry_run:
@@ -274,7 +334,7 @@ def _sync_gallery() -> None:
             shutil.copy2(p, dest)
             copied.append(p.name)
 
-    # Canonical names for docs/gallery.html: copy first matching source to fixed name.
+    # Canonical names for docs/gallery.html; captions are in figure_captions.yaml (one per figure type).
     canonical = [
         ("fig01_cloud_field_overview.png", GFX_PNG_ROOT / "01", "cloud_field_overview_*_ALLBB.png"),
         ("fig12_plume_path.png", GFX_PNG_ROOT / "03", "figure12_ensemble_mean_plume_path_foo.png"),
@@ -312,13 +372,14 @@ def main() -> None:
         print("No publication figure jobs selected.")
         return
 
+    config = _load_publication_config(args.config.expanduser().resolve())
     failures: list[str] = []
     for job in jobs:
         if job.key == "pamtra_mira35_quicklook" and args.pamtra_file is None:
             print(f"[figure] {job.key} (skipped: no --pamtra-file)")
             continue
         try:
-            rc = _run_job(job, args, dry_run=args.dry_run)
+            rc = _run_job(job, args, config, dry_run=args.dry_run)
         except ValueError as exc:
             failures.append(job.key)
             print(f"{job.key} failed: {exc}", file=sys.stderr)

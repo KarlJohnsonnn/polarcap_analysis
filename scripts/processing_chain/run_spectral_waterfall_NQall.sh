@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Optional: same N+Q runs via config — python run_publication_figures.py (runs spectral_waterfall_N and spectral_waterfall_Q from cfg_publication_figures.yaml).
 set -euo pipefail
 
 # Run from repo root so relative paths to script and data work
