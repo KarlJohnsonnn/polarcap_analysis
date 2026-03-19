@@ -67,6 +67,7 @@ _data/README.md
 # ignore all processed data files
 scripts/processing_chain/processed/*
 scripts/meteogram2zarr
+scripts/model_ensemble_runs
 # embedded repo (add as submodule if needed)
 scripts/pamtra/pamtra
 # optional private article draft (clone locally if you have access)
