@@ -19,6 +19,7 @@
 .venv*/
 venv/
 env/
+docs/
 
 # Local editor
 **/.vscode/
@@ -37,7 +38,7 @@ env/
 
 # log files
 **/*.log
-docs/log_commands_lev.md
+
 scripts/processing_chain/logs/*
 scripts/analysis/logs/*
 
@@ -70,4 +71,4 @@ article_draft/PolarCAP
 !output/gallery/*.png
 !output/gallery/*.mp4
 !output/gallery/*.yaml
-!output/gallery/*.ipynb
+!output/gallery/README.md

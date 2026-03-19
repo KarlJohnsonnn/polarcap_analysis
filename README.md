@@ -2,7 +2,7 @@
 
 Structured analysis repository for PolarCAP model output, plume-tracking workflows, HOLIMO observations, and article drafting assets.
 
-**Latest figures (PNGs/videos):** [output/gallery/](output/gallery/) — paper-draft figures and captions; [live gallery](https://KarlJohnsonnn.github.io/polarcap_analysis/docs/gallery.html) (GitHub Pages).
+**Latest figures (PNGs/videos):** [output/gallery/](output/gallery/) — paper-draft figures, videos, and captions (viewer: [notebooks/gallery.ipynb](notebooks/gallery.ipynb)); [live gallery](https://KarlJohnsonnn.github.io/polarcap_analysis/docs/gallery.html) (GitHub Pages).
 
 ## Scope
 
@@ -26,7 +26,7 @@ This repo bundles:
 
 ## Quick start
 
-1. Create/activate your analysis environment.
+1. Create/activate your analysis environment. On DKRZ Levante, use NumPy 1.x (e.g. `pip install -r requirements.txt`) to avoid ABI errors with xarray/pandas; see `scripts/processing_chain/README.md` for details.
 2. Run one-time notebook bootstrap setup: `bash scripts/ipython_startup/install.sh`.
 3. Run notebooks from `notebooks/` using kernels that include dependencies from `src/utilities`.
 
