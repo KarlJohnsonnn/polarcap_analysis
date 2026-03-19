@@ -1,0 +1,9 @@
+claim_id,section,claim_text,evidence_metric,evidence_value,evidence_status,source_table,note
+dataset.paper_subset_size,methods,The paper subset contains promoted flare and reference experiments with stable registry gating.,paper_subset_rows,31,supported,tab_experiment_matrix.csv,flare_rows=18
+results.first_ice_onset,results,First excess-ice onset occurs within minutes of seeding in the promoted flare subset.,median_ice_onset_min_since_seed,1.7666666666666666,supported,tab_initiation_metrics.csv,
+results.peak_excess_ice,results,Promoted flare runs show measurable excess ice relative to matched references.,max_peak_excess_ice_number_m3,483.76171875,supported,tab_initiation_metrics.csv,
+results.early_ice_process,results,The pilot early-window matrix identifies a repeatable dominant frozen-number pathway.,mode_ice_dominant_process,Aggregation (ice),supported,tab_process_attribution.csv,
+results.early_liq_process,results,The pilot early-window matrix identifies the main competing liquid-number pathway.,mode_liq_dominant_process,Condensation (liq),supported,tab_process_attribution.csv,
+results.growth_alpha,results,The promoted growth summary supports a coherent power-law growth regime along plume trajectories.,median_alpha_peak,0.5185457005666739,supported,tab_growth_summary.csv,
+results.ridge_size,results,Tracked plume ridges grow into large-particle sizes on the order of hundreds of micrometers.,median_ridge_peak_end_um,373.2042025353965,supported,tab_growth_summary.csv,
+appendix.phase_budget_context,appendix,The compact cloud phase-budget summary provides a stable context table for the promoted overview case.,mode_liq_source_process,CONDENSATION,supported,tab_phase_budget_summary.csv,

@@ -1,0 +1,2 @@
+cs_run,exp_id,expname,ref_expname,n_cells,n_times,alpha_peak_median,alpha_mean_median,ridge_peak_end_um,ridge_peak_late_um,time_end_min,table_id,selection_rule,source_csvs
+cs-eriswil__20260313_111441,3,20260313111448,20260313111446,3,89,0.5185457005666739,0.6241819535820607,373.2042025353965,373.2042025353965,13.5,growth_summary,keep growth-summary rows matching paper_core_subset.csv and preserve one row per experiment,data/registry/growth_summary.csv;data/registry/paper_core_subset.csv

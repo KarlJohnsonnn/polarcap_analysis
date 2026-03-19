@@ -1,0 +1,229 @@
+tables:
+  - id: experiment_matrix
+    builder: experiment_matrix
+    section: dataset
+    source_csvs:
+      - data/registry/paper_core_subset.csv
+    selection_rule: use all rows in paper_core_subset.csv sorted by cs_run and exp_id
+    latex_label: tab:experiment_matrix
+    caption: >-
+      COSMO-SPECS experiment subset used for the manuscript synthesis. Rows list
+      flare and reference simulations retained by the registry gate, together
+      with the matched reference experiment and local data availability flags.
+    csv_output: data/registry/paper_tables/tab_experiment_matrix.csv
+    tex_output: data/registry/paper_tables/tab_experiment_matrix.tex
+    draft_output: article_draft/PolarCAP/tables/tab_experiment_matrix.tex
+    tex_environment: table*
+    tex_position: t
+    tex_resize_to_textwidth: true
+    tex_align: lrrrcccclccccc
+    display_columns:
+      - {name: cs_run, label: CS run}
+      - {name: exp_id, label: Exp., fmt: int}
+      - {name: expname, label: Expname}
+      - {name: is_reference, label: Ref., fmt: bool}
+      - {name: flare_emission, label: Flare emission, fmt: sci1}
+      - {name: ishape, label: ishape, fmt: int}
+      - {name: ikeis, label: ikeis, fmt: int}
+      - {name: domain, label: Domain}
+      - {name: ref_expname, label: Matched ref.}
+      - {name: pair_method, label: Pair method}
+      - {name: local_lv1_available, label: LV1, fmt: bool}
+      - {name: local_lv2_available, label: LV2, fmt: bool}
+      - {name: local_lv3_available, label: LV3, fmt: bool}
+      - {name: include_in_paper, label: In paper, fmt: bool}
+
+  - id: initiation_metrics
+    builder: initiation_metrics
+    section: results
+    source_csvs:
+      - data/registry/first_ice_onset_metrics.csv
+      - data/registry/paper_core_subset.csv
+    selection_rule: >-
+      keep flare experiments that appear in paper_core_subset.csv, then
+      aggregate onset metrics across stations per experiment
+    latex_label: tab:initiation_metrics
+    caption: >-
+      Initiation diagnostics for the manuscript experiment subset. Ice-onset
+      timing is summarized across stations relative to the seeding time and is
+      reported together with peak excess ice and excess INP signals.
+    csv_output: data/registry/paper_tables/tab_initiation_metrics.csv
+    tex_output: data/registry/paper_tables/tab_initiation_metrics.tex
+    draft_output: article_draft/PolarCAP/tables/tab_initiation_metrics.tex
+    tex_environment: table*
+    tex_position: t
+    tex_resize_to_textwidth: true
+    tex_align: lrlcrrrrrrr
+    display_columns:
+      - {name: cs_run, label: CS run}
+      - {name: exp_id, label: Exp., fmt: int}
+      - {name: expname, label: Expname}
+      - {name: ref_expname, label: Matched ref.}
+      - {name: station_count, label: N stn, fmt: int}
+      - {name: ice_onset_station_count, label: Ice onset stn, fmt: int}
+      - {name: ice_onset_min_min_since_seed, label: Ice onset min, fmt: float2}
+      - {name: ice_onset_median_min_since_seed, label: Ice onset med, fmt: float2}
+      - {name: ice_onset_max_min_since_seed, label: Ice onset max, fmt: float2}
+      - {name: peak_excess_ice_number_m3_max, label: Peak excess ice, fmt: float2}
+      - {name: peak_excess_inp_number_m3_max, label: Peak excess INP, fmt: float2}
+
+  - id: process_attribution
+    builder: process_attribution
+    section: results
+    source_csvs:
+      - data/registry/pilot_process_attribution_matrix.csv
+      - data/registry/paper_core_subset.csv
+    selection_rule: >-
+      keep pilot process-attribution rows that belong to paper_core_subset.csv;
+      preserve one row per experiment and station for the early-window pilot
+      matrix
+    latex_label: tab:process_attribution
+    caption: >-
+      Early-window pilot process-attribution matrix for manuscript-ready runs.
+      The table lists the dominant and runner-up pathways for frozen-number and
+      liquid-number tendencies in the initial post-seeding window.
+    csv_output: data/registry/paper_tables/tab_process_attribution.csv
+    tex_output: data/registry/paper_tables/tab_process_attribution.tex
+    draft_output: article_draft/PolarCAP/tables/tab_process_attribution.tex
+    tex_environment: table*
+    tex_position: t
+    tex_resize_to_textwidth: true
+    tex_align: lrlclclclc
+    display_columns:
+      - {name: cs_run, label: CS run}
+      - {name: expname, label: Expname}
+      - {name: station, label: Station}
+      - {name: ice_dominant_process, label: Ice dominant}
+      - {name: ice_dominant_fraction, label: Ice frac., fmt: percent1}
+      - {name: ice_runner_up_process, label: Ice runner-up}
+      - {name: liq_dominant_process, label: Liq dominant}
+      - {name: liq_dominant_fraction, label: Liq frac., fmt: percent1}
+      - {name: liq_runner_up_process, label: Liq runner-up}
+      - {name: window_minutes, label: Window min, fmt: float2}
+
+  - id: growth_summary
+    builder: growth_summary
+    section: results
+    source_csvs:
+      - data/registry/growth_summary.csv
+      - data/registry/paper_core_subset.csv
+    selection_rule: >-
+      keep growth-summary rows matching paper_core_subset.csv and preserve one
+      row per experiment
+    latex_label: tab:growth_summary
+    caption: >-
+      Lagrangian growth-regime summary for the manuscript subset. Ridge-growth
+      metrics are combined with promoted PSD statistics to summarize the
+      characteristic size evolution and power-law exponents.
+    csv_output: data/registry/paper_tables/tab_growth_summary.csv
+    tex_output: data/registry/paper_tables/tab_growth_summary.tex
+    draft_output: article_draft/PolarCAP/tables/tab_growth_summary.tex
+    tex_environment: table*
+    tex_position: t
+    tex_resize_to_textwidth: true
+    tex_align: lrlcrrrrrrr
+    display_columns:
+      - {name: cs_run, label: CS run}
+      - {name: exp_id, label: Exp., fmt: int}
+      - {name: expname, label: Expname}
+      - {name: ref_expname, label: Matched ref.}
+      - {name: n_cells, label: N cells, fmt: int}
+      - {name: n_times, label: N times, fmt: int}
+      - {name: alpha_peak_median, label: Alpha peak med, fmt: float2}
+      - {name: alpha_mean_median, label: Alpha mean med, fmt: float2}
+      - {name: ridge_peak_end_um, label: Ridge end um, fmt: float1}
+      - {name: ridge_peak_late_um, label: Ridge late um, fmt: float1}
+      - {name: time_end_min, label: End time min, fmt: float1}
+
+  - id: psd_stats_selected
+    builder: psd_stats_selected
+    section: results
+    source_csvs:
+      - data/registry/psd_stats.csv
+      - data/registry/growth_summary.csv
+    selection_rule: >-
+      pick the featured run from growth_summary.csv when available, otherwise use
+      the latest number-basis run in psd_stats.csv; preserve one row per time
+      window
+    latex_label: tab:psd_stats
+    caption: >-
+      Per-frame plume-path PSD diagnostics for the automatically selected
+      featured run. Time windows report liquid and frozen mean diameters, net
+      tendencies, and the local power-law exponent for ice mean diameter.
+    csv_output: data/registry/paper_tables/tab_psd_stats_selected.csv
+    tex_output: data/registry/paper_tables/tab_psd_stats_selected.tex
+    draft_output: article_draft/PolarCAP/tables/tab_psd_stats_selected.tex
+    tex_environment: table*
+    tex_position: t
+    tex_resize_to_textwidth: true
+    tex_align: lrrrrrrrlrrl
+    display_columns:
+      - {name: time_frame_min, label: Time frame}
+      - {name: liq_mean_diam_um, label: Liq mean um, fmt: float1}
+      - {name: liq_std_diam_um, label: Liq std um, fmt: float1}
+      - {name: liq_net_tendency_per_min, label: Liq tend./min, fmt: float2}
+      - {name: ice_mean_diam_um, label: Ice mean um, fmt: float1}
+      - {name: ice_std_diam_um, label: Ice std um, fmt: float1}
+      - {name: ice_net_tendency_per_min, label: Ice tend./min, fmt: float2}
+      - {name: alpha_ice_mean_diam, label: Alpha, fmt: float2}
+      - {name: obs_match_ids, label: HOLIMO match}
+      - {name: obs_ice_mean_diam_um, label: Obs ice mean um, fmt: float1}
+      - {name: obs_ice_std_diam_um, label: Obs ice std um, fmt: float1}
+      - {name: selected_run_id, label: Run ID}
+
+  - id: phase_budget_summary
+    builder: phase_budget_summary
+    section: appendix
+    source_csvs:
+      - output/gfx/csv/01/cloud_phase_budget_summary_20260304110446_ALLBB.csv
+    selection_rule: keep the promoted compact cloud phase budget summary as-is
+    latex_label: tab:phase_budget_summary
+    caption: >-
+      Compact phase-budget context table accompanying the cloud overview
+      diagnostic. Each row lists the dominant source and sink terms for the
+      selected phase window and station.
+    csv_output: data/registry/paper_tables/tab_phase_budget_summary.csv
+    tex_output: data/registry/paper_tables/tab_phase_budget_summary.tex
+    draft_output: article_draft/PolarCAP/tables/tab_phase_budget_summary.tex
+    tex_environment: table*
+    tex_position: t
+    tex_resize_to_textwidth: true
+    tex_align: llrlrlrlrl
+    display_columns:
+      - {name: station, label: Station}
+      - {name: phase_label, label: Phase window}
+      - {name: liq_source, label: Liq source}
+      - {name: liq_source_g_m2, label: Liq source g m-2, fmt: float2}
+      - {name: liq_sink, label: Liq sink}
+      - {name: liq_sink_g_m2, label: Liq sink g m-2, fmt: float2}
+      - {name: ice_source, label: Ice source}
+      - {name: ice_source_g_m2, label: Ice source g m-2, fmt: float2}
+      - {name: ice_sink, label: Ice sink}
+      - {name: ice_sink_g_m2, label: Ice sink g m-2, fmt: float2}
+
+  - id: phase_budget_long
+    builder: phase_budget_long
+    section: appendix
+    source_csvs:
+      - output/gfx/csv/01/cloud_phase_budget_summary_20260304110446_ALLBB_long.csv
+    selection_rule: keep the promoted long-form cloud phase budget table as-is
+    latex_label: tab:phase_budget_long
+    caption: >-
+      Long-form phase-budget table for the promoted cloud-overview case. Net
+      phase-integrated process contributions are listed per station, phase
+      window, reservoir, and process.
+    csv_output: data/registry/paper_tables/tab_phase_budget_long.csv
+    tex_output: data/registry/paper_tables/tab_phase_budget_long.tex
+    draft_output: article_draft/PolarCAP/tables/tab_phase_budget_long.tex
+    tex_environment: table*
+    tex_position: p
+    tex_resize_to_textwidth: true
+    tex_align: llrrllr
+    display_columns:
+      - {name: station_label, label: Station}
+      - {name: phase_label, label: Phase window}
+      - {name: t_lo_min, label: T start min, fmt: float1}
+      - {name: t_hi_min, label: T end min, fmt: float1}
+      - {name: reservoir, label: Reservoir}
+      - {name: process, label: Process}
+      - {name: column_net_g_m2, label: Net g m-2, fmt: float2}

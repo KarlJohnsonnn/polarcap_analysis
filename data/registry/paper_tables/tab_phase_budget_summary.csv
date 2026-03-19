@@ -1,0 +1,4 @@
+station,phase_label,time_frame_min,liq_source,liq_source_g_m2,liq_sink,liq_sink_g_m2,ice_source,ice_source_g_m2,ice_sink,ice_sink_g_m2,table_id,selection_rule,source_csvs
+S1,Early ice,2.0-12.0,CONDENSATION,52.46382444132944,,,,,DEPOSITION,-71.3842995284298,phase_budget_summary,keep the promoted compact cloud phase budget summary as-is,output/gfx/csv/01/cloud_phase_budget_summary_20260304110446_ALLBB.csv
+S2,Ice growth,5.0-22.0,RIMING,11.827329347663689,CONDENSATION,-61.336557267425114,,,DEPOSITION,-93.24411413524444,phase_budget_summary,keep the promoted compact cloud phase budget summary as-is,output/gfx/csv/01/cloud_phase_budget_summary_20260304110446_ALLBB.csv
+S3,Ice precip.,14.0-28.0,CONDENSATION,489.73964285358073,DROP_COLLISION,-1.2872293601796592e-08,,,DEPOSITION,-1.893297289760856,phase_budget_summary,keep the promoted compact cloud phase budget summary as-is,output/gfx/csv/01/cloud_phase_budget_summary_20260304110446_ALLBB.csv

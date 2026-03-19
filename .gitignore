@@ -44,6 +44,11 @@ docs/*
 # log files
 **/*.log
 
+!data/registry/claim_register.csv
+!data/registry/figure_inventory.csv
+!data/registry/paper_tables/*.csv
+!data/registry/paper_tables/*.tex
+
 scripts/processing_chain/logs/*
 scripts/analysis/logs/*
 
