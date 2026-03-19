@@ -4,13 +4,16 @@ Run the curated publication products from `scripts/analysis`.
 
 This wrapper lives in the processing chain so the reproducible LV1-LV3 products,
 paper figures, supporting tables, and registry metrics can be generated from one
-place. Extend `PUBLICATION_PRODUCTS` when new promoted analysis drivers are
+place. After a successful run, plots and MP4s under output/gfx are copied into
+output/gallery (single-frame PNGs such as spectral_waterfall *_itime*.png are
+excluded). Extend `PUBLICATION_PRODUCTS` when new promoted analysis drivers are
 added in the future.
 """
 
 from __future__ import annotations
 
 import argparse
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -19,8 +22,14 @@ from typing import Callable
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
+GALLERY_DIR = REPO_ROOT / "output" / "gallery"
+GFX_PNG_ROOT = REPO_ROOT / "output" / "gfx" / "png"
+GFX_MP4_DIR = REPO_ROOT / "output" / "gfx" / "mp4"
 DEFAULT_MIRA_DIR = Path("/Users/schimmel/data/observations/eriswil/mira35/20230125")
 PAMTRA_MISSIONS = ("composite", "SM059", "SM058", "SM060")
+
+# Filename substring that marks single-frame outputs (e.g. spectral waterfall frames); exclude from gallery.
+SINGLE_FRAME_MARKER = "_itime"
 
 ArgBuilder = Callable[[argparse.Namespace], tuple[str, ...]]
 
@@ -227,6 +236,11 @@ Examples:
         default=None,
         help="Optional explicit PNG output path for the PAMTRA quicklook example.",
     )
+    parser.add_argument(
+        "--no-gallery-sync",
+        action="store_true",
+        help="Do not copy output/gfx plots and MP4s into output/gallery after a successful run.",
+    )
     return parser.parse_args()
 
 
@@ -239,6 +253,47 @@ def _run_job(job: FigureJob, cli_args: argparse.Namespace, *, dry_run: bool = Fa
     if dry_run:
         return 0
     return subprocess.run(cmd, cwd=REPO_ROOT).returncode
+
+
+def _sync_gallery() -> None:
+    """Copy all plots and MP4s from output/gfx into output/gallery, excluding single-frame PNGs."""
+    GALLERY_DIR.mkdir(parents=True, exist_ok=True)
+    copied: list[str] = []
+
+    if GFX_PNG_ROOT.is_dir():
+        for p in sorted(GFX_PNG_ROOT.rglob("*.png")):
+            if SINGLE_FRAME_MARKER in p.name:
+                continue
+            dest = GALLERY_DIR / p.name
+            shutil.copy2(p, dest)
+            copied.append(p.name)
+
+    if GFX_MP4_DIR.is_dir():
+        for p in sorted(GFX_MP4_DIR.glob("*.mp4")):
+            dest = GALLERY_DIR / p.name
+            shutil.copy2(p, dest)
+            copied.append(p.name)
+
+    # Canonical names for docs/gallery.html: copy first matching source to fixed name.
+    canonical = [
+        ("fig01_cloud_field_overview.png", GFX_PNG_ROOT / "01", "cloud_field_overview_*_ALLBB.png"),
+        ("fig12_plume_path.png", GFX_PNG_ROOT / "03", "figure12_ensemble_mean_plume_path_foo.png"),
+        ("fig13_psd_mass.png", GFX_PNG_ROOT / "04", "figure13_psd_alt_time_mass_*.png"),
+        ("fig13_psd_number.png", GFX_PNG_ROOT / "04", "figure13_psd_alt_time_number_*.png"),
+    ]
+    for gal_name, src_dir, pattern in canonical:
+        if not src_dir.is_dir():
+            continue
+        matches = sorted(src_dir.glob(pattern))
+        if matches:
+            shutil.copy2(matches[0], GALLERY_DIR / gal_name)
+            if gal_name not in copied:
+                copied.append(gal_name)
+
+    if copied:
+        print(f"[gallery] Synced {len(copied)} file(s) to {GALLERY_DIR}")
+    else:
+        print("[gallery] No PNG/MP4 outputs found under output/gfx; nothing to sync.")
 
 
 def main() -> None:
@@ -259,6 +314,9 @@ def main() -> None:
 
     failures: list[str] = []
     for job in jobs:
+        if job.key == "pamtra_mira35_quicklook" and args.pamtra_file is None:
+            print(f"[figure] {job.key} (skipped: no --pamtra-file)")
+            continue
         try:
             rc = _run_job(job, args, dry_run=args.dry_run)
         except ValueError as exc:
@@ -276,6 +334,9 @@ def main() -> None:
     if failures:
         print(f"Figure run finished with failures: {', '.join(failures)}", file=sys.stderr)
         sys.exit(1)
+
+    if not args.dry_run and not args.no_gallery_sync:
+        _sync_gallery()
 
     print("Publication figure run complete.")
 
