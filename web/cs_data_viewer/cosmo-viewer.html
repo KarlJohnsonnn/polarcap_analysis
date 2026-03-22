@@ -494,8 +494,34 @@
     justify-content: center;
   }
 
-  .lightbox .lb-content img,
-  .lightbox .lb-content video {
+  /* Stacked images: same viewport box, crossfade without tearing down DOM */
+  .lightbox .lb-image-stack {
+    position: relative;
+    width: 92vw;
+    height: 82vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox .lb-image-stack .lb-stack-img {
+    position: absolute;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.5);
+    transition: opacity 0.12s ease-out;
+    margin: auto;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+  }
+
+  .lightbox .lb-content > video {
     max-width: 92vw;
     max-height: 82vh;
     object-fit: contain;
@@ -907,6 +933,11 @@ let currentSortDir = 'desc';   // asc | desc
 let currentFiles = [];      // files shown in current view
 let lightboxIndex = 0;
 let lightboxFiles = [];
+/** Lightbox image: cancel stale async swaps when navigating quickly */
+let lbMediaGen = 0;
+/** Which stack layer (0 = first img) is currently opaque */
+let lbImgShowA = true;
+let lbHasShownImage = false;
 let basePath = '';
 let isLocalFiles = false;   // true if loaded via folder picker
 let localFileMap = {};      // path -> File object or ObjectURL
@@ -1848,8 +1879,14 @@ document.getElementById('searchBox').addEventListener('input', () => renderConte
 
 // ─── Lightbox ───
 function openLightbox(index) {
+  lbMediaGen += 1;
   lightboxIndex = index;
   lightboxFiles = currentFiles;
+  lbHasShownImage = false;
+  const lbContent = document.getElementById('lbContent');
+  const vid = lbContent.querySelector('video');
+  if (vid) vid.pause();
+  lbContent.innerHTML = '';
   showLightboxContent();
   document.getElementById('lightbox').classList.add('open');
   document.addEventListener('keydown', lightboxKeyHandler);
@@ -1864,6 +1901,7 @@ function closeLightbox() {
 }
 
 function navLightbox(dir) {
+  lbMediaGen += 1;
   lightboxIndex = (lightboxIndex + dir + lightboxFiles.length) % lightboxFiles.length;
   showLightboxContent();
 }
@@ -1874,20 +1912,107 @@ function lightboxKeyHandler(e) {
   if (e.key === 'ArrowRight') navLightbox(1);
 }
 
+function prefetchLightboxNeighbors() {
+  const n = lightboxFiles.length;
+  if (n < 2) return;
+  const prev = lightboxFiles[(lightboxIndex - 1 + n) % n];
+  const next = lightboxFiles[(lightboxIndex + 1) % n];
+  for (const file of [prev, next]) {
+    if (file.type === 'image') preloadImage(getFileURL(file));
+  }
+}
+
+function ensureLbImageStack(lbContent) {
+  let stack = lbContent.querySelector('.lb-image-stack');
+  if (stack) return stack;
+  lbContent.innerHTML =
+    '<div class="lb-image-stack">' +
+    '<img class="lb-stack-img" alt="" decoding="async" style="opacity:0">' +
+    '<img class="lb-stack-img" alt="" decoding="async" style="opacity:0">' +
+    '</div>';
+  return lbContent.querySelector('.lb-image-stack');
+}
+
 function showLightboxContent() {
   const f = lightboxFiles[lightboxIndex];
   if (!f) return;
   const url = getFileURL(f);
   const lbContent = document.getElementById('lbContent');
-
-  if (f.type === 'video') {
-    lbContent.innerHTML = `<video src="${url}" controls autoplay loop style="max-width:92vw;max-height:82vh;border-radius:4px;box-shadow:0 4px 40px rgba(0,0,0,0.5)"></video>`;
-  } else {
-    lbContent.innerHTML = `<img src="${url}" alt="${f.name}" style="max-width:92vw;max-height:82vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 40px rgba(0,0,0,0.5)">`;
-  }
+  const gen = lbMediaGen;
 
   document.getElementById('lbCaption').textContent = f.path;
   document.getElementById('lbCounter').textContent = `${lightboxIndex + 1} / ${lightboxFiles.length}`;
+
+  if (f.type === 'video') {
+    lbHasShownImage = false;
+    lbContent.innerHTML =
+      `<video src="${url}" controls autoplay loop style="max-width:92vw;max-height:82vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 40px rgba(0,0,0,0.5)"></video>`;
+    return;
+  }
+
+  const stack = ensureLbImageStack(lbContent);
+  const imgA = stack.children[0];
+  const imgB = stack.children[1];
+
+  const finishNeighbors = () => prefetchLightboxNeighbors();
+
+  if (!lbHasShownImage) {
+    lbHasShownImage = true;
+    lbImgShowA = true;
+    const loader = new Image();
+    loader.onload = () => {
+      if (gen !== lbMediaGen) return;
+      imgA.src = url;
+      imgA.alt = f.name;
+      imgA.style.opacity = '1';
+      imgB.style.opacity = '0';
+      finishNeighbors();
+    };
+    loader.onerror = () => {
+      if (gen !== lbMediaGen) return;
+      imgA.alt = f.name;
+      imgA.style.opacity = '1';
+      finishNeighbors();
+    };
+    loader.src = url;
+    return;
+  }
+
+  const visible = lbImgShowA ? imgA : imgB;
+  const hidden = lbImgShowA ? imgB : imgA;
+  if (visible.src === url) {
+    finishNeighbors();
+    return;
+  }
+
+  const loader = new Image();
+  loader.onload = () => {
+    if (gen !== lbMediaGen) return;
+    hidden.src = url;
+    hidden.alt = f.name;
+    const applySwap = () => {
+      if (gen !== lbMediaGen) return;
+      visible.style.opacity = '0';
+      hidden.style.opacity = '1';
+      lbImgShowA = !lbImgShowA;
+      finishNeighbors();
+    };
+    if (hidden.decode) {
+      hidden.decode().then(applySwap).catch(applySwap);
+    } else {
+      requestAnimationFrame(applySwap);
+    }
+  };
+  loader.onerror = () => {
+    if (gen !== lbMediaGen) return;
+    hidden.src = url;
+    hidden.alt = f.name;
+    visible.style.opacity = '0';
+    hidden.style.opacity = '1';
+    lbImgShowA = !lbImgShowA;
+    finishNeighbors();
+  };
+  loader.src = url;
 }
 
 // ─── Scroll to top button ───

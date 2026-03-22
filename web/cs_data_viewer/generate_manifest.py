@@ -21,9 +21,12 @@ from pathlib import Path
 
 SUPPORTED = {".png", ".gif", ".mp4"}
 VIDEO_EXT = {".mp4"}
+# Match run_publication_figures.SINGLE_FRAME_MARKER: skip per-frame PNGs, keep MP4 in viewer.
+SKIP_PNG_SUBSTR = "_itime"
 REPO_OUTPUT_DIRS = (
-    Path("scripts/processing_chain/output"),
+    Path("output/"),
     Path("notebooks/output"),
+    Path("scripts/processing_chain/output"),
 )
 
 
@@ -36,7 +39,7 @@ def get_manifest_path(repo_root: Path) -> Path:
     return repo_root / "web/cs_data_viewer/manifest.json"
 
 
-def build_entry(path: Path, relative_to: Path) -> dict[str, str]:
+def build_entry(path: Path, relative_to: Path) -> dict[str, str | int]:
     rel = path.relative_to(relative_to)
     ext = path.suffix[1:].lower()
     folder = str(rel.parent) if str(rel.parent) != "." else ""
@@ -50,24 +53,26 @@ def build_entry(path: Path, relative_to: Path) -> dict[str, str]:
     }
 
 
-def scan_root(scan_root: Path, relative_to: Path) -> list[dict[str, str]]:
+def scan_root(scan_root: Path, relative_to: Path) -> list[dict[str, str | int]]:
     if not scan_root.exists():
         return []
 
-    files: list[dict[str, str]] = []
+    files: list[dict[str, str | int]] = []
     for path in sorted(scan_root.rglob("*")):
         if not path.is_file() or path.suffix.lower() not in SUPPORTED:
+            continue
+        if path.suffix.lower() == ".png" and SKIP_PNG_SUBSTR in path.name:
             continue
         files.append(build_entry(path, relative_to))
     return files
 
 
-def write_manifest(files: list[dict[str, str]], out_path: Path) -> None:
+def write_manifest(files: list[dict[str, str | int]], out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps({"files": files}, indent=1) + "\n")
 
 
-def print_summary(files: list[dict[str, str]], out_path: Path, scanned_roots: list[Path]) -> None:
+def print_summary(files: list[dict[str, str | int]], out_path: Path, scanned_roots: list[Path]) -> None:
     print(f"Indexed {len(files)} files -> {out_path}")
     if scanned_roots:
         print("Scanned:")
@@ -92,6 +97,8 @@ def latest_output_mtime(repo_root: Path) -> int:
         for path in abs_root.rglob("*"):
             if not path.is_file() or path.suffix.lower() not in SUPPORTED:
                 continue
+            if path.suffix.lower() == ".png" and SKIP_PNG_SUBSTR in path.name:
+                continue
             latest = max(latest, int(path.stat().st_mtime * 1000))
     return latest
 
@@ -114,7 +121,7 @@ def get_repo_status(repo_root: Path) -> dict[str, object]:
 
 def generate_repo_manifest(repo_root: Path) -> Path:
     repo_root = repo_root.resolve()
-    files: list[dict[str, str]] = []
+    files: list[dict[str, str | int]] = []
     scanned_roots: list[Path] = []
 
     for rel_root in REPO_OUTPUT_DIRS:
