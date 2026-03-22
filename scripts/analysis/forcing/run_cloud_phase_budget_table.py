@@ -17,7 +17,7 @@ from utilities.cloud_field_overview import (  # noqa: E402
     save_cloud_phase_budget_tables,
 )
 
-DEFAULT_CONFIG = REPO_ROOT / "notebooks" / "config" / "process_budget.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "config" / "process_budget.yaml"
 
 
 def main() -> None:

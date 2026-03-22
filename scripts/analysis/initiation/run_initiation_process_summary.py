@@ -13,7 +13,7 @@ import xarray as xr
 REPO_ROOT = Path(__file__).resolve().parents[3]
 REGISTRY_CSV = REPO_ROOT / "data" / "registry" / "analysis_registry.csv"
 PLAN_PC = REPO_ROOT / "data" / "plan_pc"
-PROCESSED_ROOT = REPO_ROOT / "scripts" / "processing_chain" / "processed"
+PROCESSED_ROOT = REPO_ROOT / "scripts" / "data" / "processed"
 OUT_CSV = REPO_ROOT / "data" / "registry" / "initiation_process_fractions.csv"
 
 H_LOW = 800.0

@@ -28,7 +28,7 @@ def build_inventory(manifest_path: Path = MANIFEST) -> pd.DataFrame:
             "artifact_type": "figure",
             "section": "results",
             "script": "scripts/analysis/forcing/run_cloud_field_overview.py",
-            "config_or_args": "notebooks/config/process_budget.yaml",
+            "config_or_args": "config/process_budget.yaml",
             "output_path": "output/gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_<exp>_<range>.png",
             "draft_target": "manual figure include in article_draft/PolarCAP",
         },

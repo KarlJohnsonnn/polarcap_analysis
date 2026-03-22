@@ -13,7 +13,7 @@ import xarray as xr
 REPO_ROOT = Path(__file__).resolve().parents[3]
 REGISTRY_CSV = REPO_ROOT / "data" / "registry" / "analysis_registry.csv"
 PLAN_PC = REPO_ROOT / "data" / "plan_pc"
-PROCESSED_ROOT = REPO_ROOT / "scripts" / "processing_chain" / "processed"
+PROCESSED_ROOT = REPO_ROOT / "scripts" / "data" / "processed"
 OUT_CSV = REPO_ROOT / "data" / "registry" / "first_ice_onset_metrics.csv"
 
 THRESHOLD_M3 = 1.0

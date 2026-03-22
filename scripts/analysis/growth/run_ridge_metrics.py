@@ -12,7 +12,7 @@ import xarray as xr
 REPO_ROOT = Path(__file__).resolve().parents[3]
 REGISTRY_DIR = REPO_ROOT / "data" / "registry"
 REGISTRY_CSV = REGISTRY_DIR / "analysis_registry.csv"
-PROCESSED_ROOT = REPO_ROOT / "scripts" / "processing_chain" / "processed"
+PROCESSED_ROOT = REPO_ROOT / "scripts" / "data" / "processed"
 OUT_CSV = REGISTRY_DIR / "ridge_metrics.csv"
 OUT_TS_CSV = REGISTRY_DIR / "ridge_timeseries.csv"
 
