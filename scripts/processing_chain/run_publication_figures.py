@@ -25,7 +25,7 @@ import yaml
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 CONFIG_DIR = REPO_ROOT / "config"
-DEFAULT_CONFIG = CONFIG_DIR / "cfg_publication_figures.yaml"
+DEFAULT_CONFIG = CONFIG_DIR / "publication_figures.yaml"
 GALLERY_DIR = REPO_ROOT / "output" / "gallery"
 GFX_PNG_ROOT = REPO_ROOT / "output" / "gfx" / "png"
 GFX_MP4_DIR = REPO_ROOT / "output" / "gfx" / "mp4"
@@ -145,12 +145,12 @@ PUBLICATION_PRODUCTS: tuple[FigureJob, ...] = (
     FigureJob(
         key="spectral_waterfall_N",
         rel_script="scripts/analysis/growth/run_spectral_waterfall.py",
-        description="Spectral waterfall (number concentration N); args from cfg_publication_figures.",
+        description="Spectral waterfall (number concentration N); args from publication_figures.yaml.",
     ),
     FigureJob(
         key="spectral_waterfall_Q",
         rel_script="scripts/analysis/growth/run_spectral_waterfall.py",
-        description="Spectral waterfall (mass concentration Q); args from cfg_publication_figures.",
+        description="Spectral waterfall (mass concentration Q); args from publication_figures.yaml.",
     ),
     FigureJob(
         key="first_ice_metrics",
@@ -305,7 +305,7 @@ Examples:
         "--config",
         type=Path,
         default=DEFAULT_CONFIG,
-        help="Path to cfg_publication_figures.yaml (default: config/cfg_publication_figures.yaml).",
+        help="Path to publication_figures.yaml (default: config/publication_figures.yaml).",
     )
     return parser.parse_args()
 

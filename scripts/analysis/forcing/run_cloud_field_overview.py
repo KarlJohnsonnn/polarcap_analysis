@@ -22,7 +22,7 @@ from utilities.cloud_field_overview import (  # noqa: E402
 )
 from utilities.style_profiles import apply_publication_style  # noqa: E402
 
-DEFAULT_CONFIG = REPO_ROOT / "config" / "process_budget.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "config" / "psd_process_evolution.yaml"
 
 
 def main() -> None:

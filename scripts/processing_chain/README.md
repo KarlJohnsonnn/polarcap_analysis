@@ -116,7 +116,7 @@ All written datasets receive global attributes: `stage`, `processing_level`, `cr
 
 ## Config
 
-Optional YAML/JSON config via `--config` (e.g. `config/cfg_processing_chain.yaml`). Keys: `model_data_root`, `output_root`, `domain`, `run_lv1a_tracking`, `run_lv1b_paths`, `run_lv2_meteogram`, `run_lv3_rates`, `overwrite`, `debug`. `model_data_root` supports `${CS_RUNS_DIR}` and should usually point to the parent containing multiple `RUN_ERISWILL_*x100/` trees; CLI flags override config. Leave `output_root` blank to inherit the launcher default.
+Optional YAML/JSON config via `--config` (e.g. `config/processing_chain.yaml`). Keys: `model_data_root`, `output_root`, `domain`, `run_lv1a_tracking`, `run_lv1b_paths`, `run_lv2_meteogram`, `run_lv3_rates`, `overwrite`, `debug`. `model_data_root` supports `${CS_RUNS_DIR}` and should usually point to the parent containing multiple `RUN_ERISWILL_*x100/` trees; CLI flags override config. Leave `output_root` blank to inherit the launcher default.
 
 ## Library modules
 

@@ -13,7 +13,7 @@ set -euo pipefail
 
 
 CS_RUN="cs-eriswil__20260318_153631"
-CONFIG="${POLARCAP_ANALYSIS_ROOT}/config/cfg_processing_chain.yaml"
+CONFIG="${POLARCAP_ANALYSIS_ROOT}/config/processing_chain.yaml"
 OUTPUT_ROOT="${POLARCAP_ANALYSIS_ROOT}/scripts/data/processed"
 
 cd $POLARCAP_ANALYSIS_ROOT/scripts/processing_chain

@@ -142,7 +142,7 @@ print(describe_chunk_plan(ds, chunks))
 
 LV2 Meteogram zarrs are built with defaults suited to time-frame and single-station analysis on both SLURM and laptop: **time=100**, **station=1**, **bins=30**, **expname=1** (`meteogram_io.build_meteogram_zarr`). Reprocess existing zarrs with the LV2 script and `--overwrite` to apply this layout.
 
-Optional **rechunk on open**: set `zarr.rechunk_on_open: true` in the same YAML config used by `load_process_budget_data` (e.g. `notebooks/config/process_budget.yaml` or the path passed to `run_spectral_waterfall --config`). When enabled, the dataset is rechunked in memory using `compute_fabric.auto_chunk_dataset` so chunk sizes match the current machine (smaller on server for parallelism, larger on laptop to reduce task overhead). Optional keys: `zarr.memory_fraction`, `zarr.max_chunk_mb`, `zarr.min_chunk_mb`, `zarr.target_chunk_mb`. This does not reduce I/O (disk layout is unchanged); it only tunes in-memory chunk shape for compute.
+Optional **rechunk on open**: set `zarr.rechunk_on_open: true` in the same YAML config used by `load_process_budget_data` (default `config/psd_process_evolution.yaml`, or any path passed to `run_spectral_waterfall --config`). When enabled, the dataset is rechunked in memory using `compute_fabric.auto_chunk_dataset` so chunk sizes match the current machine (smaller on server for parallelism, larger on laptop to reduce task overhead). Optional keys: `zarr.memory_fraction`, `zarr.max_chunk_mb`, `zarr.min_chunk_mb`, `zarr.target_chunk_mb`. This does not reduce I/O (disk layout is unchanged); it only tunes in-memory chunk shape for compute.
 
 ### SLURM scaling
 

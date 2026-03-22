@@ -1,4 +1,4 @@
-# Publication runner presets for `scripts/processing_chain/run_publication_figures.py`.
+# Publication runner presets (`config/publication_figures.yaml` → run_publication_figures.py).
 #
 # Use this file to keep promoted figures visually consistent without repeating
 # long CLI commands. Each job key below maps to one analysis driver.

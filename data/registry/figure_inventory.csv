@@ -1,5 +1,5 @@
 artifact_id,artifact_type,section,script,config_or_args,output_path,draft_target
-fig_cloud_field_overview,figure,results,scripts/analysis/forcing/run_cloud_field_overview.py,config/process_budget.yaml,output/gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_<exp>_<range>.png,manual figure include in article_draft/PolarCAP
+fig_cloud_field_overview,figure,results,scripts/analysis/forcing/run_cloud_field_overview.py,config/psd_process_evolution.yaml,output/gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_<exp>_<range>.png,manual figure include in article_draft/PolarCAP
 fig_plume_lagrangian,figure,results,scripts/analysis/growth/run_plume_lagrangian_evolution.py,"CLI args for processed root, HOLIMO file, plume kind",output/gfx/png/03/figure12_ensemble_mean_plume_path_foo.png,manual figure include in article_draft/PolarCAP
 fig_psd_waterfall,figure,results,scripts/analysis/growth/run_psd_waterfall.py,"CLI args for processed root, plot kinds, run labels",output/gfx/png/04/figure13_psd_alt_time_<kind>_<run_id>.png,manual figure include in article_draft/PolarCAP
 fig_spectral_waterfall,figure,results,scripts/analysis/growth/run_spectral_waterfall.py,process-budget config + publication wrapper,output/gfx/mp4/05/<cs_run>/... or output/gallery/*.mp4,gallery / future manuscript figure

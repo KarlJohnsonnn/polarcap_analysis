@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Emit plotting.time_spacing_min lines for cfg_spectral_waterfall.yaml.
+"""Emit plotting.time_spacing_min lines for config/psd_process_evolution.yaml.
 
 Segments (seconds from seed_start = 12:29:50):
   0–130 s step 1 s; 133–310 s step 3 s; 315–2110 s step 5 s (ends 13:05:00).
