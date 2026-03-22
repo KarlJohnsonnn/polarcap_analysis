@@ -3,19 +3,24 @@
 # model_data_root defaults to environment variable CS_RUNS_DIR if set (directory
 # containing RUN_ERISWILL_200x160x100/, RUN_ERISWILL_50x40x100/, etc.).
 
-model_data_root: ""  # parent containing RUN_ERISWILL_*x100/; or use absolute path
+# Example: 
+# 
+# $   python run_chain.py --cs-run cs-eriswil__20260318_153631 --domain 200x160 --flare-idx 0 --ref-idx 0
+
+
+model_data_root: ""  # "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/"  # parent containing RUN_ERISWILL_*x100/; or use absolute path
 # Leave blank to use the launcher default:
-# 1) explicit --out, 2) $POLARCAP_OUTPUT_ROOT, 3) matching RUN_ERISWILL_*x100/ensemble_output, 4) local ./processed
-output_root: ""
+# 1) explicit --out, 2) $POLARCAP_OUTPUT_ROOT, 3) matching RUN_ERISWILL_*x100/ensemble_output, 4) repo scripts/data/processed
+output_root: "" #"/work/bb1262/user/schimmel/polarcap_analysis/output/"
 # Ensemble run ID validation: regex pattern for --cs-run (default below)
 cs_run_pattern: "^cs-eriswil__\\d{8}_\\d{6}$"
 # cs_run: "cs-eriswil__20260123_180947"
-domain: "200x160"
+domain: "50x42"
 run_lv1a_tracking: true
 run_lv1b_paths: true
 run_lv2_meteogram: true
 run_lv3_rates: true
-overwrite: false
+overwrite: true
 debug: false
 
 # Optional: when loading Meteogram zarr in process_budget_data / run_spectral_waterfall.

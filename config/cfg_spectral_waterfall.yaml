@@ -1,0 +1,196 @@
+# Reproducible defaults for `scripts/analysis/growth/run_spectral_waterfall.py`
+# and the minimal notebook wrapper that calls the same helpers.
+#
+# Keep stable project-wide choices here. CLI flags are best for one-off runs.
+
+ensemble:
+  cs_run: cs-eriswil__20260304_110254  # Picks the run to load and names every PNG / MP4 / CSV output folder.
+  # cs_run: cs-eriswil__20260318_153631
+
+# Optional LV1 tracking override when you want a different flare/reference pairing than the
+# processing-chain default. `ref_idx: -1` auto-matches the chosen flare.
+# flare_idx: 0  # Switch to a different seeded member.
+# ref_idx: 0  # Switch to a different reference member.
+
+paths:
+  # Point to the server archive when you want the runner to use cluster-side products directly.
+  # Leave blank for laptop / local runs.
+  # server_root: "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/"
+  server_root: "" # "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/"
+  local_meteogram_root: null  # Override where local Meteogram Zarr files are discovered.
+  local_ensemble_config_root: null  # Override where local `<cs_run>.json` ensemble configs are discovered.
+
+# Optional: trade slower open time for smoother downstream slicing on the current machine.
+zarr:
+  rechunk_on_open: false  # `true` often makes plotting more responsive on laptop-sized memory.
+
+selection:
+  experiment_index_default: 0  # Fallback single experiment for helpers that expect exactly one active member.
+  station_index_default: 0  # Fallback single station for helpers that expect exactly one active site.
+  plot_experiment_ids: [0]  # Default experiment ids rendered when CLI `--exp-ids` is omitted.
+  plot_station_ids: [0,1,2]  # Default station columns rendered when CLI `--station-ids` is omitted.
+  station_labels: {
+    0: "S1 — Seeding loc.",  # Titles shown above the station columns.
+    1: "S2 — Observation site",
+    2: "S3 — Precipitation loc."
+    }
+
+
+time:
+  # `0` minutes in `plotting.time_spacing_min` equals this wall time.
+  # It also sets the zero point for growth-footer timing and early-time ice masking.
+  seed_start: "2023-01-25T12:29:50"
+
+
+size_ranges:
+  # Diameter-bin families over the merged SBM bin axis.
+  # Changing these reshapes which bins contribute to the plotted rates, PSDs, and growth metrics.
+  AERLBB:
+    start: 30
+    stop: 51
+    label: "Aerosol Range"
+    tag: "aerlbb"
+  CRYBB:
+    start: 51
+    stop: null
+    label: "Cloud Range"
+    tag: "crybb"
+  PRECBB:
+    start: 50
+    stop: 66
+    label: "Precipitation Range"
+    tag: "precbb"
+  ALLBB:
+    start: 0
+    stop: 66
+    label: "All Range"
+    tag: "allbb"
+
+plotting:
+  active_range_key: "ALLBB"  # Default single size family for helpers that expect one active range.
+  plot_range_keys: ["ALLBB"] # Size families rendered by the waterfall, left to right in the run loop.
+  height_sel_m: [1400, 1200, 1000, 800]  # Fixed layer edges [m] used when ridge-following is turned off.
+  # Minutes after `seed_start`. Dense early spacing gives smoother onset evolution; coarser late spacing
+  # keeps total frame count manageable. Regenerate with `config/_gen_time_spacing.py` when needed.
+  time_spacing_min: [
+      0, 0.0166666667, 0.0333333333, 0.05, 0.0666666667, 0.0833333333, 0.1, 0.1166666667, 0.1333333333, 0.15, 0.1666666667, 0.1833333333, 0.2, 0.2166666667, 0.2333333333, 0.25, 0.2666666667, 0.2833333333, 0.3, 0.3166666667, 0.3333333333, 0.35, 0.3666666667, 0.3833333333, 0.4, 0.4166666667, 0.4333333333, 0.45, 0.4666666667, 0.4833333333, 0.5, 0.5166666667, 0.5333333333, 0.55, 0.5666666667, 0.5833333333, 0.6, 0.6166666667, 0.6333333333, 0.65, 0.6666666667, 0.6833333333, 0.7, 0.7166666667, 0.7333333333, 0.75, 0.7666666667, 0.7833333333, 0.8, 0.8166666667, 0.8333333333, 0.85, 0.8666666667, 0.8833333333, 0.9, 0.9166666667, 0.9333333333, 0.95, 0.9666666667, 0.9833333333, 1, 1.0166666667, 1.0333333333, 1.05, 1.0666666667, 1.0833333333, 1.1, 1.1166666667, 1.1333333333, 1.15, 1.1666666667, 1.1833333333, 1.2, 1.2166666667, 1.2333333333, 1.25, 1.2666666667, 1.2833333333, 1.3, 1.3166666667, 1.3333333333, 1.35, 1.3666666667, 1.3833333333, 1.4, 1.4166666667, 1.4333333333, 1.45, 1.4666666667, 1.4833333333, 1.5, 1.5166666667, 1.5333333333, 1.55, 1.5666666667, 1.5833333333, 1.6, 1.6166666667, 1.6333333333, 1.65, 1.6666666667, 1.6833333333, 1.7, 1.7166666667, 1.7333333333, 1.75, 1.7666666667, 1.7833333333, 1.8, 1.8166666667, 1.8333333333, 1.85, 1.8666666667, 1.8833333333, 1.9, 1.9166666667, 1.9333333333, 1.95, 1.9666666667, 1.9833333333, 2, 2.0166666667, 2.0333333333, 2.05, 2.0666666667, 2.0833333333, 2.1, 2.1166666667, 2.1333333333, 2.15, 2.1666666667, 2.2166666667, 2.2666666667, 2.3166666667, 2.3666666667, 2.4166666667, 2.4666666667, 2.5166666667, 2.5666666667, 2.6166666667, 2.6666666667, 2.7166666667, 2.7666666667, 2.8166666667, 2.8666666667, 2.9166666667, 2.9666666667, 3.0166666667, 3.0666666667, 3.1166666667, 3.1666666667, 3.2166666667, 3.2666666667, 3.3166666667, 3.3666666667, 3.4166666667, 3.4666666667, 3.5166666667, 3.5666666667, 3.6166666667, 3.6666666667, 3.7166666667, 3.7666666667, 3.8166666667, 3.8666666667, 3.9166666667, 3.9666666667, 4.0166666667, 4.0666666667, 4.1166666667, 4.1666666667, 4.2166666667, 4.2666666667, 4.3166666667, 4.3666666667, 4.4166666667, 4.4666666667, 4.5166666667, 4.5666666667, 4.6166666667, 4.6666666667, 4.7166666667, 4.7666666667, 4.8166666667, 4.8666666667, 4.9166666667, 4.9666666667, 5.0166666667, 5.0666666667, 5.1166666667, 5.1666666667, 5.25,
+      5.3333333333, 5.4166666667, 5.5, 5.5833333333, 5.6666666667, 5.75, 5.8333333333, 5.9166666667, 6, 6.0833333333, 6.1666666667, 6.25,
+      6.3333333333, 6.4166666667, 6.5, 6.5833333333, 6.6666666667, 6.75, 6.8333333333, 6.9166666667, 7, 7.0833333333, 7.1666666667, 7.25,
+      7.3333333333, 7.4166666667, 7.5, 7.5833333333, 7.6666666667, 7.75, 7.8333333333, 7.9166666667, 8, 8.0833333333, 8.1666666667, 8.25,
+      8.3333333333, 8.4166666667, 8.5, 8.5833333333, 8.6666666667, 8.75, 8.8333333333, 8.9166666667, 9, 9.0833333333, 9.1666666667, 9.25,
+      9.3333333333, 9.4166666667, 9.5, 9.5833333333, 9.6666666667, 9.75, 9.8333333333, 9.9166666667, 10, 10.0833333333, 10.1666666667, 10.25,
+      10.3333333333, 10.4166666667, 10.5, 10.5833333333, 10.6666666667, 10.75, 10.8333333333, 10.9166666667, 11, 11.0833333333, 11.1666666667, 11.25,
+      11.3333333333, 11.4166666667, 11.5, 11.5833333333, 11.6666666667, 11.75, 11.8333333333, 11.9166666667, 12, 12.0833333333, 12.1666666667, 12.25,
+      12.3333333333, 12.4166666667, 12.5, 12.5833333333, 12.6666666667, 12.75, 12.8333333333, 12.9166666667, 13, 13.0833333333, 13.1666666667, 13.25,
+      13.3333333333, 13.4166666667, 13.5, 13.5833333333, 13.6666666667, 13.75, 13.8333333333, 13.9166666667, 14, 14.0833333333, 14.1666666667, 14.25,
+      14.3333333333, 14.4166666667, 14.5, 14.5833333333, 14.6666666667, 14.75, 14.8333333333, 14.9166666667, 15, 15.0833333333, 15.1666666667, 15.25,
+      15.3333333333, 15.4166666667, 15.5, 15.5833333333, 15.6666666667, 15.75, 15.8333333333, 15.9166666667, 16, 16.0833333333, 16.1666666667, 16.25,
+      16.3333333333, 16.4166666667, 16.5, 16.5833333333, 16.6666666667, 16.75, 16.8333333333, 16.9166666667, 17, 17.0833333333, 17.1666666667, 17.25,
+      17.3333333333, 17.4166666667, 17.5, 17.5833333333, 17.6666666667, 17.75, 17.8333333333, 17.9166666667, 18, 18.0833333333, 18.1666666667, 18.25,
+      18.3333333333, 18.4166666667, 18.5, 18.5833333333, 18.6666666667, 18.75, 18.8333333333, 18.9166666667, 19, 19.0833333333, 19.1666666667, 19.25,
+      19.3333333333, 19.4166666667, 19.5, 19.5833333333, 19.6666666667, 19.75, 19.8333333333, 19.9166666667, 20, 20.0833333333, 20.1666666667, 20.25,
+      20.3333333333, 20.4166666667, 20.5, 20.5833333333, 20.6666666667, 20.75, 20.8333333333, 20.9166666667, 21, 21.0833333333, 21.1666666667, 21.25,
+      21.3333333333, 21.4166666667, 21.5, 21.5833333333, 21.6666666667, 21.75, 21.8333333333, 21.9166666667, 22, 22.0833333333, 22.1666666667, 22.25,
+      22.3333333333, 22.4166666667, 22.5, 22.5833333333, 22.6666666667, 22.75, 22.8333333333, 22.9166666667, 23, 23.0833333333, 23.1666666667, 23.25,
+      23.3333333333, 23.4166666667, 23.5, 23.5833333333, 23.6666666667, 23.75, 23.8333333333, 23.9166666667, 24, 24.0833333333, 24.1666666667, 24.25,
+      24.3333333333, 24.4166666667, 24.5, 24.5833333333, 24.6666666667, 24.75, 24.8333333333, 24.9166666667, 25, 25.0833333333, 25.1666666667, 25.25,
+      25.3333333333, 25.4166666667, 25.5, 25.5833333333, 25.6666666667, 25.75, 25.8333333333, 25.9166666667, 26, 26.0833333333, 26.1666666667, 26.25,
+      26.3333333333, 26.4166666667, 26.5, 26.5833333333, 26.6666666667, 26.75, 26.8333333333, 26.9166666667, 27, 27.0833333333, 27.1666666667, 27.25,
+      27.3333333333, 27.4166666667, 27.5, 27.5833333333, 27.6666666667, 27.75, 27.8333333333, 27.9166666667, 28, 28.0833333333, 28.1666666667, 28.25,
+      28.3333333333, 28.4166666667, 28.5, 28.5833333333, 28.6666666667, 28.75, 28.8333333333, 28.9166666667, 29, 29.0833333333, 29.1666666667, 29.25,
+      29.3333333333, 29.4166666667, 29.5, 29.5833333333, 29.6666666667, 29.75, 29.8333333333, 29.9166666667, 30, 30.0833333333, 30.1666666667, 30.25,
+      30.3333333333, 30.4166666667, 30.5, 30.5833333333, 30.6666666667, 30.75, 30.8333333333, 30.9166666667, 31, 31.0833333333, 31.1666666667, 31.25,
+      31.3333333333, 31.4166666667, 31.5, 31.5833333333, 31.6666666667, 31.75, 31.8333333333, 31.9166666667, 32, 32.0833333333, 32.1666666667, 32.25,
+      32.3333333333, 32.4166666667, 32.5, 32.5833333333, 32.6666666667, 32.75, 32.8333333333, 32.9166666667, 33, 33.0833333333, 33.1666666667, 33.25,
+      33.3333333333, 33.4166666667, 33.5, 33.5833333333, 33.6666666667, 33.75, 33.8333333333, 33.9166666667, 34, 34.0833333333, 34.1666666667, 34.25,
+      34.3333333333, 34.4166666667, 34.5, 34.5833333333, 34.6666666667, 34.75, 34.8333333333, 34.9166666667, 35, 35.0833333333, 35.1666666667
+    ]
+  spectral_waterfall:
+    # Shared defaults for both kinds. Add `spectral_waterfall_Q:` and/or `spectral_waterfall_N:`
+    # sibling blocks when one unit family needs different limits or styling.
+
+    # What the figure emphasizes.
+    kind: "Q"  # Default unit family: "Q" highlights mass evolution, "N" highlights number evolution.
+    plot_style: steps  # `steps` preserves bin structure; `bars` feels categorical; `lines` reads more smoothly.
+    yscale: symlog  # `symlog` keeps near-zero structure visible without losing strong positive/negative bursts.
+    normalize_mode: "none"  # `none` = physical units, `bin` = per-bin shares, `panel` = shape-only comparison.
+    show_psd_twin: true  # Adds a PSD context strip above each station column.
+    show_proc_labels: "legend"   # `legend` stays compact; `cmap` writes process-color meaning into the figure itself.
+    # use_plume_ridge: true  # Follow the frozen-plume ridge instead of fixed layers for each time step.
+
+    # Main signed-rate panel styling.
+    line_linewidth: 0.75  # Makes step / line traces readable in print without overpowering the fills.
+    fill_alpha: 0.66  # Controls how strongly stacked positive / negative areas dominate the panel.
+    line_alpha: 0.66  # Controls how strongly the outline competes with the fills.
+    rate_white_linewidth: 2.0  # White halo keeps traces legible against dense fills and grids.
+    rate_color_linewidth: 0.36  # Primary colored trace width.
+    rate_black_linewidth: 0.15  # Thin top edge sharpens the trace without making it heavy.
+
+    # PSD strip styling.
+    psd_color_W: "royalblue"  # Liquid PSD color identity.
+    psd_color_F: "darkorange"  # Ice PSD color identity.
+    psd_fill_alpha: 0.66  # Higher values make PSD area shape more prominent.
+    psd_white_linewidth: 2.0  # Halo keeps PSD outlines clear against their fill.
+    psd_color_linewidth: 0.66  # Main PSD outline width.
+    psd_black_linewidth: 0.15  # Fine edge for a crisp PSD silhouette.
+    psd_yscale: "log"  # `log` reveals onset and mature PSDs in the same strip.
+
+    # Bar styling (used only with `plot_style: bars`).
+    bar_edge_color: "black"  # Edge color that keeps neighboring bars visually separated.
+    bar_edge_linewidth: 0.36  # Edge weight for bar-style rendering.
+    bar_width_frac_merged: 0.95  # Wider bars read as continuous spectra; smaller values separate bins more clearly.
+    pos_alpha: 0.75  # Visibility of positive stacked-process areas.
+    neg_alpha: 0.75  # Visibility of negative stacked-process areas.
+
+    # Ridge growth overlay (z_mean, Σ, ⟨D⟩, d⟨D⟩/dt).
+    ridge_mass_floor: 0.0  # Raise this to ignore extremely weak ice when locating the ridge itself.
+    growth_ice_sum_floor_q: 1.0e-6  # Hide ice Σ / ⟨D⟩ when ridge-integrated ice mass is too small to trust.
+    growth_ice_sum_floor_n: 1.0e3  # Same safeguard for number-based runs.
+    growth_ice_mask_until_min: null  # Limit that safeguard to early times, or leave null to apply it whenever ice stays tiny.
+    show_growth_textbox: true  # Adds a compact per-frame growth summary inside the main panel.
+    growth_rate_window_frames: 3  # Longer windows smooth growth-rate noise; shorter windows react faster to changes.
+    growth_rate_mode: regression  # `regression` is steadier; `last_interval` responds immediately to the latest step.
+    write_growth_csv: true  # Exports the plotted ridge-growth series for reuse outside the figure.
+    show_growth_footer: true  # Adds the 4-row footer strip for time context below the main panels.
+    show_growth_sparkline: false  # Legacy alias; still turns the footer on if needed.
+    growth_footer_linewidth: 0.9  # Footer trace weight and current-time cursor weight.
+
+    # Shared layout + minimal-scientific styling.
+    panel_height_ratios: [1.35, 2.15, 2.15]  # Relative emphasis: PSD context, liquid rates, ice rates.
+    main_stack_hspace: 0.018  # Smaller values tighten PSD / liquid / ice into one visual block.
+    main_col_wspace: 0.035  # Smaller values make station columns feel more comparable.
+    footer_block_hspace: 0.12  # More space makes the four footer rows easier to read independently.
+    footer_outer_height_ratio: 0.78  # Higher values give the footer more visual weight.
+    axis_tick_label_pt: 6.8  # Tick-label size for dense multi-panel reading.
+    station_title_pt: 8.0  # Station-title size above each column.
+    axis_spine_linewidth: 0.55  # Thin spines keep the figure clean and technical.
+    grid_linewidth: 0.18  # Light grid that guides the eye without taking over.
+    grid_alpha: 0.26  # Grid visibility.
+    grid_linestyle: "-"  # Grid texture.
+    grid_color: "0.84"  # Neutral grid tone.
+    panel_annotation_alpha: 0.48  # How strongly annotation boxes stand out from the data.
+    panel_annotation_pad: 0.10  # Annotation breathing room.
+    panel_bbox_alpha: 0.30  # Opacity of panel label boxes.
+    zero_linewidth: 0.30  # Visibility of the signed-rate zero reference.
+    zero_line_color: "0.60"  # Tone of the signed-rate zero reference.
+    growth_cursor_color: "0.45"  # Current-time cursor tone in the footer.
+    panel_group_bg: "1.0"  # Background behind grouped axes.
+    legend_font_pt: 6.4  # Legend density.
+    legend_frame_alpha: 0.82  # Legend box visibility.
+    figure_title_pt: 9.0  # Overall title emphasis.
+    figure_label_pt: 8.0  # Shared axis-label emphasis.
+    # Optional figure margins in normalized figure coordinates.
+    # figure_margin_left: 0.085  # More room for the shared y label.
+    # figure_margin_right: 0.98  # More outer whitespace on the right when no colorbar is shown.
+    # figure_margin_right_cmap: 0.82  # Reserve room for a right-side colorbar.
+    # figure_margin_top: 0.88  # More space between title and panel block.
+    # figure_margin_bottom: 0.12  # Bottom whitespace without footer.
+    # figure_margin_bottom_footer: 0.17  # Bottom whitespace when the footer is enabled.
+
+  render:
+    workers: 5  # More workers shorten full renders; use 1 when you want easier debugging / profiling.
+    frame_dpi: 300  # Controls PNG sharpness in gallery and print use.
+    frame_png_compress: 1  # Lower values write faster; higher values save disk space.
+    # Playback speed only: higher FPS shortens the MP4 without changing the number of PNG frames.
+    mp4_fps: 5
+
