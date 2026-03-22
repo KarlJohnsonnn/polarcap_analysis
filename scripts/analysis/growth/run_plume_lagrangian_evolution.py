@@ -1,5 +1,34 @@
 #!/usr/bin/env python3
-"""Render the notebook 03 plume-lagrangian summary figure as a reproducible script."""
+"""Render the notebook 03 plume-lagrangian summary figure as a reproducible script.
+
+Figure construction lives in ``utilities.plume_lagrangian`` (ensemble assembly, HOLIMO overlay, histogram)
+and ``utilities.plume_path_plot`` (``plot_plume_path_sum`` for the Hovmöller-style panels).
+
+Units and spectral normalization (read before interpreting the PNG)
+---------------------------------------------------------------------
+**Axes.** Elapsed time is in minutes; equivalent diameter is micrometres (see ``render_plume_lagrangian_figure``
+for linear vs logarithmic time axes).
+
+**Model field on the heatmaps (ensemble mean ``nf``).** ``build_ensemble_mean_datasets`` averages ``nf`` across
+runs, then divides each diameter bin by ``Δln(D) = ln(D_edge[i+1]) - ln(D_edge[i])`` (bin edges from
+``_diam_log_edges``). The plotted quantity is therefore **⟨nf⟩ / Δln(D)** — a density in logarithmic diameter
+space (same family as **dN/d ln D** when bin values are content integrated over the bin). It is **not** a plain
+**per µm** spectrum (dN/dD) and not “integrated in the bin only” without that width factor.
+
+**Model units.** Plume-path ``nf`` is already in **per litre** (or g L⁻¹, per NetCDF); the figure does **not**
+multiply the model by 1000. The colorbar shows ensemble-mean ``n_f/Δln D`` with the file ``units`` attribute.
+
+**HOLIMO units.** Ice PSD variables differ by normalization (see ``HOLIMO_ICE_PSD_META`` in
+``utilities.plume_lagrangian``): e.g. ``Ice_PSDnoNorm`` (cm⁻³ per bin), ``Ice_PSDlinNorm`` (cm⁻³ µm⁻¹),
+``Ice_PSDlogNorm`` (cm⁻³ per log bin). Default ``Ice_PSDlogNorm`` matches log-diameter panels. HOLIMO is scaled by
+``holimo_scale_cm3_to_litres`` (typically ``HOLIMO_CM3_TO_L1`` = 1000) to convert **cm⁻³ → L⁻¹** for overlay;
+``*Majsiz`` products list unknown units and use scale 1 until you set a factor explicitly.
+
+**Mass vs number.** Ice ``nf`` is number-related unless your product uses mass; still **per Δln(D)** after ensemble
+processing.
+
+**Histogram.** Model curve uses native model units; HOLIMO uses the same cm⁻³→L⁻¹ factor as the scatter overlay.
+"""
 from __future__ import annotations
 
 import argparse
@@ -8,14 +37,17 @@ from pathlib import Path
 
 import matplotlib
 
+# Headless backend: avoids needing a display when saving PNG from CLI or batch jobs.
 matplotlib.use("Agg")
 
+# This file lives at scripts/analysis/growth/ — three parents up is the repo root.
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SRC_DIR = REPO_ROOT / "src"
+# Allow `python scripts/.../run_*.py` without installing the package as editable.
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from utilities.plume_lagrangian import (  # noqa: E402
+from utilities.plume_lagrangian import (  # noqa: E402  # imports after sys.path mutation
     DEFAULT_KIND,
     DEFAULT_MODEL_DIAMETER_SMOOTHING_BINS,
     load_plume_lagrangian_context,
@@ -26,6 +58,7 @@ from utilities.style_profiles import apply_publication_style  # noqa: E402
 
 
 def main() -> None:
+    # Defaults match notebook 03 promotion; override paths when data live elsewhere (e.g. HPC scratch).
     parser = argparse.ArgumentParser(
         description="Render the plume-lagrangian evolution figure promoted from notebook 03."
     )

@@ -316,7 +316,6 @@ def plot_plume_path_sum(
     cbar_kwargs.setdefault("shrink", 0.75)
     cbar_kwargs.setdefault("aspect", 40)
     cbar_kwargs.setdefault("pad", 0.005)
-    cbar_kwargs.setdefault("label", " ")
     cbar_kwargs.setdefault("extend", "both")
 
     obs_cfg = None
@@ -474,7 +473,9 @@ def plot_plume_path_sum(
     for j in range(n, len(axes)):
         axes[j].set_visible(False)
     if add_colorbar and pmesh is not None:
-        cbar_kwargs["label"] = cbar_kwargs.get("label", rf"{kind} {variable} per bin / ({da.attrs.get('units', '-')})")
+        _lbl = cbar_kwargs.get("label")
+        if _lbl is None or (isinstance(_lbl, str) and not _lbl.strip()):
+            cbar_kwargs["label"] = rf"{kind} {variable} ({da.attrs.get('units', '-')})"
         fig.colorbar(pmesh, ax=axes[0], **cbar_kwargs)
     if annote_letters:
         _plume_path_annotate_letters(axes[:n])

@@ -3,6 +3,11 @@ Plume-lagrangian figure helpers promoted from notebook 03.
 
 This module reuses the existing plume-path and HOLIMO utility layer and adds
 the notebook-specific ensemble-mean assembly plus the histogram summary panel.
+
+HOLIMO ice PSD variables differ by normalization (see ``HOLIMO_ICE_PSD_META``): noNorm (per bin, cm^-3),
+linNorm (cm^-3 um^-1), logNorm (cm^-3 per log bin width). Default ``Ice_PSDlogNorm`` matches log-diameter
+figures. Model plume-path ``nf`` is already per litre (or g L^-1 per product); only HOLIMO gets
+``HOLIMO_CM3_TO_L1`` (cm^-3 → L^-1) via ``holimo_scale_cm3_to_litres``.
 """
 from __future__ import annotations
 
@@ -64,24 +69,46 @@ DEFAULT_SEEDING_START_TIMES = [
     np.datetime64("2023-01-25T10:28:00"),
     np.datetime64("2023-01-25T11:15:00"),
 ]
-DEFAULT_MODEL_SEED = np.datetime64("2023-01-25T12:30:00")
+DEFAULT_MODEL_SEED = np.datetime64("2023-01-25T12:29:50")
 DEFAULT_KIND = "extreme"
 DEFAULT_VARIABLE = "nf"
 DEFAULT_MODEL_DIAMETER_SMOOTHING_BINS = 0
 DEFAULT_HOLIMO_VAR = "Ice_PSDlogNorm"
-DEFAULT_UNIT_CONVERSION = 1000.0
+# HOLIMO stores ice concentration per cm^3; model plume-path ``nf`` is already per litre (or g L^-1, etc.).
+# Multiply HOLIMO by 1000 to convert cm^-3 → L^-1 for overlay with the model (1 L = 1000 cm^3).
+HOLIMO_CM3_TO_L1 = 1000.0
+DEFAULT_UNIT_CONVERSION = HOLIMO_CM3_TO_L1  # applied to HOLIMO only; see ``holimo_scale_cm3_to_litres``
+
+# NetCDF metadata (HOLIMO): spectral unit depends on which PSD variable is used.
+HOLIMO_ICE_PSD_META: dict[str, tuple[str, str]] = {
+    "Ice_PSDnoNorm": ("cm-3", "concentration per bin (no norm)"),
+    "Ice_PSDlinNorm": ("cm-3 um-1", "per bin width; use with linear diameter axis"),
+    "Ice_PSDlogNorm": ("cm-3 log(um-1)", "per log[upper/lower bin]; use with log diameter axis"),
+    "Ice_PSDMnoNormMajsiz": ("unknown", "major-size variant; check file"),
+    "Ice_PSDlinNormMajsiz": ("unknown", "major-size variant; check file"),
+    "Ice_PSDlogNormMajsiz": ("unknown", "major-size variant; check file"),
+}
+
 DEFAULT_THRESHOLD = 1.0e-10
 DEFAULT_XLIM = [np.datetime64("2023-01-25T12:31:00"), np.datetime64("2023-01-25T13:14:00")]
 DEFAULT_PANEL_LIMS = {
-    "symlog": ([1.0, 45.0], [5.0, 1000.0], [1.0, 2000.0]),
-    "elapsed": ([6.0, 15.0], [20.0, 300.0], [1.0, 2000.0]),
-    "hist": ([20.0, 280.0], [1.0, 1000.0], [None, None]),
+    "symlog": ([1.0, 45.0], [5.0, 1000.0], [1.0, 3000.0]),
+    "elapsed": ([6.0, 15.0], [20.0, 300.0], [1.0, 3000.0]),
+    "hist": ([20.0, 280.0], [1.0, 3000.0], [None, None]),
 }
 DEFAULT_MISSION_MARKERS = ["o", "^", "*"]
 DEFAULT_MISSION_MSIZES = [30.0, 30.0, 30.0]
 DEFAULT_CBAR_KW = {"shrink": 0.8, "aspect": 25, "pad": 0.0, "extend": "both"}
 DEFAULT_PEAK_MK = {"marker": ">", "s": 80, "ec": "black", "lw": 0.6, "zorder": 100, "clip_on": True}
 DEFAULT_MED_MK = {"marker": "v", "s": 70, "ec": "black", "lw": 0.9, "zorder": 100, "clip_on": True}
+
+
+def holimo_scale_cm3_to_litres(holimo_var: str) -> float:
+    """Scale HOLIMO ice PSD to L^-1 when NetCDF leading unit is cm^-3; model is already per litre."""
+    meta = HOLIMO_ICE_PSD_META.get(holimo_var)
+    if meta is not None and meta[0] == "unknown":
+        return 1.0
+    return float(HOLIMO_CM3_TO_L1)
 
 
 def default_plume_cmap():
@@ -294,9 +321,10 @@ def add_holimo_column_scatter(
     mission_msizes: list[float] = DEFAULT_MISSION_MSIZES,
     scatter_kwargs: dict[str, Any] | None = None,
 ) -> list[tuple[str]]:
+    """Overlay HOLIMO spectra. ``unit_conversion`` maps HOLIMO cm^-3-class units to model L^-1 (model is not scaled)."""
     scatter_kwargs = dict(_default_scatter_kwargs(default_plume_cmap()), **(scatter_kwargs or {}))
     mission_profiles: list[tuple[str]] = []
-    marker_size_boost = [0.0, 50.0]
+    marker_size_boost = [2.0, 15.0]
 
     for mission_idx, (obs_id, (time_lo, time_hi)) in enumerate(zip(obs_ids, time_frames_plume)):
         da_sel = da_holimo.sel(time=slice(time_lo, time_hi))
@@ -420,6 +448,7 @@ def render_plume_lagrangian_figure(
 ) -> tuple[plt.Figure, Path]:
     ensemble_datasets = context["ensemble_datasets"]
     ds_holimo = context["ds_holimo"]
+    holimo_l1_scale = holimo_scale_cm3_to_litres(DEFAULT_HOLIMO_VAR)
     kind = context["kind"]
     cmap = default_plume_cmap()
 
@@ -482,8 +511,9 @@ def render_plume_lagrangian_figure(
     ax_hist.spines["top"].set_visible(False)
     ax_hist.spines["left"].set_visible(False)
 
-    unit = ensemble_datasets[next(iter(ensemble_datasets))][kind][DEFAULT_VARIABLE].attrs.get("units", "-")
-    fig.colorbar(pmesh_ref, ax=ax_symlog, **DEFAULT_CBAR_KW).set_label(rf"{kind} nf per bin / ({unit})")
+    unit_m = ensemble_datasets[next(iter(ensemble_datasets))][kind][DEFAULT_VARIABLE].attrs.get("units", "-")
+    cbar_lbl = rf"{kind} ensemble-mean $n_f/\Delta\ln D$ ({unit_m})"
+    fig.colorbar(pmesh_ref, ax=ax_symlog, **DEFAULT_CBAR_KW).set_label(cbar_lbl)
 
     da_holimo = ds_holimo[DEFAULT_HOLIMO_VAR]
     mission_profiles = add_holimo_column_scatter(
@@ -493,7 +523,7 @@ def render_plume_lagrangian_figure(
         time_frames_plume=DEFAULT_TIME_FRAMES_PLUME,
         seeding_start_times=DEFAULT_SEEDING_START_TIMES,
         threshold=DEFAULT_THRESHOLD,
-        unit_conversion=DEFAULT_UNIT_CONVERSION,
+        unit_conversion=holimo_l1_scale,
         mission_markers=DEFAULT_MISSION_MARKERS,
         mission_msizes=DEFAULT_MISSION_MSIZES,
     )
@@ -575,10 +605,17 @@ def render_plume_lagrangian_figure(
         raise ValueError("No valid HOLIMO histogram data found.")
 
     hist_xlim, hist_ylim = DEFAULT_PANEL_LIMS["hist"][:2]
-    f_obs_plot = f_obs * DEFAULT_UNIT_CONVERSION
+    f_obs_plot = f_obs * holimo_l1_scale
     plot_hist_line(ax_hist, d_obs, f_obs_plot, "royalblue", 2.2, label="HOLIMO", zorder=5)
     ax_hist.set(xscale="log", yscale="log", xlim=hist_xlim, ylim=hist_ylim)
-    ax_hist.set(ylabel="avg. concentration / bin / (L)", xlabel="equivalent diameter / (um)")
+    _hol_u, _ = HOLIMO_ICE_PSD_META.get(DEFAULT_HOLIMO_VAR, ("(see NC)", ""))
+    _hol_note = (
+        f"HOLIMO x{holimo_l1_scale:g} (cm-3 to L-1)" if holimo_l1_scale != 1.0 else f"HOLIMO ({_hol_u})"
+    )
+    ax_hist.set(
+        ylabel=rf"time-mean $\langle n_f\rangle/\d\ln D$ ({unit_m})",
+        xlabel="equivalent diameter / (µm)",
+    )
     ax_hist.grid(True, which="major", ls="--", lw=0.25, alpha=0.6)
     ax_hist.grid(True, which="minor", ls=":", lw=0.15, alpha=0.35)
     ax_hist.yaxis.tick_right()
@@ -605,10 +642,10 @@ def render_plume_lagrangian_figure(
     )
 
     ax_symlog.set_title("")
-    ax_symlog.set_xlabel("elapsed time (logarithmic) / (minutes)")
-    ax_elapsed.set_xlabel("elapsed time (linear) / (minutes)")
+    ax_symlog.set_xlabel("elapsed time (logarithmic) / (min)")
+    ax_elapsed.set_xlabel("elapsed time (linear) / (min)")
     ax_elapsed.yaxis.set_major_formatter(fmt)
-    fig.supylabel("equivalent diameter / (um)")
+    fig.supylabel("equivalent diameter / (µm)")
     ax_symlog.set_xlim(DEFAULT_PANEL_LIMS["symlog"][0])
 
     out = context["output_path"] if output_path is None else Path(output_path)
@@ -624,5 +661,5 @@ def save_plume_lagrangian_figure(
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=dpi, bbox_inches="tight")
-    print(f"saved -> {out}")
+    print(f"saved -> {out.resolve().as_uri()}")
     return out
