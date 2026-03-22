@@ -12,6 +12,12 @@ from pathlib import Path
 REMOTE_RUNS_ROOT = "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs"
 
 
+def default_local_processed_root() -> str:
+    """Absolute path to ``scripts/data/processed`` under the polarcap_analysis repo."""
+    repo_root = Path(__file__).resolve().parents[2]
+    return str((repo_root / "scripts" / "data" / "processed").resolve())
+
+
 def expand_path(path: str | None) -> str:
     """Expand shell-like path strings and trim whitespace."""
     if not path or not str(path).strip():
@@ -41,7 +47,7 @@ def get_output_root(
     3. Matching ``RUN_ERISWILL_*x100/ensemble_output`` under the active runs root.
     4. Matching ``RUN_ERISWILL_*x100/ensemble_output`` under the known levante
        work tree.
-    5. Local ``processed`` fallback.
+    5. Local ``scripts/data/processed`` under the repo (absolute path).
     """
     chosen = expand_path(root)
     if chosen:
@@ -56,7 +62,7 @@ def get_output_root(
         if resolved:
             return resolved.rstrip(os.sep)
 
-    return "processed"
+    return default_local_processed_root()
 
 
 def resolve_ensemble_output(runs_root: str | None, cs_run: str | None = None) -> str | None:

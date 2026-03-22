@@ -8,7 +8,7 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 REGISTRY_DIR = REPO_ROOT / "data" / "registry"
-PROCESSED_ROOT = REPO_ROOT / "scripts" / "processing_chain" / "processed"
+PROCESSED_ROOT = REPO_ROOT / "scripts" / "data" / "processed"
 
 AVAIL_CSV = REGISTRY_DIR / "availability_check.csv"
 EXP_CSV = REGISTRY_DIR / "experiment_registry.csv"
