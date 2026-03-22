@@ -32,7 +32,7 @@ DEFAULT_PLOT_END_MIN = 13 * 60 + 5
 DEFAULT_ZLIM_TH_W = (1.0e-5, 1.0e0)
 DEFAULT_ZLIM_TH_I = (1.0e-5, 1.0e0)
 DEFAULT_XLIM_PROC = (-1.0e1, 1.0e1)
-DEFAULT_YLIM_GLOB = (700.0, 1750.0)
+DEFAULT_YLIM_GLOB = (750.0, 1600.0)
 DEFAULT_LINTHRESH_PROC = 1.0e-8
 DEFAULT_LINSCALE_PROC = 0.5
 DEFAULT_SYMLOG_MAJOR_NTICKS = 3
@@ -1007,5 +1007,5 @@ def save_cloud_field_overview(
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=dpi, bbox_inches="tight")
-    print(f"saved -> {out}")
+    print(f"saved -> '{out.resolve().as_uri()}'")
     return out

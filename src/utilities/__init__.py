@@ -197,6 +197,8 @@ from utilities.process_rates import (
     panel_concentration_profile,
     ridge_process_values,
     ridge_concentration_profile,
+    first_plume_ridge_anchor,
+    ridge_window_stats,
     merge_liq_ice_net,
     normalize_net_stacks,
 )

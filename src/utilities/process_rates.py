@@ -509,32 +509,114 @@ def panel_concentration_profile(
     return _clean_array(vals)
 
 
+def first_plume_ridge_anchor(
+    ridge_conc_da: xr.DataArray,
+    station_idx: int,
+    bin_slice: slice,
+    *,
+    floor: float = 0.0,
+) -> Optional[tuple[int, int]]:
+    """First (global_time_index, height_index) where column-max ice mass (summed over bins) exceeds *floor*."""
+    sliced = ridge_conc_da.isel(station=station_idx)
+    if sliced.sizes.get("time", 0) == 0:
+        return None
+    if "bins" in sliced.dims:
+        sliced = sliced.isel(bins=bin_slice).sum(dim="bins")
+    vals = np.asarray(sliced.transpose("time", "height_level").values, dtype=float)
+    for ti, row in enumerate(vals):
+        if not np.isfinite(row).any():
+            continue
+        row = np.where(np.isfinite(row), row, -np.inf)
+        ri = int(np.argmax(row))
+        if row[ri] > floor:
+            return (ti, ri)
+    return None
+
+
 def _ridge_indices(
     ridge_conc_da: xr.DataArray,
     station_idx: int,
     twindow: slice,
     bin_slice: slice,
     floor: float = 0.0,
+    ridge_anchor: Optional[tuple[int, int]] = None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Return time and height indices of the per-time frozen-plume ridge."""
+    """Return time and height indices of the per-time frozen-plume ridge.
+
+    If *ridge_anchor* is ``(first_gti, h_anchor)``, every model time strictly **before**
+    the first plume time (coordinate ``ridge_conc_da.time[first_gti]``) samples at
+    *h_anchor* (height index at first detection — plume-top column max), not at the
+    argmax of weak surface noise. At/after that time, the ridge follows column max
+    above *floor* as usual.
+    """
     sliced = ridge_conc_da.isel(station=station_idx).sel(time=twindow)
     if sliced.sizes.get("time", 0) == 0:
         return np.zeros(0, dtype=int), np.zeros(0, dtype=int)
     if "bins" in sliced.dims:
-        sliced = sliced.isel(bins=bin_slice).sum(dim="bins")
-    vals = np.asarray(sliced.transpose("time", "height_level").values, dtype=float)
+        sliced_bins = sliced.isel(bins=bin_slice).sum(dim="bins")
+    else:
+        sliced_bins = sliced
+    vals = np.asarray(sliced_bins.transpose("time", "height_level").values, dtype=float)
+    win_times = np.asarray(sliced_bins["time"].values)
+    first_gti, h_anchor = ridge_anchor if ridge_anchor is not None else (-1, -1)
+    t_first = None
+    if ridge_anchor is not None and first_gti >= 0:
+        t_first = np.asarray(ridge_conc_da["time"].values)[int(first_gti)]
     time_idx: list[int] = []
     height_idx: list[int] = []
     for idx, row in enumerate(vals):
         if not np.isfinite(row).any():
             continue
-        row = np.where(np.isfinite(row), row, -np.inf)
-        ridge_idx = int(np.argmax(row))
-        if row[ridge_idx] <= floor:
+        row_clean = np.where(np.isfinite(row), row, -np.inf)
+        ridge_idx = int(np.argmax(row_clean))
+        t_step = win_times[idx]
+        if t_first is not None and t_step < t_first:
+            time_idx.append(idx)
+            height_idx.append(h_anchor)
+            continue
+        if row_clean[ridge_idx] <= floor:
             continue
         time_idx.append(idx)
         height_idx.append(ridge_idx)
     return np.asarray(time_idx, dtype=int), np.asarray(height_idx, dtype=int)
+
+
+def ridge_window_stats(
+    ridge_conc_da: xr.DataArray,
+    station_idx: int,
+    twindow: slice,
+    bin_slice: slice,
+    *,
+    floor: float = 0.0,
+    ridge_anchor: Optional[tuple[int, int]] = None,
+) -> tuple[float, bool]:
+    """Per-window ridge geometry and ice detection for growth metrics.
+
+    Returns
+    -------
+    z_mean_m
+        Mean ``height_level`` (m) at ridge samples used by ``_ridge_indices``. NaN if none.
+    ice_ok
+        True if any timestep has max-over-height summed ice mass (``bin_slice``) > *floor*.
+    """
+    sliced = ridge_conc_da.isel(station=station_idx).sel(time=twindow)
+    if sliced.sizes.get("time", 0) == 0:
+        return float("nan"), False
+    if "bins" in sliced.dims:
+        sliced_bins = sliced.isel(bins=bin_slice).sum(dim="bins")
+    else:
+        sliced_bins = sliced
+    vals = np.asarray(sliced_bins.transpose("time", "height_level").values, dtype=float)
+    col_max = np.nanmax(vals, axis=1)
+    ice_ok = bool(np.any(np.isfinite(col_max) & (col_max > floor)))
+    time_idx, height_idx = _ridge_indices(
+        ridge_conc_da, station_idx, twindow, bin_slice, floor=floor, ridge_anchor=ridge_anchor
+    )
+    if time_idx.size == 0:
+        return float("nan"), ice_ok
+    hl = np.asarray(ridge_conc_da["height_level"].values, dtype=float)
+    z_mean_m = float(np.nanmean(hl[height_idx.astype(int)]))
+    return z_mean_m, ice_ok
 
 
 def ridge_process_values(
@@ -546,11 +628,14 @@ def ridge_process_values(
     bin_slice: slice,
     *,
     floor: float = 0.0,
+    ridge_anchor: Optional[tuple[int, int]] = None,
 ) -> Dict[str, np.ndarray]:
     """Time-mean spectral values per process sampled along a frozen-plume ridge."""
     if not procs:
         return {}
-    time_idx, height_idx = _ridge_indices(ridge_conc_da, station_idx, twindow, bin_slice, floor=floor)
+    time_idx, height_idx = _ridge_indices(
+        ridge_conc_da, station_idx, twindow, bin_slice, floor=floor, ridge_anchor=ridge_anchor
+    )
     if time_idx.size == 0:
         return {}
     stacked = xr.concat([proc_map[p] for p in procs], dim="process")
@@ -570,11 +655,14 @@ def ridge_concentration_profile(
     bin_slice: slice,
     *,
     floor: float = 0.0,
+    ridge_anchor: Optional[tuple[int, int]] = None,
 ) -> np.ndarray:
     """Time-mean spectral concentration sampled along a frozen-plume ridge."""
     if spec_conc_da is None or ridge_conc_da is None:
         return np.zeros(0)
-    time_idx, height_idx = _ridge_indices(ridge_conc_da, station_idx, twindow, bin_slice, floor=floor)
+    time_idx, height_idx = _ridge_indices(
+        ridge_conc_da, station_idx, twindow, bin_slice, floor=floor, ridge_anchor=ridge_anchor
+    )
     if time_idx.size == 0:
         return np.zeros(0)
     sliced = spec_conc_da.isel(station=station_idx).sel(time=twindow).compute()
