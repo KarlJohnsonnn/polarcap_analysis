@@ -24,7 +24,7 @@ import yaml
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
-CONFIG_DIR = SCRIPT_DIR / "config"
+CONFIG_DIR = REPO_ROOT / "config"
 DEFAULT_CONFIG = CONFIG_DIR / "cfg_publication_figures.yaml"
 GALLERY_DIR = REPO_ROOT / "output" / "gallery"
 GFX_PNG_ROOT = REPO_ROOT / "output" / "gfx" / "png"
@@ -172,6 +172,19 @@ PUBLICATION_PRODUCTS: tuple[FigureJob, ...] = (
 
 JOB_MAP = {job.key: job for job in PUBLICATION_PRODUCTS}
 
+_bad_keys = [j.key for j in PUBLICATION_PRODUCTS if not (j.key and str(j.key).strip())]
+if _bad_keys:
+    raise RuntimeError(f"PUBLICATION_PRODUCTS has empty FigureJob.key (fix source): {_bad_keys}")
+if len(JOB_MAP) != len(PUBLICATION_PRODUCTS):
+    _seen: dict[str, int] = {}
+    for j in PUBLICATION_PRODUCTS:
+        _seen[j.key] = _seen.get(j.key, 0) + 1
+    _dups = [k for k, n in _seen.items() if n > 1]
+    raise RuntimeError(
+        "Duplicate FigureJob.key hides jobs in JOB_MAP (e.g. missing spectral_waterfall_Q): "
+        + ", ".join(_dups)
+    )
+
 
 def _parse_csv(raw: str | None) -> list[str] | None:
     if raw is None:
@@ -193,7 +206,7 @@ def _resolve_jobs(selected: list[str] | None, skipped: list[str] | None) -> list
         selected = expanded
         unknown = [name for name in selected if name not in JOB_MAP]
         if unknown:
-            valid = ", ".join(JOB_MAP)
+            valid = ", ".join(sorted(JOB_MAP))
             raise ValueError(f"Unknown figure key(s): {', '.join(unknown)}. Valid: {valid}")
         jobs = [JOB_MAP[name] for name in selected]
     if skipped:
@@ -203,7 +216,7 @@ def _resolve_jobs(selected: list[str] | None, skipped: list[str] | None) -> list
             skip_set.update(("spectral_waterfall_N", "spectral_waterfall_Q"))
         unknown = [name for name in skipped if name not in JOB_MAP and name != "spectral_waterfall"]
         if unknown:
-            valid = ", ".join(JOB_MAP)
+            valid = ", ".join(sorted(JOB_MAP))
             raise ValueError(f"Unknown skip key(s): {', '.join(unknown)}. Valid: {valid}")
         jobs = [job for job in jobs if job.key not in skip_set]
     return jobs

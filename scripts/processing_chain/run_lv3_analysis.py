@@ -36,7 +36,7 @@ def parse_args():
     p.add_argument(
         "--out",
         default=None,
-        help="Output root for lv3_rates and LV2 lookup (default: $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else ./processed)",
+        help="Output root for lv3_rates and LV2 lookup (default: $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else repo scripts/data/processed)",
     )
     p.add_argument("--exp-ids", type=int, nargs="*", default=None,
                    help="Experiment indices to process (default: all)")

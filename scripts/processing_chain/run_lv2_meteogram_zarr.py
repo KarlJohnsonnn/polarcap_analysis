@@ -45,7 +45,7 @@ def parse_args():
     p.add_argument(
         "--out",
         default=None,
-        help="Output root; <out>/<cs_run>/lv2_meteogram/ (default: $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else ./processed)",
+        help="Output root; <out>/<cs_run>/lv2_meteogram/ (default: $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else repo scripts/data/processed)",
     )
     p.add_argument("-d", "--debug", action="store_true", help="Small subset, no SLURM")
     p.add_argument("-s", "--slurm", action="store_true", help="Use SLURM/Dask cluster")

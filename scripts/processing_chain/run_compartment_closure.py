@@ -304,7 +304,7 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Generate multi-panel seeding impact diagnostics (Seed - Ref).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p.add_argument("--config", type=Path, default=REPO_ROOT / "notebooks" / "config" / "process_budget.yaml")
+    p.add_argument("--config", type=Path, default=REPO_ROOT / "config" / "process_budget.yaml")
     p.add_argument("--seed-exp-id", type=int, default=None, help="Seeded experiment index.")
     p.add_argument("--ref-exp-id", type=int, default=None, help="Reference experiment index.")
     p.add_argument("--station-id", type=int, default=None, help="Station index.")

@@ -50,7 +50,7 @@ def parse_args():
     p.add_argument(
         "--out",
         default=None,
-        help="Output root; <out>/<cs_run>/lv1_* (default: $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else ./processed)",
+        help="Output root; <out>/<cs_run>/lv1_* (default: $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else repo scripts/data/processed)",
     )
     p.add_argument("--skip-tracking", action="store_true", help="Skip LV1a, only run LV1b path extraction")
     p.add_argument("--skip-paths", action="store_true", help="Skip LV1b, only run LV1a tracking")

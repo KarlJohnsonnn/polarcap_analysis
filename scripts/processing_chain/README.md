@@ -1,6 +1,6 @@
 # Processing chain (LV0 → LV3)
 
-Scripts under `scripts/processing_chain` run the full pipeline from raw COSMO-SPECS output to analysis-ready datasets. Outputs use a staged layout under `processed/<cs_run>/` with provenance on all NetCDF/Zarr artifacts.
+Scripts under `scripts/processing_chain` run the full pipeline from raw COSMO-SPECS output to analysis-ready datasets. Outputs use a staged layout under `scripts/data/processed/<cs_run>/` with provenance on all NetCDF/Zarr artifacts.
 
 ## Stages
 
@@ -61,7 +61,7 @@ Then run `run_chain.py` (and other processing scripts) in that environment.
 
 Set `CS_RUNS_DIR` to the directory containing run subdirs (e.g. `RUN_ERISWILL_200x160x100/`, `RUN_ERISWILL_50x40x100/`). You can set it in the environment or have `scripts/ipython_startup/install.sh` prompt you and embed it in the IPython startup file.
 
-For generated outputs, the launchers resolve the default output root in this order: explicit `--out`, then `$POLARCAP_OUTPUT_ROOT`, then the matching `RUN_ERISWILL_*x100/ensemble_output` path for the active run, else local `./processed`.
+For generated outputs, the launchers resolve the default output root in this order: explicit `--out`, then `$POLARCAP_OUTPUT_ROOT`, then the matching `RUN_ERISWILL_*x100/ensemble_output` path for the active run, else repo `scripts/data/processed` (absolute path, cwd-independent).
 
 **Full chain (from repo root or `scripts/processing_chain`):**
 ```bash
