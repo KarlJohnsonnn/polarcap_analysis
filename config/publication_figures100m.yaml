@@ -44,26 +44,26 @@ default_args:
   spectral_waterfall_N:
     # Number-concentration publication preset: broad dynamic range, onset still readable, full MP4 refresh.
     - "--kind N"  # Render the number version of the waterfall.
-    - "--linthresh-w 1e-2"  # Keep weak liquid-rate structure visible near zero.
-    - "--linthresh-f 1e-2"  # Keep weak ice-rate structure visible near zero.
+    - "--linthresh-w 1e-6"  # Keep weak liquid-rate structure visible near zero.
+    - "--linthresh-f 1e-6"  # Keep weak ice-rate structure visible near zero.
     - "--xlim-w 1e-3 4e3"  # Show the full liquid-diameter range used in the paper.
     - "--xlim-f 1e-3 4e3"  # Show the full ice-diameter range used in the paper.
     - "--ylim-w=-1e6,1e6"  # Avoid clipping the strongest liquid process pulses.
     - "--ylim-f=-1e6,1e6"  # Avoid clipping the strongest ice process pulses.
-    - "--psd-ylim-w 1e1 1e9"  # Keep liquid PSD visible from first signal to peak.
-    - "--psd-ylim-f 1e1 1e9"  # Keep ice PSD visible from trace signal to peak.
+    - "--psd-ylim-w 1e-3 1e9"  # Keep liquid PSD visible from first signal to peak.
+    - "--psd-ylim-f 1e-3 1e9"  # Keep ice PSD visible from trace signal to peak.
     - "--mp4"  # Rebuild frames and MP4 so gallery outputs match the latest style.
   spectral_waterfall_Q:
     # Mass-concentration publication preset: tighter near-zero contrast for weak early ice signatures.
     - "--kind Q"  # Render the mass version of the waterfall.
-    - "--linthresh-w 1e-10"  # Preserve subtle liquid mass tendencies around zero.
-    - "--linthresh-f 1e-10"  # Preserve subtle ice mass tendencies around zero.
+    - "--linthresh-w 1e-14"  # Preserve subtle liquid mass tendencies around zero.
+    - "--linthresh-f 1e-14"  # Preserve subtle ice mass tendencies around zero.
     - "--xlim-w 1e-3 4e3"  # Show the full liquid-diameter range used in the paper.
     - "--xlim-f 1e-3 4e3"  # Show the full ice-diameter range used in the paper.
-    - "--ylim-w=-1e-2,1e-2"  # Keep liquid mass-rate extremes in frame without flattening onset.
-    - "--ylim-f=-1e-2,1e-2"  # Keep ice mass-rate extremes in frame without flattening onset.
-    - "--psd-ylim-w 1e-6 1e0"  # Keep liquid mass PSD readable from trace mass to peak.
-    - "--psd-ylim-f 1e-6 1e0"  # Keep ice mass PSD readable from trace mass to peak.
+    - "--ylim-w=-1e-6,1e-6"  # Keep liquid mass-rate extremes in frame without flattening onset.
+    - "--ylim-f=-1e-6,1e-6"  # Keep ice mass-rate extremes in frame without flattening onset.
+    - "--psd-ylim-w 1e-12 1e0"  # Keep liquid mass PSD readable from trace mass to peak.
+    - "--psd-ylim-f 1e-12 1e0"  # Keep ice mass PSD readable from trace mass to peak.
     - "--mp4"  # Rebuild frames and MP4 so publication media stays in sync.
   first_ice_metrics: []  # Refresh first excess-ice onset metrics for initiation analysis.
   initiation_process_summary: []  # Refresh early-window initiation fractions by dominant process.

@@ -6,7 +6,8 @@ Segments (seconds from seed_start = 12:29:50):
 Run: python _gen_time_spacing.py
 """
 from __future__ import annotations
-
+t_bounds = [0, 130, 310, 2110]
+step_sizes = [1, 3, 5]
 
 def main() -> None:
     mins: list[float] = []

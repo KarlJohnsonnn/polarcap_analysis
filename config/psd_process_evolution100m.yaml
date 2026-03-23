@@ -18,8 +18,8 @@ paths:
   # Point to the server archive when you want the runner to use cluster-side products directly.
   # Leave blank for laptop / local runs.
   # server_root: "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/"
-  server_root: "" # "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/"
-  local_meteogram_root: null  # Override where local Meteogram Zarr files are discovered.
+  server_root: "$/Users/schimmel/data/cosmo-specs/meteograms" # "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/"
+  local_meteogram_root: "/Users/schimmel/data/cosmo-specs/meteograms" # Override where local Meteogram Zarr files are discovered.
   local_ensemble_config_root: null  # Override where local `<cs_run>.json` ensemble configs are discovered.
 
 # Optional: trade slower open time for smoother downstream slicing on the current machine.
