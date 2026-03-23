@@ -3,49 +3,52 @@
 # the notebook matches by exact name first, then by prefix (e.g. figure13_psd_alt_time_mass).
 
 cloud_field_overview: |
-  Cloud-scale context for the ALLBB seeded plume. Orography and the three
-  analysis sites (seeding, ice-growth, downstream precipitation) are shown
-  above; below, time-height liquid and frozen water content and ridge-sampled
-  liquid/ice source-sink tendencies summarize the local microphysical regime.
-  The sequence suggests a transition from a liquid-rich source region to a
-  downstream ice-growth and precipitation regime that defines the plume
-  evolution analysed in the later figures.
+  Cloud-scale context for the ALLBB seeded plume. The upper panels show the
+  topography and the three analysis sites used for the seeding, ice-growth,
+  and downstream-precipitation diagnostics; the lower panels show time-height
+  liquid and frozen water content together with ridge-sampled liquid and ice
+  source-sink tendencies. The figure defines the transition from a liquid-rich
+  source region to the downstream ice-growth and precipitation regime analyzed
+  in the later figures.
 
 fig01_cloud_field_overview.png: |
-  Cloud-scale context for the ALLBB seeded plume. Orography and the three
-  analysis sites (seeding, ice-growth, downstream precipitation) are shown
-  above; below, time-height liquid and frozen water content and ridge-sampled
-  liquid/ice source-sink tendencies summarize the local microphysical regime.
-  The sequence suggests a transition from a liquid-rich source region to a
-  downstream ice-growth and precipitation regime that defines the plume
-  evolution analysed in the later figures.
+  Cloud-scale context for the ALLBB seeded plume. The upper panels show the
+  topography and the three analysis sites used for the seeding, ice-growth,
+  and downwind-precipitation diagnostics; the lower panels show time-height
+  liquid and frozen water content together with ridge-sampled liquid and ice
+  source-sink tendencies. The figure defines the transition from a liquid-rich
+  source region to the downwind ice-growth and precipitation regime analyzed
+  in the later figures.
 
 figure12_plume_path: |
-  Ensemble-mean Lagrangian plume evolution in equivalent-diameter space with
-  HOLIMO comparison. COSMO-SPECS ice number per bin grows from small newly
-  formed particles into a broad O(100 um) population during the first
-  10-15 min after seeding; the zoom and histogram show that HOLIMO samples the
-  same growth regime, but with spread in concentration and in the large-particle
-  tail. The figure tests whether the spectral-bin Lagrangian simulation captures
-  the observed timing and size range of ice growth along the plume.
+  Ensemble-mean Lagrangian plume evolution in equivalent-diameter space
+  compared with HOLIMO observations. Colors show the ensemble-mean ice number
+  density per logarithmic diameter interval along the plume; symbols identify
+  the three HOLIMO missions, the lower-left panel zooms the first 15 min after
+  seeding, and the lower-right panel compares time-averaged size spectra. Both
+  model and observations show rapid growth from newly formed small ice to an
+  O(10^2 um) population, while the observational spread is largest in the
+  coarse-particle tail.
 
 figure12_ensemble_mean_plume_path: |
-  Ensemble-mean Lagrangian plume evolution in equivalent-diameter space with
-  HOLIMO comparison. COSMO-SPECS ice number per bin grows from small newly
-  formed particles into a broad O(100 um) population during the first
-  10-15 min after seeding; the zoom and histogram show that HOLIMO samples the
-  same growth regime, but with spread in concentration and in the large-particle
-  tail. The figure tests whether the spectral-bin Lagrangian simulation captures
-  the observed timing and size range of ice growth along the plume.
+  Ensemble-mean Lagrangian plume evolution in equivalent-diameter space
+  compared with HOLIMO observations. Colors show the ensemble-mean ice number
+  density per logarithmic diameter interval along the plume; symbols identify
+  the three HOLIMO missions, the lower-left panel zooms the first 15 min after
+  seeding, and the lower-right panel compares time-averaged size spectra. Both
+  model and observations show rapid growth from newly formed small ice to an
+  O(10^2 um) population, while the observational spread is largest in the
+  coarse-particle tail.
 
 fig12_plume_path.png: |
-  Ensemble-mean Lagrangian plume evolution in equivalent-diameter space with
-  HOLIMO comparison. COSMO-SPECS ice number per bin grows from small newly
-  formed particles into a broad O(100 um) population during the first
-  10-15 min after seeding; the zoom and histogram show that HOLIMO samples the
-  same growth regime, but with spread in concentration and in the large-particle
-  tail. The figure tests whether the spectral-bin Lagrangian simulation captures
-  the observed timing and size range of ice growth along the plume.
+  Ensemble-mean Lagrangian plume evolution in equivalent-diameter space
+  compared with HOLIMO observations. Colors show the ensemble-mean ice number
+  density per logarithmic diameter interval along the plume; symbols identify
+  the three HOLIMO missions, the lower-left panel zooms the first 15 min after
+  seeding, and the lower-right panel compares time-averaged size spectra. Both
+  model and observations show rapid growth from newly formed small ice to an
+  O(10^2 um) population, while the observational spread is largest in the
+  coarse-particle tail.
 
 figure13_psd_alt_time_mass: |
   Altitude-resolved liquid and frozen PSD mass in successive post-seeding
@@ -80,12 +83,13 @@ fig13_psd_number.png: |
   growth.
 
 spectral_waterfall: |
-  Animated ridge-following spectral budget (View D). At each time step, the
-  particle size distribution is linked to diameter-resolved liquid and frozen
-  process tendencies at the selected stations, in either number (N) or mass (Q)
-  space. The movie is intended to separate the processes that create new ice
-  number shortly after seeding from those that subsequently grow, redistribute,
-  or remove mass across the spectrum.
+  Animated ridge-following spectral budget for the seeded plume. Each frame
+  combines the liquid and frozen particle size distributions with
+  diameter-resolved microphysical tendencies at the selected stations, either
+  in number-concentration space (N) or mass-concentration space (Q). The
+  animation separates the processes that first generate excess ice shortly
+  after seeding from those that later grow, redistribute, and remove
+  condensate across the spectrum.
 
 pamtra_mira35_quicklook: |
   Radar-closure comparison between plume-sampled PAMTRA output and MIRA35
