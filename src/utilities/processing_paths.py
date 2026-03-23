@@ -13,9 +13,9 @@ REMOTE_RUNS_ROOT = "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-run
 
 
 def default_local_processed_root() -> str:
-    """Absolute path to ``scripts/data/processed`` under the polarcap_analysis repo."""
+    """Absolute path to ``scripts/data/registry/processed`` under the polarcap_analysis repo."""
     repo_root = Path(__file__).resolve().parents[2]
-    return str((repo_root / "scripts" / "data" / "processed").resolve())
+    return str((repo_root / "scripts" / "data" / "registry" / "processed").resolve())
 
 
 def expand_path(path: str | None) -> str:
@@ -47,7 +47,7 @@ def get_output_root(
     3. Matching ``RUN_ERISWILL_*x100/ensemble_output`` under the active runs root.
     4. Matching ``RUN_ERISWILL_*x100/ensemble_output`` under the known levante
        work tree.
-    5. Local ``scripts/data/processed`` under the repo (absolute path).
+    5. Local ``scripts/data/registry/processed`` under the repo (absolute path).
     """
     chosen = expand_path(root)
     if chosen:
@@ -100,3 +100,38 @@ def resolve_ensemble_output(runs_root: str | None, cs_run: str | None = None) ->
             if best is None:
                 best = ens
     return str(best) if best else None
+
+
+def find_ensemble_output_for_cs_run(
+    cs_run: str,
+    *,
+    config_runs_root: str | None = None,
+) -> tuple[str | None, list[str]]:
+    """
+    Locate ``.../ensemble_output`` that contains directory ``cs_run``.
+
+    Order: ``config_runs_root`` (e.g. YAML ``paths.server_root``), ``$CS_RUNS_DIR``,
+    ``$POLARCAP_OUTPUT_ROOT``, ``REMOTE_RUNS_ROOT``, ``default_local_processed_root()``.
+
+    Returns ``(ensemble_output_path, list_of_roots_tried)``. The path is only returned if
+    ``(ensemble_output / cs_run).is_dir()``.
+    """
+    tried: list[str] = []
+    candidates = [
+        config_runs_root,
+        get_runs_root(),
+        expand_path(os.environ.get("POLARCAP_OUTPUT_ROOT")),
+        REMOTE_RUNS_ROOT,
+        default_local_processed_root(),
+    ]
+    seen: set[str] = set()
+    for raw in candidates:
+        root = expand_path(raw)
+        if not root or root in seen:
+            continue
+        seen.add(root)
+        tried.append(root)
+        ens = resolve_ensemble_output(root, cs_run=cs_run)
+        if ens and (Path(ens) / cs_run).is_dir():
+            return ens.rstrip(os.sep), tried
+    return None, tried

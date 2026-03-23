@@ -581,6 +581,73 @@ def _ridge_indices(
     return np.asarray(time_idx, dtype=int), np.asarray(height_idx, dtype=int)
 
 
+def _ridge_vertical_dim(field_da: xr.DataArray) -> Optional[str]:
+    for name in ("height_level", "height_level2"):
+        if name in field_da.dims:
+            return name
+    return None
+
+
+def _remap_ridge_height_idx(
+    height_idx_main: np.ndarray,
+    z_main: np.ndarray,
+    z_field: np.ndarray,
+) -> np.ndarray:
+    """Map main-level ridge indices to *field* vertical indices by nearest altitude (m)."""
+    z_main = np.asarray(z_main, dtype=float)
+    z_field = np.asarray(z_field, dtype=float)
+    out = np.empty(height_idx_main.shape, dtype=int)
+    for k, hi in enumerate(np.asarray(height_idx_main, dtype=int)):
+        z = z_main[hi]
+        d = np.abs(z_field - z)
+        if not np.any(np.isfinite(d)):
+            out[k] = int(hi)
+        else:
+            out[k] = int(np.nanargmin(np.where(np.isfinite(d), d, np.inf)))
+    return out
+
+
+def ridge_window_field_mean(
+    field_da: xr.DataArray,
+    ridge_conc_da: xr.DataArray,
+    station_idx: int,
+    twindow: slice,
+    bin_slice: slice,
+    *,
+    floor: float = 0.0,
+    ridge_anchor: Optional[tuple[int, int]] = None,
+) -> float:
+    """Mean of *field_da* on the same (time, height) ridge as ``ridge_window_stats``.
+
+    *field_da* uses ``height_level`` **or** ``height_level2`` (e.g. COSMO ``W`` on half levels); ridge
+    indices on ``height_level`` are remapped by nearest model altitude. Extra dimensions (e.g. ``bins``)
+    are averaged away before sampling.
+    """
+    time_idx, height_idx_main = _ridge_indices(
+        ridge_conc_da, station_idx, twindow, bin_slice, floor=floor, ridge_anchor=ridge_anchor
+    )
+    if time_idx.size == 0:
+        return float("nan")
+    if "height_level" not in ridge_conc_da.dims:
+        return float("nan")
+    vert = _ridge_vertical_dim(field_da)
+    if vert is None or "time" not in field_da.dims or "station" not in field_da.dims:
+        return float("nan")
+    sliced = field_da.isel(station=station_idx).sel(time=twindow)
+    extra = [d for d in sliced.dims if d not in ("time", vert)]
+    if extra:
+        sliced = sliced.mean(dim=extra, skipna=True)
+    z_ridge = np.asarray(ridge_conc_da["height_level"].values, dtype=float)
+    z_field = np.asarray(sliced[vert].values, dtype=float)
+    if vert == "height_level" and z_field.shape[0] == z_ridge.shape[0]:
+        height_use = height_idx_main
+    else:
+        height_use = _remap_ridge_height_idx(height_idx_main, z_ridge, z_field)
+    vals = np.asarray(sliced.transpose("time", vert).values, dtype=float)
+    picked = vals[time_idx, height_use]
+    return float(np.nanmean(picked))
+
+
 def ridge_window_stats(
     ridge_conc_da: xr.DataArray,
     station_idx: int,

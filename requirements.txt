@@ -2,3 +2,5 @@
 # On Levante (and other envs where xarray/pandas stack was built for NumPy 1.x),
 # pin NumPy to avoid "compiled with NumPy 1.x cannot be run in NumPy 2.x" / _ARRAY_API errors.
 numpy>=1.26,<2
+plotly>=5.18
+ipywidgets>=8.0  # spectral_waterfall_minimal.ipynb time slider

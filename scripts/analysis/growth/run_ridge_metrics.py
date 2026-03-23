@@ -182,24 +182,21 @@ def _run_summary(cell_rows: pd.DataFrame, ts_rows: pd.DataFrame, meta: dict[str,
     }
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Build LV1 plume-ridge metrics and uncertainty summaries.")
-    parser.add_argument("--registry", type=Path, default=REGISTRY_CSV, help="Merged analysis registry CSV.")
-    parser.add_argument("--processed-root", type=Path, default=PROCESSED_ROOT, help="Processed output root with lv1_paths.")
-    parser.add_argument("--output", type=Path, default=OUT_CSV, help="Run-summary CSV path.")
-    parser.add_argument("--timeseries-output", type=Path, default=OUT_TS_CSV, help="Per-run ridge uncertainty time series CSV.")
-    args = parser.parse_args()
-
-    subset = _paper_lv1_subset(args.registry)
+def compute_ridge_metrics_dataframes(
+    registry_csv: Path,
+    processed_root: Path,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """LV1 plume-path ridge metrics for the paper subset; empty frames if nothing computed."""
+    subset = _paper_lv1_subset(registry_csv)
     if subset.empty:
-        raise SystemExit("No paper-subset flare runs with local LV1 paths.")
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     summary_rows: list[dict[str, object]] = []
     ts_frames: list[pd.DataFrame] = []
     cell_frames: list[pd.DataFrame] = []
 
     for row in subset.itertuples(index=False):
-        files = _path_files(row.cs_run, row.expname, args.processed_root)
+        files = _path_files(row.cs_run, row.expname, processed_root)
         if not files:
             continue
         cell_rows: list[dict[str, object]] = []
@@ -231,11 +228,25 @@ def main() -> None:
         cell_frames.append(cell_df)
 
     if not summary_rows:
-        raise SystemExit("No LV1 ridge metrics could be computed from the available plume-path files.")
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     out = pd.DataFrame(summary_rows).sort_values(["cs_run", "exp_id"]).reset_index(drop=True)
     out_ts = pd.concat(ts_frames, ignore_index=True).sort_values(["cs_run", "exp_id", "time_rel_min"]).reset_index(drop=True)
     out_cells = pd.concat(cell_frames, ignore_index=True).sort_values(["cs_run", "exp_id", "cell_id"]).reset_index(drop=True)
+    return out, out_ts, out_cells
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Build LV1 plume-ridge metrics and uncertainty summaries.")
+    parser.add_argument("--registry", type=Path, default=REGISTRY_CSV, help="Merged analysis registry CSV.")
+    parser.add_argument("--processed-root", type=Path, default=PROCESSED_ROOT, help="Processed output root with lv1_paths.")
+    parser.add_argument("--output", type=Path, default=OUT_CSV, help="Run-summary CSV path.")
+    parser.add_argument("--timeseries-output", type=Path, default=OUT_TS_CSV, help="Per-run ridge uncertainty time series CSV.")
+    args = parser.parse_args()
+
+    out, out_ts, out_cells = compute_ridge_metrics_dataframes(args.registry, args.processed_root)
+    if out.empty:
+        raise SystemExit("No LV1 ridge metrics could be computed from the available plume-path files.")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(out.to_csv(index=False), encoding="utf-8")

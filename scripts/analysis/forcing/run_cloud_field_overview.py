@@ -23,6 +23,12 @@ from utilities.cloud_field_overview import (  # noqa: E402
 from utilities.style_profiles import apply_publication_style  # noqa: E402
 
 DEFAULT_CONFIG = REPO_ROOT / "config" / "psd_process_evolution.yaml"
+# Manuscript-facing caption; keep this wording aligned with gallery and registry copies.
+FIGURE_CAPTION = """Cloud-scale context for the ALLBB seeded plume. The upper panels show the
+topography and the three analysis sites used for the seeding, ice-growth, and downstream-precipitation
+diagnostics; the lower panels show time-height liquid and frozen water content together with ridge-sampled
+liquid and ice source-sink tendencies. The figure defines the transition from a liquid-rich source region to
+the downstream ice-growth and precipitation regime analyzed in the later figures."""
 
 
 def main() -> None:

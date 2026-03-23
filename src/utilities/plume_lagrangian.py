@@ -20,6 +20,7 @@ import pandas as pd
 import xarray as xr
 from matplotlib.colors import LogNorm
 from matplotlib.lines import Line2D
+from matplotlib.legend_handler import HandlerTuple
 
 from utilities.holimo_helpers import prepare_holimo_for_overlay
 from utilities.plotting import create_fade_cmap, create_new_jet3, make_pastel
@@ -92,15 +93,28 @@ HOLIMO_ICE_PSD_META: dict[str, tuple[str, str]] = {
 DEFAULT_THRESHOLD = 1.0e-10
 DEFAULT_XLIM = [np.datetime64("2023-01-25T12:31:00"), np.datetime64("2023-01-25T13:14:00")]
 DEFAULT_PANEL_LIMS = {
-    "symlog": ([1.0, 45.0], [5.0, 1000.0], [1.0, 3000.0]),
-    "elapsed": ([6.0, 15.0], [20.0, 300.0], [1.0, 3000.0]),
-    "hist": ([20.0, 280.0], [1.0, 3000.0], [None, None]),
+    "symlog":  ([1.0, 45.0],   [5.0, 1000.0], [1.0, 3000.0]),
+    "elapsed": ([6.0, 15.0],   [20.0, 300.0], [1.0, 3000.0]),
+    "hist":    ([20.0, 280.0], [1.0, 1000.0], [None, None]),
 }
 DEFAULT_MISSION_MARKERS = ["o", "^", "*"]
 DEFAULT_MISSION_MSIZES = [30.0, 30.0, 30.0]
-DEFAULT_CBAR_KW = {"shrink": 0.8, "aspect": 25, "pad": 0.0, "extend": "both"}
-DEFAULT_PEAK_MK = {"marker": ">", "s": 80, "ec": "black", "lw": 0.6, "zorder": 100, "clip_on": True}
-DEFAULT_MED_MK = {"marker": "v", "s": 70, "ec": "black", "lw": 0.9, "zorder": 100, "clip_on": True}
+DEFAULT_CBAR_KW = {"shrink": 0.8, "aspect": 15, "pad": 0.0, "extend": "both"}
+
+
+def _ensemble_nf_logd_label_parts(unit_m: str) -> tuple[str, str]:
+    """Matplotlib mathtext for d n_f / d ln D and its denominator unit (per litre after Δln D scaling)."""
+    dndlog = r"$\mathrm{d}n_f/\mathrm{d}\ln D$"
+    u = str(unit_m).strip()
+    if u == "L-1":
+        vol = r"$L^{-1}$"
+    elif "L-1" in u:
+        vol = "$" + u.replace("L-1", r"L^{-1}") + "$"
+    else:
+        vol = u
+    return dndlog, vol
+DEFAULT_PEAK_MK = {"marker": ">", "s": 50, "ec": "black", "lw": 0.6, "zorder": 100, "clip_on": False}
+DEFAULT_MED_MK = {"marker": "v", "s": 50, "ec": "black", "lw": 0.6, "zorder": 100, "clip_on": False}
 
 
 def holimo_scale_cm3_to_litres(holimo_var: str) -> float:
@@ -113,7 +127,7 @@ def holimo_scale_cm3_to_litres(holimo_var: str) -> float:
 
 def default_plume_cmap():
     base = create_new_jet3()
-    return create_fade_cmap(make_pastel(base, desaturation=0.25, darken=0.90), n_fade=2)
+    return create_fade_cmap(make_pastel(base, desaturation=0.35, darken=0.80), n_fade=1)
 
 
 def _float_fmt(x: float, _pos: int) -> str:
@@ -188,7 +202,7 @@ def plot_hist_line(
 ) -> None:
     ax.fill_between(diam, values, step="pre", color=color, alpha=0.2, zorder=zorder)
     ax.step(diam, values, color=color, lw=linewidth, alpha=0.7, zorder=zorder + 1, label=label)
-    ax.step(diam, values, color="black", lw=0.7, alpha=0.95, zorder=zorder + 2)
+    ax.step(diam, values, color="black", lw=0.35, alpha=1.0, zorder=zorder + 2)
 
 
 def _smooth_diameter_rectangular(
@@ -512,7 +526,8 @@ def render_plume_lagrangian_figure(
     ax_hist.spines["left"].set_visible(False)
 
     unit_m = ensemble_datasets[next(iter(ensemble_datasets))][kind][DEFAULT_VARIABLE].attrs.get("units", "-")
-    cbar_lbl = rf"{kind} ensemble-mean $n_f/\Delta\ln D$ ({unit_m})"
+    _dnd, _vol = _ensemble_nf_logd_label_parts(unit_m)
+    cbar_lbl = f"ensemble-avg. {_dnd} / ({_vol})"
     fig.colorbar(pmesh_ref, ax=ax_symlog, **DEFAULT_CBAR_KW).set_label(cbar_lbl)
 
     da_holimo = ds_holimo[DEFAULT_HOLIMO_VAR]
@@ -577,7 +592,7 @@ def render_plume_lagrangian_figure(
     d_mod, h_mod = hist_profile(da_model_window, bin_edges=be_mod)
     dur_model = elapsed_duration_minutes(da_model_window)
     f_mod = h_mod / dur_model if dur_model > 0 else h_mod
-    plot_hist_line(ax_hist, d_mod, f_mod, "orange", 3.0, label="COSMO-SPECS", zorder=13)
+    plot_hist_line(ax_hist, d_mod, f_mod, "orange", 1.75, label="COSMO-SPECS", zorder=13)
 
     h_obs_sum = None
     d_obs = np.array([])
@@ -606,16 +621,9 @@ def render_plume_lagrangian_figure(
 
     hist_xlim, hist_ylim = DEFAULT_PANEL_LIMS["hist"][:2]
     f_obs_plot = f_obs * holimo_l1_scale
-    plot_hist_line(ax_hist, d_obs, f_obs_plot, "royalblue", 2.2, label="HOLIMO", zorder=5)
+    plot_hist_line(ax_hist, d_obs, f_obs_plot, "royalblue", 1.75, label="HOLIMO", zorder=5)
     ax_hist.set(xscale="log", yscale="log", xlim=hist_xlim, ylim=hist_ylim)
-    _hol_u, _ = HOLIMO_ICE_PSD_META.get(DEFAULT_HOLIMO_VAR, ("(see NC)", ""))
-    _hol_note = (
-        f"HOLIMO x{holimo_l1_scale:g} (cm-3 to L-1)" if holimo_l1_scale != 1.0 else f"HOLIMO ({_hol_u})"
-    )
-    ax_hist.set(
-        ylabel=rf"time-mean $\langle n_f\rangle/\d\ln D$ ({unit_m})",
-        xlabel="equivalent diameter / (µm)",
-    )
+    ax_hist.set(ylabel=f"time-avg. {_dnd} / ({_vol})", xlabel=r"D$_{\mathrm{eq}}$ / ($\mu$m)")
     ax_hist.grid(True, which="major", ls="--", lw=0.25, alpha=0.6)
     ax_hist.grid(True, which="minor", ls=":", lw=0.15, alpha=0.35)
     ax_hist.yaxis.tick_right()
@@ -632,20 +640,15 @@ def render_plume_lagrangian_figure(
         ax_hist.scatter(x_edge, f_obs_plot[idx], color="royalblue", **DEFAULT_PEAK_MK)
     ax_hist.scatter(median_diameter(d_mod, f_mod), y_bottom, color="orange", **DEFAULT_MED_MK)
     ax_hist.scatter(median_diameter(d_obs, f_obs_plot), y_bottom, color="royalblue", **DEFAULT_MED_MK)
-
+    
     ax_hist.legend(
-        [Line2D([], [], color="orange", lw=3, alpha=0.8), Line2D([], [], color="royalblue", lw=2.2, alpha=0.8)],
-        ["COSMO-SPECS", "HOLIMO"],
-        loc="upper left",
-        frameon=False,
-        fontsize=9,
-    )
+        [Line2D([], [], color="orange", lw=2.0, alpha=0.8), Line2D([], [], color="royalblue", lw=2.0, alpha=0.8)], ["COSMO-SPECS", "HOLIMO"], loc="upper left", frameon=False, fontsize=7, handler_map={tuple: HandlerTuple(ndivide=None)})
 
     ax_symlog.set_title("")
-    ax_symlog.set_xlabel("elapsed time (logarithmic) / (min)")
-    ax_elapsed.set_xlabel("elapsed time (linear) / (min)")
+    ax_symlog.set_xlabel(r"elapsed time / (min)")
+    ax_elapsed.set_xlabel(r"elapsed time / (min)")
     ax_elapsed.yaxis.set_major_formatter(fmt)
-    fig.supylabel("equivalent diameter / (µm)")
+    fig.supylabel(r"equivalent diameter D$_{\mathrm{eq}}$ / ($\mu$m)")
     ax_symlog.set_xlim(DEFAULT_PANEL_LIMS["symlog"][0])
 
     out = context["output_path"] if output_path is None else Path(output_path)

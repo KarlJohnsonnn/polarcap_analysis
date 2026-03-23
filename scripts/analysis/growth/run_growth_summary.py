@@ -40,11 +40,18 @@ def _psd_variant_summary(df: pd.DataFrame) -> pd.Series:
     )
 
 
-def build_growth_summary(ridge_csv: Path = RIDGE_CSV, psd_csv: Path = PSD_CSV) -> pd.DataFrame:
-    ridge = pd.read_csv(ridge_csv, dtype={"cs_run": str, "exp_id": str, "expname": str})
-    psd = pd.read_csv(psd_csv, dtype={"cs_run": str, "exp_id": str, "expname": str, "variant": str})
+def build_growth_summary_from_dataframes(ridge: pd.DataFrame, psd: pd.DataFrame) -> pd.DataFrame:
+    """Join ridge metrics rows with PSD window aggregates (same logic as file-based ``build_growth_summary``)."""
     if ridge.empty or psd.empty:
         return pd.DataFrame()
+    psd = psd.copy()
+    ridge = ridge.copy()
+    for col in ("cs_run", "exp_id", "expname", "variant"):
+        if col in psd.columns:
+            psd[col] = psd[col].astype(str)
+    for col in ("cs_run", "exp_id", "expname"):
+        if col in ridge.columns:
+            ridge[col] = ridge[col].astype(str)
 
     psd_grp = (
         psd.groupby(["cs_run", "exp_id", "variant"], dropna=False)
@@ -58,6 +65,12 @@ def build_growth_summary(ridge_csv: Path = RIDGE_CSV, psd_csv: Path = PSD_CSV) -
     out = ridge.copy()
     out["exp_id"] = out["exp_id"].astype(str)
     return out.merge(psd_wide, on=["cs_run", "exp_id"], how="left").sort_values(["cs_run", "exp_id"]).reset_index(drop=True)
+
+
+def build_growth_summary(ridge_csv: Path = RIDGE_CSV, psd_csv: Path = PSD_CSV) -> pd.DataFrame:
+    ridge = pd.read_csv(ridge_csv, dtype={"cs_run": str, "exp_id": str, "expname": str})
+    psd = pd.read_csv(psd_csv, dtype={"cs_run": str, "exp_id": str, "expname": str, "variant": str})
+    return build_growth_summary_from_dataframes(ridge, psd)
 
 
 def main() -> None:

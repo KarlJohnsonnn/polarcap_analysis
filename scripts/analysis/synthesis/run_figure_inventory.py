@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import sys
 from pathlib import Path
 
@@ -20,6 +21,21 @@ MANIFEST = REPO_ROOT / "scripts" / "analysis" / "synthesis" / "paper_tables.yaml
 OUT_CSV = REPO_ROOT / "data" / "registry" / "figure_inventory.csv"
 
 
+def _load_script_caption(script_relpath: str) -> str:
+    """Read `FIGURE_CAPTION` without importing the plotting stack during registry refresh."""
+    script_path = REPO_ROOT / script_relpath
+    if not script_path.is_file():
+        return ""
+    module = ast.parse(script_path.read_text(encoding="utf-8"), filename=str(script_path))
+    for node in module.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            if isinstance(target, ast.Name) and target.id == "FIGURE_CAPTION":
+                return " ".join(str(ast.literal_eval(node.value)).split())
+    return ""
+
+
 def build_inventory(manifest_path: Path = MANIFEST) -> pd.DataFrame:
     manifest = load_manifest(manifest_path)
     rows: list[dict[str, object]] = [
@@ -30,6 +46,7 @@ def build_inventory(manifest_path: Path = MANIFEST) -> pd.DataFrame:
             "script": "scripts/analysis/forcing/run_cloud_field_overview.py",
             "config_or_args": "config/psd_process_evolution.yaml",
             "output_path": "output/gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_<exp>_<range>.png",
+            "caption": _load_script_caption("scripts/analysis/forcing/run_cloud_field_overview.py"),
             "draft_target": "manual figure include in article_draft/PolarCAP",
         },
         {
@@ -39,6 +56,7 @@ def build_inventory(manifest_path: Path = MANIFEST) -> pd.DataFrame:
             "script": "scripts/analysis/growth/run_plume_lagrangian_evolution.py",
             "config_or_args": "CLI args for processed root, HOLIMO file, plume kind",
             "output_path": "output/gfx/png/03/figure12_ensemble_mean_plume_path_foo.png",
+            "caption": _load_script_caption("scripts/analysis/growth/run_plume_lagrangian_evolution.py"),
             "draft_target": "manual figure include in article_draft/PolarCAP",
         },
         {
@@ -48,6 +66,7 @@ def build_inventory(manifest_path: Path = MANIFEST) -> pd.DataFrame:
             "script": "scripts/analysis/growth/run_psd_waterfall.py",
             "config_or_args": "CLI args for processed root, plot kinds, run labels",
             "output_path": "output/gfx/png/04/figure13_psd_alt_time_<kind>_<run_id>.png",
+            "caption": _load_script_caption("scripts/analysis/growth/run_psd_waterfall.py"),
             "draft_target": "manual figure include in article_draft/PolarCAP",
         },
         {
@@ -57,6 +76,7 @@ def build_inventory(manifest_path: Path = MANIFEST) -> pd.DataFrame:
             "script": "scripts/analysis/growth/run_spectral_waterfall.py",
             "config_or_args": "process-budget config + publication wrapper",
             "output_path": "output/gfx/mp4/05/<cs_run>/... or output/gallery/*.mp4",
+            "caption": _load_script_caption("scripts/analysis/growth/run_spectral_waterfall.py"),
             "draft_target": "gallery / future manuscript figure",
         },
     ]
@@ -70,6 +90,7 @@ def build_inventory(manifest_path: Path = MANIFEST) -> pd.DataFrame:
                 "script": "scripts/analysis/synthesis/run_paper_tables.py",
                 "config_or_args": "scripts/analysis/synthesis/paper_tables.yaml",
                 "output_path": spec["csv_output"],
+                "caption": spec.get("caption", ""),
                 "draft_target": spec.get("draft_output", ""),
             }
         )

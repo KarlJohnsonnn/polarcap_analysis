@@ -40,12 +40,100 @@ from utilities import (  # noqa: E402
     panel_concentration_profile,
     ridge_process_values,
     ridge_concentration_profile,
+    ridge_window_field_mean,
     ridge_window_stats,
     proc_color,
     proc_hatch,
     stn_label,
 )
 from utilities.compute_fabric import is_server  # noqa: E402
+
+# CSV columns → Zarr names (first match per experiment). Empty tuple = filled only by derivation / YAML.
+# Verified against Meteogram_*_nVar136_*.zarr (COSMO-SPECS): ``T``, ``W`` (half levels), ``VW``/``VF``
+# spectral fall speeds; supersaturation not stored — derived from ``QV``, ``T``, ``PML`` when present.
+_GROWTH_ENV_DEFAULTS: dict[str, tuple[str, ...]] = {
+    "T_ridge_K": ("T", "TT", "TABS"),
+    "w_ridge_m_s": ("W", "WW"),
+    "S_wat_ridge": (),
+    "S_ice_ridge": (),
+    "vfall_liq_ridge_m_s": ("VW",),
+    "vfall_ice_ridge_m_s": ("VF",),
+}
+
+
+def _resolve_ds_var(ds_exp: xr.Dataset, candidates: tuple[str, ...]) -> Optional[xr.DataArray]:
+    for name in candidates:
+        if name in ds_exp.data_vars:
+            return ds_exp[name]
+        hits = [k for k in ds_exp.data_vars if str(k).upper() == name.upper()]
+        if hits:
+            return ds_exp[hits[0]]
+    return None
+
+
+def _qs_mixing_liquid_kgkg(T_k: xr.DataArray, p_hpa: xr.DataArray) -> xr.DataArray:
+    """Saturation mixing ratio (liquid) from Tetens; *T_k* in K, *p_hpa* in hPa."""
+
+    def _core(t: np.ndarray, p: np.ndarray) -> np.ndarray:
+        t = np.asarray(t, dtype=float)
+        p = np.asarray(p, dtype=float)
+        Tc = t - 273.15
+        es = 6.112 * np.exp((17.67 * Tc) / (Tc + 243.5))
+        es = np.clip(es, 1e-9, None)
+        return 0.62198 * es / np.maximum(p - es, 1e-9)
+
+    return xr.apply_ufunc(_core, T_k, p_hpa, dask="allowed")
+
+
+def _qs_mixing_ice_kgkg(T_k: xr.DataArray, p_hpa: xr.DataArray) -> xr.DataArray:
+    """Saturation mixing ratio (ice) — Magnus-style; *T_k* in K, *p_hpa* in hPa."""
+
+    def _core(t: np.ndarray, p: np.ndarray) -> np.ndarray:
+        t = np.asarray(t, dtype=float)
+        p = np.asarray(p, dtype=float)
+        Tc = t - 273.15
+        es = 6.112 * np.exp((21.8743003 * Tc) / (Tc + 265.49))
+        es = np.clip(es, 1e-9, None)
+        return 0.62198 * es / np.maximum(p - es, 1e-9)
+
+    return xr.apply_ufunc(_core, T_k, p_hpa, dask="allowed")
+
+
+def _derived_supersaturation_qv(ds_exp: xr.Dataset) -> dict[str, xr.DataArray]:
+    """Return ``S_wat_ridge`` / ``S_ice_ridge`` fields as (qv/qs - 1) on ``height_level``."""
+    need = ("QV", "T", "PML")
+    if not all(k in ds_exp.data_vars for k in need):
+        return {}
+    T, qv, p = ds_exp["T"], ds_exp["QV"], ds_exp["PML"]
+    if T.dims != qv.dims or T.dims != p.dims:
+        return {}
+    qs_l = _qs_mixing_liquid_kgkg(T, p)
+    qs_i = _qs_mixing_ice_kgkg(T, p)
+    return {"S_wat_ridge": (qv / qs_l) - 1.0, "S_ice_ridge": (qv / qs_i) - 1.0}
+
+
+def _growth_env_fields(ds_exp: xr.Dataset, sw_cfg: dict[str, Any]) -> dict[str, xr.DataArray]:
+    if not sw_cfg.get("growth_csv_include_environment", True):
+        return {}
+    umap = sw_cfg.get("growth_csv_env_field_map")
+    out: dict[str, xr.DataArray] = {}
+    for col, default_cands in _GROWTH_ENV_DEFAULTS.items():
+        if isinstance(umap, dict) and col in umap and umap[col]:
+            raw = umap[col]
+            cands = tuple(raw) if isinstance(raw, (list, tuple)) else (str(raw),)
+        else:
+            cands = default_cands
+        if not cands:
+            continue
+        da = _resolve_ds_var(ds_exp, cands)
+        if da is not None:
+            out[col] = da
+    if sw_cfg.get("growth_csv_derive_supersaturation", True):
+        for k, da in _derived_supersaturation_qv(ds_exp).items():
+            if k not in out:
+                out[k] = da
+    return out
+
 
 @dataclass(frozen=True)
 class GrowthOverlay:
@@ -217,6 +305,7 @@ def _precompute_growth_overlays(
     kind: str,
     sw_cfg: dict[str, Any],
     ridge_context: dict[tuple[int, str], dict[int, tuple[int, int, float]]],
+    ds: Optional[xr.Dataset] = None,
 ) -> tuple[
     dict[tuple[int, str, int], dict[int, GrowthOverlay]],
     list[dict[str, Any]],
@@ -274,6 +363,9 @@ def _precompute_growth_overlays(
         spec_f = r.get(f"spec_conc_{kind}_F")
         if rcf is None or spec_w is None or spec_f is None:
             continue
+
+        ds_exp = ds.isel(expname=eid) if ds is not None else None
+        env_fields = _growth_env_fields(ds_exp, sw_cfg) if ds_exp is not None else {}
 
         for range_key in plot_range_keys:
             ctx = ridge_context.get((eid, range_key), {})
@@ -343,6 +435,7 @@ def _precompute_growth_overlays(
                 arr = by_stn[stn]
                 z_ref = per_stn_ref.get(stn, float("nan"))
                 for it in range(nfr):
+                    tw = slice(time_window[it], time_window[it + 1])
                     i0 = max(0, it - K + 1)
                     t_win = arr["t_mid"][i0 : it + 1]
                     if mode == "last_interval":
@@ -384,6 +477,19 @@ def _precompute_growth_overlays(
                         ice_ok=bool(arr["ice_ok"][it]),
                         n_regress=int(n_reg),
                     )
+                    row_env: dict[str, Any] = {}
+                    if env_fields:
+                        r_anch = (ctx[stn][0], ctx[stn][1]) if stn in ctx else None
+                        for col, da in env_fields.items():
+                            row_env[col] = ridge_window_field_mean(
+                                da,
+                                rcf,
+                                stn,
+                                tw,
+                                bin_slice,
+                                floor=floor,
+                                ridge_anchor=r_anch,
+                            )
                     csv_rows.append(
                         {
                             "exp_id": eid,
@@ -401,6 +507,7 @@ def _precompute_growth_overlays(
                             "dD_ice_dt_um_s": s_ice,
                             "ice_ok": arr["ice_ok"][it],
                             "n_regress_pts": n_reg,
+                            **row_env,
                         }
                     )
 
@@ -476,6 +583,32 @@ def _major_grid(ax: Any, cfg_plot: dict[str, Any]) -> None:
         color=str(cfg_plot.get("grid_color", "0.82")),
         alpha=float(cfg_plot.get("grid_alpha", 0.38)),
     )
+
+
+def _sparse_major_tick_formatter(ax: Any):
+    """Show all major labels when sparse; otherwise every other one to limit collisions."""
+    from matplotlib.ticker import FuncFormatter
+
+    def _fmt(y: float, _pos: Any) -> str:
+        lo, hi = ax.get_ylim()
+        if lo > hi:
+            lo, hi = hi, lo
+        ticks: list[float] = []
+        for tick in ax.get_yticks():
+            if not np.isfinite(tick):
+                continue
+            if ax.get_yscale() == "log" and tick <= 0:
+                continue
+            if lo <= tick <= hi:
+                ticks.append(float(tick))
+        if not ticks:
+            return ""
+        visible = ticks if len(ticks) <= 5 else ticks[::2]
+        if len(visible) < 2 and len(ticks) >= 2:
+            visible = [ticks[0], ticks[-1]]
+        return f"{y:g}" if any(np.isclose(y, t) for t in visible) else ""
+
+    return FuncFormatter(_fmt)
 
 
 def _legend_style(cfg_plot: dict[str, Any], *, fontsize: float | None = None) -> dict[str, Any]:
@@ -651,14 +784,14 @@ def _plot_psd_mean_triangle(ax, x, color, *, markersize=6, y_offset_pt=-6.0) -> 
 
 
 def _plot_psd_max_triangle(ax, y, color, *, markersize=6) -> None:
-    """Place a phase-colored triangle on the left PSD boundary; vertex at left end of y-axis tick."""
+    """Place a phase-colored triangle on the PSD y-axis spine (use twinx ax); same recipe as rate means (vertex at tick)."""
     y_draw = float(y)
     if ax.get_yscale() == "log" and np.isfinite(y_draw) and y_draw > 0:
         lo, hi = ax.get_ylim()
         if lo > 0 and hi > lo:
             y_draw = float(np.clip(y_draw, lo * 1.0000001, hi * 0.9999999))
     ax.plot(
-        0.015,
+        0.985,
         y_draw,
         marker=">",
         color=color,
@@ -714,6 +847,40 @@ def _growth_overlay_text_lines(go: GrowthOverlay) -> list[str]:
     ]
 
 
+def _apply_optional_ylim(ax: Any, raw: Any) -> None:
+    """If *raw* is a length-2 numeric pair, set axis limits (overrides autoscale)."""
+    if raw is None:
+        return
+    if isinstance(raw, (list, tuple)) and len(raw) == 2:
+        lo, hi = float(raw[0]), float(raw[1])
+        if np.isfinite(lo) and np.isfinite(hi) and lo != hi:
+            ax.set_ylim(lo, hi)
+
+
+def _footer_stack_tick_formatter(ax: Any, *, hide_lower: bool, hide_upper: bool):
+    """Hide boundary y-tick labels where stacked footer axes touch each other."""
+    from matplotlib.ticker import FuncFormatter
+
+    def _fmt(y: float, _pos: Any) -> str:
+        lo, hi = ax.get_ylim()
+        if lo > hi:
+            lo, hi = hi, lo
+        ticks = [
+            float(t)
+            for t in ax.get_yticks()
+            if np.isfinite(t) and lo <= t <= hi and (ax.get_yscale() != "log" or t > 0)
+        ]
+        if hide_lower and len(ticks) > 2:
+            ticks = ticks[1:]
+        if hide_upper and len(ticks) > 2:
+            ticks = ticks[:-1]
+        if len(ticks) > 5:
+            ticks = ticks[::2]
+        return f"{y:g}" if any(np.isclose(y, t) for t in ticks) else ""
+
+    return FuncFormatter(_fmt)
+
+
 def _plot_growth_footer_strip(
     fig: Any,
     *,
@@ -756,7 +923,7 @@ def _plot_growth_footer_strip(
     span_min = max((t_hi - t_lo) / 60.0, 1.0 / 60.0)
 
     def _fmt_sec_axis(val: float, _pos: Any) -> str:
-        return format_elapsed_minutes_tick(val / 60.0, span_min)
+        return format_elapsed_minutes_tick(val / 60.0, span_min, zero_if_close=True)
 
     xfmt = FuncFormatter(_fmt_sec_axis)
 
@@ -773,11 +940,17 @@ def _plot_growth_footer_strip(
             ax.spines["bottom"].set_visible(False)
             _apply_spine_tick_style(ax, cfg_plot, y_label_column=(c == 0))
         if ser is None or len(ser["t_mid"]) == 0:
-            if show_title:
-                ax0.set_title(stn_label(stn, station_labels), fontsize=title_pt, fontweight="medium", color="0.2")
             for ax in (ax0, ax1, ax2):
                 ax.tick_params(labelbottom=False)
             ax3.tick_params(labelbottom=c == 0)
+            _apply_optional_ylim(ax0, cfg_plot.get("growth_footer_z_ylim"))
+            _apply_optional_ylim(ax1, cfg_plot.get("growth_footer_sigma_ylim"))
+            _apply_optional_ylim(ax2, cfg_plot.get("growth_footer_D_ylim"))
+            _apply_optional_ylim(ax3, cfg_plot.get("growth_footer_ddt_ylim"))
+            ax0.yaxis.set_major_formatter(_footer_stack_tick_formatter(ax0, hide_lower=True, hide_upper=False))
+            ax1.yaxis.set_major_formatter(_footer_stack_tick_formatter(ax1, hide_lower=True, hide_upper=True))
+            ax2.yaxis.set_major_formatter(_footer_stack_tick_formatter(ax2, hide_lower=True, hide_upper=True))
+            ax3.yaxis.set_major_formatter(_footer_stack_tick_formatter(ax3, hide_lower=False, hide_upper=True))
             continue
         end = max(0, min(int(itime), len(ser["t_mid"]) - 1))
         t_cur = float(ser["t_mid"][end])
@@ -791,7 +964,9 @@ def _plot_growth_footer_strip(
             ax0.plot(tx, zx, color="0.2", lw=lw, clip_on=False)
         ax0.axvline(t_cur, color=cur_c, lw=0.75, ls=":")
         if c == 0:
-            ax0.set_ylabel("z [m]", fontsize=title_pt, color="0.25")
+            ax0.set_ylabel(str(cfg_plot.get("growth_footer_z_ylabel", "z / (m)")), fontsize=title_pt, color="0.25")
+        _apply_optional_ylim(ax0, cfg_plot.get("growth_footer_z_ylim"))
+        ax0.yaxis.set_major_formatter(_footer_stack_tick_formatter(ax0, hide_lower=True, hide_upper=False))
         _major_grid(ax0, cfg_plot)
 
         ax1.set_yscale("log")
@@ -808,7 +983,11 @@ def _plot_growth_footer_strip(
             ypos_chunks.append(yyi[np.isfinite(yyi) & (yyi > 0)])
         ax1.axvline(t_cur, color=cur_c, lw=0.75, ls=":")
         if c == 0:
-            ax1.set_ylabel(f"Σ [{slice_unit_label}]", fontsize=title_pt, color="0.25")
+            ax1.set_ylabel(
+                str(cfg_plot.get("growth_footer_sigma_ylabel", f"Σ / ({slice_unit_label})")),
+                fontsize=title_pt,
+                color="0.25",
+            )
         # Explicit positive ylim + integer minor subs: avoids degenerate log autoscale / tick overflow on tiny panels.
         _tin = np.finfo(float).tiny
         if ypos_chunks:
@@ -823,7 +1002,9 @@ def _plot_growth_footer_strip(
                 ax1.set_ylim(1e-12, 1.0)
         else:
             ax1.set_ylim(1e-12, 1.0)
+        _apply_optional_ylim(ax1, cfg_plot.get("growth_footer_sigma_ylim"))
         ax1.yaxis.set_minor_locator(_FooterLogLocator(base=10.0, subs=tuple(range(2, 10))))
+        ax1.yaxis.set_major_formatter(_footer_stack_tick_formatter(ax1, hide_lower=True, hide_upper=True))
         _major_grid(ax1, cfg_plot)
         ax1.grid(True, which="minor", linestyle=":", linewidth=glw_m, color=gc, alpha=galpha_m)
         if c == 0 and ax1.get_lines():
@@ -837,7 +1018,13 @@ def _plot_growth_footer_strip(
             ax2.plot(dxi, dyi, color=c_f, lw=lw)
         ax2.axvline(t_cur, color=cur_c, lw=0.75, ls=":")
         if c == 0:
-            ax2.set_ylabel(r"$\langle D \rangle$ [µm]", fontsize=title_pt, color="0.25")
+            ax2.set_ylabel(
+                str(cfg_plot.get("growth_footer_D_ylabel", r"$D$ / ($\mu$m)")),
+                fontsize=title_pt,
+                color="0.25",
+            )
+        _apply_optional_ylim(ax2, cfg_plot.get("growth_footer_D_ylim"))
+        ax2.yaxis.set_major_formatter(_footer_stack_tick_formatter(ax2, hide_lower=True, hide_upper=True))
         _major_grid(ax2, cfg_plot)
 
         rx, ryl = _growth_footer_trail(ser, "d_liq_dt", end)
@@ -848,9 +1035,19 @@ def _plot_growth_footer_strip(
             ax3.plot(rxi, ryi, color=c_f, lw=lw)
         ax3.axvline(t_cur, color=cur_c, lw=0.75, ls=":")
         if c == 0:
-            ax3.set_ylabel(r"$d\langle D \rangle/dt$" "\n[µm/s]", fontsize=title_pt, color="0.25")
-            ax3.set_xlabel("time from start", fontsize=title_pt, color="0.25")
+            ax3.set_ylabel(
+                str(cfg_plot.get("growth_footer_ddt_ylabel", r"$\mathrm{d}D/\mathrm{d}t$ / ($\mu$m $\mathrm{s}^{-1}$)")),
+                fontsize=title_pt,
+                color="0.25",
+            )
+            ax3.set_xlabel(
+                str(cfg_plot.get("growth_footer_time_xlabel", "time from start / (min)")),
+                fontsize=title_pt,
+                color="0.25",
+            )
         ax3.xaxis.set_major_formatter(xfmt)
+        _apply_optional_ylim(ax3, cfg_plot.get("growth_footer_ddt_ylim"))
+        ax3.yaxis.set_major_formatter(_footer_stack_tick_formatter(ax3, hide_lower=False, hide_upper=True))
         _major_grid(ax3, cfg_plot)
 
         for ax in (ax0, ax1, ax2):
@@ -873,7 +1070,7 @@ def _format_psd_ax(
     station_labels,
     spec_label,
     cfg_plot: dict[str, Any],
-) -> None:
+) -> Any:
     """Format the compact shared PSD strip axis above each liquid/ice pair (same spine/tick/grid recipe as rates)."""
     from matplotlib.ticker import FuncFormatter, LogLocator
 
@@ -888,10 +1085,7 @@ def _format_psd_ax(
         ax.yaxis.set_major_locator(LogLocator(base=10.0))
         ax.yaxis.set_minor_locator(LogLocator(base=10.0, subs=tuple(range(2, 10))))
 
-    def _psd_ytick_fmt(y, pos):
-        return f"{y:g}" if pos % 2 == 0 else ""
-
-    ax.yaxis.set_major_formatter(FuncFormatter(_psd_ytick_fmt))
+    ax.yaxis.set_major_formatter(_sparse_major_tick_formatter(ax))
     gc = str(cfg_plot.get("grid_color", "0.82"))
     ga = float(cfg_plot.get("grid_alpha", 0.38))
     gls = str(cfg_plot.get("grid_linestyle", "-"))
@@ -900,7 +1094,7 @@ def _format_psd_ax(
         ax.grid(True, which="minor", linestyle=":", linewidth=grid_linewidth * 0.75, color=gc, alpha=ga * 0.55)
     ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:g}"))
     ax.tick_params(which="both", bottom=True, top=False, labelbottom=False, labeltop=False)
-    ax.yaxis.set_ticks_position("left")
+    ax.yaxis.set_ticks_position("both")
     ax.yaxis.set_label_position("left")
     tpt = float(cfg_plot.get("axis_tick_label_pt", 7.0))
     ax.set_ylabel(conc_unit_label, fontsize=tpt, color="0.25")
@@ -920,7 +1114,27 @@ def _format_psd_ax(
     title_pt = float(cfg_plot.get("station_title_pt", 8.0))
     if row == 0:
         ax.set_title(stn_label(station_idx, station_labels), fontsize=title_pt, fontweight="medium", color="0.2")
-    _apply_spine_tick_style(ax, cfg_plot, y_label_column=(col == 0))
+    _apply_spine_tick_style(ax, cfg_plot, y_label_column=True)
+    ax.spines["right"].set_visible(False)
+
+    ax_r = ax.twinx()
+    ax_r.sharey(ax)
+    ax_r.set_xlim(ax.get_xlim())
+    ax_r.set_xscale(ax.get_xscale())
+    for _side in ("top", "bottom"):
+        ax_r.spines[_side].set_visible(False)
+    ax_r.spines["left"].set_visible(False)
+    ax_r.spines["right"].set_visible(True)
+    ax_r.patch.set_visible(False)
+    ax_r.grid(False)
+    ax_r.tick_params(axis="x", bottom=False, top=False, labelbottom=False, labeltop=False)
+    ax_r.yaxis.set_major_formatter(_sparse_major_tick_formatter(ax_r))
+    if psd_yscale == "log":
+        ax_r.yaxis.set_major_locator(LogLocator(base=10.0))
+        ax_r.yaxis.set_minor_locator(LogLocator(base=10.0, subs=tuple(range(2, 10))))
+    _apply_spine_tick_style(ax_r, cfg_plot, y_label_column=False)
+    ax_r.tick_params(axis="y", which="both", left=False, right=True, labelleft=False, labelright=True)
+    return ax_r
 
 def _add_psd_legend(ax, cfg_plot) -> None:
     """Add small legend for Liquid/Ice PSD curves on the PSD axis."""
@@ -993,6 +1207,8 @@ def plot_spectral_waterfall(
     growth_footer_series_by_station: Optional[dict[int, dict[str, np.ndarray]]] = None,
     growth_footer_itime: int = 0,
     growth_footer_slice_unit: str = "",
+    shared_x_label: str | None = None,
+    shared_y_label: str | None = None,
 ) -> tuple[Any, Any]:
     """Spectral waterfall with one shared PSD strip above liquid and ice rate panels.
 
@@ -1021,6 +1237,7 @@ def plot_spectral_waterfall(
     foot_ratio = float(cfg_plot.get("footer_outer_height_ratio", 0.72))
     # Extra height / footer ratio: room for suptitle, fig.legend, and 4×n_st footer rows (avoids constrained_layout collapse).
     fig_h_in = main_h_in + (2.85 * foot_ratio / 0.72 if show_footer else 0.0)
+    fig_h_in *= float(cfg_plot.get("figure_height_scale", 1.0))
     fig_w_in = SINGLE_COL_IN * max(1, n_cols)
     # One manual layout path keeps PSD, liquid/ice, and footer geometry deterministic across modes.
     fig = plt.figure(figsize=(fig_w_in, fig_h_in), constrained_layout=False)
@@ -1036,11 +1253,13 @@ def plot_spectral_waterfall(
         gs = fig.add_gridspec(n_hl, n_cols, hspace=mh, wspace=mw)
 
     axes_psd = np.empty((n_hl, n_cols), dtype=object)
+    axes_psd_r = np.empty((n_hl, n_cols), dtype=object)
     axes_liq = np.empty((n_hl, n_cols), dtype=object)
     axes_ice = np.empty((n_hl, n_cols), dtype=object)
+    pch = float(cfg_plot.get("panel_column_hspace", 0.12))
     for r in range(n_hl):
         for c in range(n_cols):
-            sub = gs[r, c].subgridspec(3, 1, height_ratios=phr, hspace=mh)
+            sub = gs[r, c].subgridspec(3, 1, height_ratios=phr, hspace=pch)
             axes_psd[r, c] = fig.add_subplot(sub[0])
             axes_liq[r, c] = fig.add_subplot(sub[1], sharex=axes_psd[r, c])
             axes_ice[r, c] = fig.add_subplot(sub[2], sharex=axes_psd[r, c])
@@ -1097,7 +1316,7 @@ def plot_spectral_waterfall(
                 max(cfg_plot["psd_ylim_W"][1], cfg_plot["psd_ylim_F"][1]),
             )
             if cfg_plot.get("show_psd_twin", False):
-                _format_psd_ax(
+                axes_psd_r[row, col] = _format_psd_ax(
                     ax_psd,
                     row=row,
                     col=col,
@@ -1114,6 +1333,7 @@ def plot_spectral_waterfall(
                 )
             else:
                 ax_psd.set_visible(False)
+                axes_psd_r[row, col] = None
 
             for phase, ax_ph, net_src in [
                 ("liq", ax_liq, net_w),
@@ -1121,11 +1341,6 @@ def plot_spectral_waterfall(
             ]:
                 ylim_ph = ylim_W if phase == "liq" else ylim_F
                 linthresh_ph = linthresh_W if phase == "liq" else linthresh_F
-                ice_ridge_lbl = None
-                if use_plume_ridge:
-                    ice_ridge_lbl = "Ice plume ridge"
-                    if ridge_height_m_by_station and station_idx in ridge_height_m_by_station:
-                        ice_ridge_lbl = f"Ice plume ridge ({ridge_height_m_by_station[station_idx]:.0f} m)"
                 # Set scales/limits *before* drawing data (else log/symlog relayout → scale.py overflow).
                 _format_ax(
                     ax_ph,
@@ -1146,7 +1361,6 @@ def plot_spectral_waterfall(
                     spec_label=spec_label,
                     h0=h0,
                     h1=h1,
-                    panel_label=ice_ridge_lbl,
                 )
                 if net_src:
                     nm = merge_liq_ice_net(net_src, {}, n) if phase == "liq" else merge_liq_ice_net({}, net_src, n)
@@ -1201,7 +1415,9 @@ def plot_spectral_waterfall(
                             if within_ylim:
                                 mean_d = spectral_mean_diameter(d, conc_arr)
                                 _plot_psd_mean_triangle(ax_psd, mean_d, psd_color)
-                                _plot_psd_max_triangle(ax_psd, max_val, psd_color)
+                                ax_psd_yr = axes_psd_r[row, col]
+                                if ax_psd_yr is not None:
+                                    _plot_psd_max_triangle(ax_psd_yr, max_val, psd_color)
                                 phase_tag = "Liq" if phase == "liq" else "Ice"
                                 psd_max_labels.append(f"{phase_tag} max: {max_val:.1e}")
                         
@@ -1220,6 +1436,10 @@ def plot_spectral_waterfall(
             for ax in (axes_psd[r, c], axes_liq[r, c], axes_ice[r, c]):
                 ax.spines["top"].set_visible(False)
                 ax.spines["bottom"].set_visible(False)
+            ax_pr = axes_psd_r[r, c]
+            if ax_pr is not None:
+                ax_pr.spines["top"].set_visible(False)
+                ax_pr.spines["bottom"].set_visible(False)
 
     if show_footer and outer_gs is not None:
         slabel = growth_footer_slice_unit or conc_unit_label.replace("m³", "m3").replace("m⁻³", "m-3")
@@ -1254,9 +1474,12 @@ def plot_spectral_waterfall(
         color="0.18",
     )
 
-    y_lbl = f"Process Rates [{unit_label}]" if normalize_mode == "none" else "Relative Process Rates [-]"
+    y_lbl = shared_y_label or (
+        f"Process rates / ({unit_label})" if normalize_mode == "none" else "Relative process rates / (-)"
+    )
+    x_lbl = shared_x_label or r"Diameter / ($\mu$m)"
     _apply_figure_layout(fig, cfg_plot, show_footer=show_footer, use_cmap_labels=use_cmap_labels)
-    _main_block_labels(fig, axes_psd, axes_liq, axes_ice, x_label="Diameter [µm]", y_label=y_lbl, cfg_plot=cfg_plot)
+    _main_block_labels(fig, axes_psd, axes_liq, axes_ice, x_label=x_lbl, y_label=y_lbl, cfg_plot=cfg_plot)
 
     return fig, (axes_psd, axes_liq, axes_ice)
 
@@ -1272,7 +1495,9 @@ def _format_ax(ax, *, phase, row, col, n_hl, n_cols, xlim, ylim, linthresh,
 
     if yscale == "symlog":
         ax.set_yscale("symlog", linthresh=linthresh, linscale=cfg_plot["linscale"])
-        ax.yaxis.set_major_locator(SymmetricalLogLocator(linthresh=linthresh, base=10))
+        _sloc = SymmetricalLogLocator(linthresh=linthresh, base=10)
+        _sloc.numticks = int(cfg_plot.get("rate_symlog_numticks", 7))
+        ax.yaxis.set_major_locator(_sloc)
     elif yscale == "log":
         ax.set_yscale("log")
     else:
@@ -1289,10 +1514,7 @@ def _format_ax(ax, *, phase, row, col, n_hl, n_cols, xlim, ylim, linthresh,
     ax.set_axisbelow(True)
     ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:g}"))
 
-    def _ytick_fmt(y, pos):
-        return f"{y:g}" if pos % 2 == 0 else ""
-
-    ax.yaxis.set_major_formatter(FuncFormatter(_ytick_fmt))
+    ax.yaxis.set_major_formatter(_sparse_major_tick_formatter(ax))
     ax.yaxis.set_ticks_position("both")
 
     tpt = float(cfg_plot.get("axis_tick_label_pt", 7.0))
@@ -1330,6 +1552,8 @@ def _format_ax(ax, *, phase, row, col, n_hl, n_cols, xlim, ylim, linthresh,
             bbox=_annotation_box_style(cfg_plot, alpha=float(cfg_plot.get("panel_bbox_alpha", 0.35))),
         )
     _apply_spine_tick_style(ax, cfg_plot, y_label_column=(col == 0))
+    ypad = float(cfg_plot.get("rate_ytick_pad", 3.8))
+    ax.tick_params(axis="y", pad=ypad)
 
 
 # ── I/O helpers ──────────────────────────────────────────────────────────────
@@ -1408,12 +1632,22 @@ def _waterfall_cfg(cfg_yaml: dict[str, Any], *, kind_hint: str | None = None) ->
         "growth_rate_window_frames": 3,
         "growth_rate_mode": "regression",
         "write_growth_csv": False,
+        "growth_csv_include_environment": True,
+        "growth_csv_derive_supersaturation": True,
+        "growth_csv_env_field_map": {},
         "show_growth_sparkline": False,
         "show_growth_footer": False,
         "growth_footer_linewidth": 0.9,
         # Shared layout + axis chrome (inherited across spectral_waterfall_N / _Q; see _CROSS_KIND_KEYS).
         "panel_height_ratios": (1.5, 2.3, 2.3),
         "main_stack_hspace": 0.001,
+        "panel_column_hspace": 0.12,
+        "rate_symlog_numticks": 7,
+        "rate_ytick_pad": 3.8,
+        "growth_footer_z_ylim": None,
+        "growth_footer_sigma_ylim": None,
+        "growth_footer_D_ylim": None,
+        "growth_footer_ddt_ylim": None,
         "main_col_wspace": 0.005,
         "footer_block_hspace": 0.10,
         "footer_outer_height_ratio": 0.72,
@@ -1447,8 +1681,14 @@ def _waterfall_cfg(cfg_yaml: dict[str, Any], *, kind_hint: str | None = None) ->
         "figure_margin_top": 0.88,
         "figure_margin_bottom": 0.12,
         "figure_margin_bottom_footer": 0.17,
+        "figure_height_scale": 1.0,
         "main_xlabel_pad": 0.03,
         "main_ylabel_pad": 0.08,
+        "growth_footer_z_ylabel": "z / (m)",
+        "growth_footer_sigma_ylabel": None,
+        "growth_footer_D_ylabel": r"$D$ / ($\mu$m)",
+        "growth_footer_ddt_ylabel": r"$\mathrm{d}D/\mathrm{d}t$ / ($\mu$m $\mathrm{s}^{-1}$)",
+        "growth_footer_time_xlabel": "time from start / (min)",
     }
     plotting = cfg_yaml.get("plotting", {}) or {}
     kh = (kind_hint or "").strip().upper()
@@ -1478,6 +1718,9 @@ def _waterfall_cfg(cfg_yaml: dict[str, Any], *, kind_hint: str | None = None) ->
         "growth_ice_mask_until_min",
         "show_growth_textbox",
         "write_growth_csv",
+        "growth_csv_include_environment",
+        "growth_csv_derive_supersaturation",
+        "growth_csv_env_field_map",
         "show_growth_footer",
         "show_growth_sparkline",
         "growth_rate_window_frames",
@@ -1485,6 +1728,13 @@ def _waterfall_cfg(cfg_yaml: dict[str, Any], *, kind_hint: str | None = None) ->
         "growth_footer_linewidth",
         "panel_height_ratios",
         "main_stack_hspace",
+        "panel_column_hspace",
+        "rate_symlog_numticks",
+        "rate_ytick_pad",
+        "growth_footer_z_ylim",
+        "growth_footer_sigma_ylim",
+        "growth_footer_D_ylim",
+        "growth_footer_ddt_ylim",
         "main_col_wspace",
         "footer_block_hspace",
         "footer_outer_height_ratio",
@@ -1518,8 +1768,14 @@ def _waterfall_cfg(cfg_yaml: dict[str, Any], *, kind_hint: str | None = None) ->
         "figure_margin_top",
         "figure_margin_bottom",
         "figure_margin_bottom_footer",
+        "figure_height_scale",
         "main_xlabel_pad",
         "main_ylabel_pad",
+        "growth_footer_z_ylabel",
+        "growth_footer_sigma_ylabel",
+        "growth_footer_D_ylabel",
+        "growth_footer_ddt_ylabel",
+        "growth_footer_time_xlabel",
     )
     cfg_raw = dict(legacy_sw)
     for gk in _CROSS_KIND_KEYS:
@@ -1560,7 +1816,14 @@ def _waterfall_cfg(cfg_yaml: dict[str, Any], *, kind_hint: str | None = None) ->
     cfg["growth_rate_mode"] = str(cfg.get("growth_rate_mode", "regression")).lower()
     if cfg["growth_rate_mode"] not in ("regression", "last_interval"):
         raise ValueError("growth_rate_mode must be 'regression' or 'last_interval'")
-    for k in ("show_growth_textbox", "write_growth_csv", "show_growth_sparkline", "show_growth_footer"):
+    for k in (
+        "show_growth_textbox",
+        "write_growth_csv",
+        "growth_csv_include_environment",
+        "growth_csv_derive_supersaturation",
+        "show_growth_sparkline",
+        "show_growth_footer",
+    ):
         cfg[k] = bool(cfg[k])
     if cfg["show_growth_sparkline"]:
         cfg["show_growth_footer"] = True
@@ -1767,6 +2030,102 @@ class _MinMaxAction(argparse.Action):
             raise argparse.ArgumentError(self, f"expected MIN MAX or MIN,MAX: {e}") from e
 
 
+def export_ridge_growth_csv(
+    *,
+    repo_root: Path,
+    config_path: Path,
+    kind: str | None = None,
+    output_csv: Path | str | None = None,
+    exp_ids: list[int] | None = None,
+    range_keys: list[str] | None = None,
+    station_ids: list[int] | None = None,
+) -> Path:
+    """Recompute ridge-growth rows and write CSV (same schema as the spectral-waterfall run).
+
+    Does not render PNG frames. Ensures growth overlay precompute runs even if YAML sets
+    ``write_growth_csv: false``.
+    """
+    cfg_yaml = _read_yaml(Path(config_path))
+    kh = kind.strip().upper() if kind else None
+    sw_cfg = _waterfall_cfg(cfg_yaml, kind_hint=kh)
+    if kind is not None:
+        sw_cfg["kind"] = kind.strip().upper()
+    kind_u = str(sw_cfg["kind"]).upper()
+    sw_work = {**sw_cfg, "write_growth_csv": True}
+
+    cfg = load_process_budget_data(repo_root, config_path=config_path)
+    plot_station_ids = (
+        station_ids
+        if station_ids is not None
+        else cfg_yaml.get("selection", {}).get("plot_station_ids", cfg["plot_stn_ids"])
+    )
+    time_window = _build_time_window(cfg_yaml, cfg)
+    if len(time_window) < 2:
+        raise ValueError("Need at least two time points in plotting.time_spacing_min (or cfg time_window).")
+
+    plot_exp_ids = (
+        exp_ids
+        if exp_ids is not None
+        else cfg_yaml.get("selection", {}).get("plot_experiment_ids", cfg["plot_exp_ids"])
+    )
+    plot_range_keys = (
+        range_keys
+        if range_keys is not None
+        else cfg_yaml.get("plotting", {}).get("plot_range_keys", cfg["plot_range_keys"])
+    )
+    bad_ranges = [rk for rk in plot_range_keys if rk not in cfg["size_ranges"]]
+    if bad_ranges:
+        raise ValueError(f"Unknown range key(s): {bad_ranges}. Valid: {', '.join(cfg['size_ranges'].keys())}")
+
+    stn_tag = _station_tag(plot_station_ids)
+    ridge_floor = float(sw_work.get("ridge_mass_floor", 0.0))
+    ridge_context: dict[tuple[int, str], dict[int, tuple[int, int, float]]] = {}
+    for eid in plot_exp_ids:
+        r0 = cfg["rates_by_exp"][eid]
+        rcf0 = r0.get("spec_conc_Q_F")
+        if rcf0 is None:
+            continue
+        for rk in plot_range_keys:
+            bs0 = cfg["size_ranges"][rk]["slice"]
+            per_stn: dict[int, tuple[int, int, float]] = {}
+            for stn in plot_station_ids:
+                anch0 = first_plume_ridge_anchor(rcf0, stn, bs0, floor=ridge_floor)
+                if anch0 is None:
+                    continue
+                gti0, hi0 = anch0
+                hm0 = float(np.asarray(rcf0["height_level"].values)[int(hi0)])
+                per_stn[stn] = (gti0, hi0, hm0)
+            ridge_context[(eid, rk)] = per_stn
+
+    _, growth_csv_rows, _series, _ref = _precompute_growth_overlays(
+        plot_exp_ids=plot_exp_ids,
+        plot_range_keys=plot_range_keys,
+        station_ids=plot_station_ids,
+        time_window=time_window,
+        cfg=cfg,
+        kind=kind_u,
+        sw_cfg=sw_work,
+        ridge_context=ridge_context,
+        ds=cfg.get("ds"),
+    )
+    if not growth_csv_rows:
+        raise ValueError("No ridge-growth CSV rows (check use_plume_ridge, data, and ridge anchors).")
+
+    cs_run = cfg_yaml.get("ensemble", {}).get("cs_run", "unknown_cs_run")
+    cs_run_tag = str(cs_run).replace("/", "_")
+    out = Path(output_csv) if output_csv is not None else (
+        repo_root / "output" / "gfx" / "csv" / "05" / cs_run_tag / f"ridge_growth_{kind_u}_{stn_tag}.csv"
+    )
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fields = list(growth_csv_rows[0].keys())
+    with out.open("w", newline="", encoding="utf-8") as cf:
+        w = csv.DictWriter(cf, fieldnames=fields)
+        w.writeheader()
+        w.writerows(growth_csv_rows)
+    print(f"  Ridge growth CSV: {out} ({len(growth_csv_rows)} rows)")
+    return out
+
+
 # ── CLI entry point ──────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -1934,6 +2293,7 @@ def main() -> None:
         kind=kind,
         sw_cfg=sw_cfg,
         ridge_context=ridge_context,
+        ds=cfg.get("ds"),
     )
     if sw_cfg.get("write_growth_csv", False) and growth_csv_rows:
         csv_dir = REPO_ROOT / "output" / "gfx" / "csv" / "05" / cs_run_tag

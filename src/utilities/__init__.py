@@ -172,7 +172,11 @@ from utilities.processing_metadata import (
     add_provenance_to_dataset,
     normalize_attrs_for_zarr,
 )
-from utilities.processing_paths import get_runs_root, resolve_ensemble_output
+from utilities.processing_paths import (
+    find_ensemble_output_for_cs_run,
+    get_runs_root,
+    resolve_ensemble_output,
+)
 from utilities.tracking_pipeline import (
     prep_tobac_input,
     RunContext,
@@ -198,6 +202,7 @@ from utilities.process_rates import (
     ridge_process_values,
     ridge_concentration_profile,
     first_plume_ridge_anchor,
+    ridge_window_field_mean,
     ridge_window_stats,
     merge_liq_ice_net,
     normalize_net_stacks,

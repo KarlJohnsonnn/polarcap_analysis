@@ -22,6 +22,13 @@ from utilities.psd_waterfall import (  # noqa: E402
 )
 from utilities.style_profiles import apply_publication_style  # noqa: E402
 
+# Manuscript-facing caption; keep this wording aligned with the registry and figure13 gallery variants.
+FIGURE_CAPTION = """Altitude-resolved particle size distribution evolution in successive
+post-seeding windows for the promoted plume-path runs. Each panel compares liquid and frozen spectra in
+either number or mass space, making it possible to track where excess ice first appears and how condensate
+shifts toward larger diameters and lower levels as the plume matures. Together, the number and mass views
+separate initial crystal production from subsequent growth and fallout."""
+
 
 def _parse_csv(raw: str | None) -> list[str] | None:
     if raw is None:

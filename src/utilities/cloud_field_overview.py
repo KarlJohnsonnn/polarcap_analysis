@@ -42,9 +42,11 @@ DEFAULT_N_QLEVELS = 5
 DEFAULT_OUTPUT_DIR = Path("output") / "gfx" / "png" / "01"
 
 DEFAULT_WINDOW_SPECS_MIN: list[tuple[str, str, float, float, str]] = [
-    ("seeding", "Early ice", 2.0, 12.0, "#4C78A8"),
-    ("obs_site", "Ice growth", 5.0, 22.0, "#F58518"),
-    ("precip_site", "Ice precip.", 14.0, 28.0, "#54A24B"),
+    ("seeding", "Early ice", 0.1, 12.0, "#4C78A8"),
+    ("obs_site", "Ice growth", .1, 22.0, "#F58518"),
+    ("precip_site", "Ice precip.", .1, 28.0, "#54A24B"),
+    ("precip_site2", "Ice precip.", .1, 28.0, "#54A24B"),
+    ("precip_site3", "Ice precip.", .1, 28.0, "#54A24B"),
 ]
 
 

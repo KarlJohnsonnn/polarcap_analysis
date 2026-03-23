@@ -56,6 +56,19 @@ from utilities.plume_lagrangian import (  # noqa: E402  # imports after sys.path
 )
 from utilities.style_profiles import apply_publication_style  # noqa: E402
 
+# Manuscript-facing caption; keep this wording aligned with gallery and registry copies.
+FIGURE_CAPTION = f"""Ensemble-mean Lagrangian plume evolution in equivalent-diameter space compared
+with HOLIMO observations. Colors show the ensemble-mean ice number density per logarithmic diameter interval
+along the plume; symbols identify the three HOLIMO missions, the lower-left panel zooms the first 15 min
+after seeding, and the lower-right panel compares time-averaged size spectra. Both model and observations
+shows the following growth of $D_{\mathrm{eq}}$:
+\begin{itemize}
+    \item $1\leq D_{\mathrm{eq}} < 10$\,\mu m
+    \item $10\leq D_{\mathrm{eq}} < 50$\,\mu m small ice crystals 
+    \item $100\leq D_{\mathrm{eq}} < 300$\,\mu m large ice crystals
+\end{itemize}
+while the observational spread is largest in the coarse-particle tail.
+"""
 
 def main() -> None:
     # Defaults match notebook 03 promotion; override paths when data live elsewhere (e.g. HPC scratch).
