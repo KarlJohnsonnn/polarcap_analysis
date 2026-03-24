@@ -1,0 +1,101 @@
+# PSD + size-resolved process evolution: meteogram / process-budget defaults (ensemble, paths,
+# zarr, selection, plotting, waterfall-style figure keys under plotting.spectral_waterfall_*).
+# Drives `run_spectral_waterfall.py`, compartment closure, cloud-field overview, and
+# `load_process_budget_data`. CLI flags override for one-off runs.
+
+ensemble:
+  cs_runs: [cs-eriswil__20260304_110254, cs-eriswil__20260318_153631]  # Picks the run to load and names every PNG / MP4 / CSV output folder.
+  cs_run: cs-eriswil__20260304_110254
+  domain: 50x42
+
+
+# Optional LV1 tracking override when you want a different flare/reference pairing than the
+# processing-chain default. `ref_idx: -1` auto-matches the chosen flare.
+# flare_idx: 0  # Switch to a different seeded member.
+# ref_idx: 0  # Switch to a different reference member.
+
+paths:
+  # Point to the server archive when you want the runner to use cluster-side products directly.
+  # Leave blank for laptop / local runs.
+  # server_root: "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/"
+  server_root: "" # "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/"
+  local_meteogram_root: null  # Override where local Meteogram Zarr files are discovered.
+  local_ensemble_config_root: null  # Override where local `<cs_run>.json` ensemble configs are discovered.
+
+# Optional: trade slower open time for smoother downstream slicing on the current machine.
+zarr:
+  rechunk_on_open: false  # `true` often makes plotting more responsive on laptop-sized memory.
+
+selection:
+  experiment_index_default: 0  # Fallback single experiment for helpers that expect exactly one active member.
+  station_index_default: 0  # Fallback single station for helpers that expect exactly one active site.
+  plot_experiment_ids: [0]  # Default experiment ids rendered when CLI `--exp-ids` is omitted.
+  plot_station_ids: [0]  # Default station columns rendered when CLI `--station-ids` is omitted.
+  # station_labels: {
+  #   0: "S1 — Seeding loc.",  # Titles shown above the station columns.
+  #   1: "S2 — Observation site",
+  #   2: "S3 — Precipitation loc.",
+  #   3: "S4 — Precipitation2 loc.",
+  #   4: "S5 — Precipitation3 loc.",
+  #   }
+time:
+  # `0` minutes in `plotting.time_spacing_min` equals this wall time.
+  # It also sets the zero point for growth-footer timing and early-time ice masking.
+  seed_start: "2023-01-25T12:29:50"
+
+
+size_ranges:
+  # Diameter-bin families over the merged SBM bin axis.
+  # Changing these reshapes which bins contribute to the plotted rates, PSDs, and growth metrics.
+  AERLBB:
+    start: 30
+    stop: 51
+    label: "Aerosol Range"
+    tag: "aerlbb"
+  CRYBB:
+    start: 51
+    stop: null
+    label: "Cloud Range"
+    tag: "crybb"
+  PRECBB:
+    start: 50
+    stop: 66
+    label: "Precipitation Range"
+    tag: "precbb"
+  ALLBB:
+    start: 0
+    stop: 66
+    label: "All Range"
+    tag: "allbb"
+
+plotting:
+  active_range_key: "ALLBB"  # Default single size family for helpers that expect one active range.
+  plot_range_keys: ["ALLBB"] # Size families rendered by the waterfall, left to right in the run loop.
+  altitude_bands: [1350, 1275, 1200, 1125, 1050, 975, 900, 850, 800]  
+  growth_times_min: [6.1, 8.0, 9.1]
+  obs_ids: ["SM059", "SM058", "SM060"]
+  plot_kinds: ["mass", "number", "mass_small", "number_small"]
+  # Seven fields per kind: liquid var, ice var, z_lo, z_hi, x_lo, x_hi, show_small_diameters
+  varsets:
+    mass: [qw, qfw, 1.0e-6, 1.0e3, 1.0, 9.0e3, false]
+    number: [nw, nf, 0.5, 9.0e7, 1.0, 9.0e3, false]
+    mass_small: [qw, qfw, 1.0e-6, 1.0e3, 1.0e-3, 9.0e3, true]
+    number_small: [nw, nf, 0.5, 9.0e7, 1.0e-3, 9.0e3, true]
+  time_windows: ["0.0167min", "2min", "5min", "10min", "35min"]
+  runs: [ {"label": "400m, inp 1e6, ccn 400 (analytic)",   "cs_run": "cs-eriswil__20260127_211338", "exp_id": "20260127211431"},
+          {"label": "400m, inp 1e6, ccn 400 (planar)",     "cs_run": "cs-eriswil__20260127_211338", "exp_id": "20260127211551"},
+          {"label": "400m, inp 1e6, ccn 400 (spherical)",  "cs_run": "cs-eriswil__20260121_131528", "exp_id": "20260121131550"},
+          {"label": "400m, inp 1e6, ccn 400 (columnar 2)", "cs_run": "cs-eriswil__20260121_131528", "exp_id": "20260121131632"},
+  ]
+
+# Optional overrides for `run_psd_waterfall.py` / `load_psd_waterfall_context` (paths relative to repo root).
+waterfall:
+  processed_root: data/processed
+  holimo_file: data/observations/holimo_data/CL_20230125_1000_1140_SM058_SM060_ts1.nc
+  output_root: output/gfx
+  holimo_window: ["2023-01-25T10:10:00", "2023-01-25T12:00:00"]
+  time_frames_plume:
+    - ["2023-01-25T10:55:00", "2023-01-25T11:10:00"]
+    - ["2023-01-25T10:35:00", "2023-01-25T10:50:00"]
+    - ["2023-01-25T11:24:00", "2023-01-25T11:39:00"]
+

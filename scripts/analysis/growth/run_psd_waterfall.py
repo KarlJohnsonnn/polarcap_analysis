@@ -16,11 +16,13 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from utilities.psd_waterfall import (  # noqa: E402
-    DEFAULT_PLOT_KINDS,
+    get_psd_waterfall_cli_defaults,
     load_psd_waterfall_context,
     render_all_psd_waterfall_cases,
 )
 from utilities.style_profiles import apply_publication_style  # noqa: E402
+
+_PSD_CLI = get_psd_waterfall_cli_defaults(REPO_ROOT)
 
 # Manuscript-facing caption; keep this wording aligned with the registry and figure13 gallery variants.
 FIGURE_CAPTION = """Altitude-resolved particle size distribution evolution in successive
@@ -56,24 +58,20 @@ def main() -> None:
     parser.add_argument(
         "--processed-root",
         type=Path,
-        default=REPO_ROOT / "data" / "processed",
-        help="Processed plume-path root directory.",
+        default=_PSD_CLI["processed_root"],
+        help="Processed plume-path root directory (default from config/psd_waterfall.yaml).",
     )
     parser.add_argument(
         "--holimo-file",
         type=Path,
-        default=REPO_ROOT
-        / "data"
-        / "observations"
-        / "holimo_data"
-        / "CL_20230125_1000_1140_SM058_SM060_ts1.nc",
-        help="HOLIMO NetCDF file for optional observational overlays.",
+        default=_PSD_CLI["holimo_file"],
+        help="HOLIMO NetCDF file for optional observational overlays (default from config/psd_waterfall.yaml).",
     )
     parser.add_argument(
         "--plot-kinds",
         type=str,
-        default=",".join(DEFAULT_PLOT_KINDS),
-        help="Comma-separated plot kinds: mass, number, mass_small, number_small.",
+        default=",".join(_PSD_CLI["plot_kinds"]),
+        help="Comma-separated plot kinds: mass, number, mass_small, number_small (default from config/psd_waterfall.yaml).",
     )
     parser.add_argument(
         "--run-labels",
@@ -84,8 +82,8 @@ def main() -> None:
     parser.add_argument(
         "--output-root",
         type=Path,
-        default=REPO_ROOT / "output" / "gfx",
-        help="Output root for PNG figures plus structured CSV and LaTeX stats tables.",
+        default=_PSD_CLI["output_root"],
+        help="Output root for PNG figures plus structured CSV and LaTeX stats tables (default from config/psd_waterfall.yaml).",
     )
     parser.add_argument(
         "--use-holimo",
@@ -121,7 +119,7 @@ def main() -> None:
 
     outputs = render_all_psd_waterfall_cases(
         context,
-        plot_kinds=tuple(_parse_csv(args.plot_kinds) or DEFAULT_PLOT_KINDS),
+        plot_kinds=tuple(_parse_csv(args.plot_kinds) or _PSD_CLI["plot_kinds"]),
         run_labels=_parse_run_labels(args.run_labels, list(context["cs_run_datasets"].keys())),
         output_root=args.output_root,
         show_stats_table=args.show_stats_table,

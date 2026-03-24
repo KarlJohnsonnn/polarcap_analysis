@@ -1,14 +1,17 @@
 """
 PSD waterfall helpers promoted from notebook 04.
 
-The notebook-specific waterfall geometry, diagnostics tables, structured stats,
-and output naming live here, while loading continues to rely on existing
-plume-path and HOLIMO utilities.
+Defaults merge ``config/psd_waterfall.yaml`` (under the repo root) with the
+``DEFAULT_*`` module constants. ``load_psd_waterfall_context`` attaches
+``psd_waterfall_settings`` to the returned context for rendering.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
+
+import yaml
 
 from matplotlib import colors
 from matplotlib.axes import Axes
@@ -75,10 +78,10 @@ DEFAULT_TIME_WINDOWS = [
 ]
 DEFAULT_PLOT_KINDS = ("mass", "number", "mass_small", "number_small")
 DEFAULT_VARSETS = {
-    "mass": ("qw", "qfw", 1e-6, 1e3, 1.0, 9e3, False),
-    "number": ("nw", "nf", 5e-1, 9e7, 1.0, 9e3, False),
-    "mass_small": ("qw", "qfw", 1e-6, 1e3, 1e-3, 9e3, True),
-    "number_small": ("nw", "nf", 5e-1, 9e7, 1e-3, 9e3, True),
+    "mass":         ("qw", "qfw", 1e-6, 1e3, 1.0,  9e3, False),
+    "number":       ("nw", "nf",  5e-1, 9e7, 1.0,  9e3, False),
+    "mass_small":   ("qw", "qfw", 1e-6, 1e3, 1e-3, 9e3, True),
+    "number_small": ("nw", "nf",  5e-1, 9e7, 1e-3, 9e3, True),
 }
 DEFAULT_RUNS: list[dict[str, str]] = [
     {"label": "400m, inp 1e6, ccn 400 (analytic)",   "cs_run": "cs-eriswil__20260127_211338", "exp_id": "20260127211431"},
@@ -86,6 +89,161 @@ DEFAULT_RUNS: list[dict[str, str]] = [
     {"label": "400m, inp 1e6, ccn 400 (spherical)",  "cs_run": "cs-eriswil__20260121_131528", "exp_id": "20260121131550"},
     {"label": "400m, inp 1e6, ccn 400 (columnar 2)", "cs_run": "cs-eriswil__20260121_131528", "exp_id": "20260121131632"},
 ]
+
+PSD_WATERFALL_CONFIG_REL = Path("config") / "psd_waterfall.yaml"
+
+
+def _raw_psd_waterfall_yaml(repo_root: Path) -> dict[str, Any]:
+    path = repo_root / PSD_WATERFALL_CONFIG_REL
+    if not path.is_file():
+        return {}
+    with path.open(encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def _edges_to_alt_bands(edges: Sequence[float | int]) -> list[tuple[float, float]]:
+    e = [float(x) for x in edges]
+    return [(e[i], e[i + 1]) for i in range(len(e) - 1)]
+
+
+def _spacing_min_to_time_windows(spacing: Sequence[float | int]) -> list[str]:
+    xs = sorted({float(x) for x in spacing if float(x) > 0})
+    return [f"{x}min" for x in xs]
+
+
+def _parse_varsets_from_yaml(raw: Any) -> dict[str, tuple[Any, ...]] | None:
+    if not isinstance(raw, dict):
+        return None
+    out: dict[str, tuple[Any, ...]] = {}
+    for k, v in raw.items():
+        if not isinstance(v, (list, tuple)) or len(v) != 7:
+            continue
+        out[str(k)] = (
+            str(v[0]),
+            str(v[1]),
+            float(v[2]),
+            float(v[3]),
+            float(v[4]),
+            float(v[5]),
+            bool(v[6]),
+        )
+    return out or None
+
+
+def _parse_runs_yaml(raw: Any) -> list[dict[str, str]] | None:
+    if not isinstance(raw, list):
+        return None
+    out: list[dict[str, str]] = []
+    for r in raw:
+        if isinstance(r, dict):
+            out.append({str(k): str(v) for k, v in r.items()})
+    return out
+
+
+@dataclass
+class PsdWaterfallSettings:
+    """Resolved defaults from ``config/psd_waterfall.yaml`` with Python fallbacks."""
+
+    processed_root_rel: Path
+    holimo_file_rel: Path
+    output_root_rel: Path
+    model_seed: np.datetime64
+    holimo_window: tuple[np.datetime64, np.datetime64]
+    time_frames_plume: tuple[tuple[np.datetime64, np.datetime64], ...]
+    obs_ids: tuple[str, ...]
+    growth_times_min: tuple[float, ...]
+    alt_bands: tuple[tuple[float, float], ...]
+    time_windows: tuple[str, ...]
+    plot_kinds: tuple[str, ...]
+    varsets: dict[str, tuple[Any, ...]]
+    runs: tuple[dict[str, str], ...]
+
+    def resolved_paths(self, repo_root: Path) -> tuple[Path, Path, Path]:
+        def _abs(p: Path) -> Path:
+            return p if p.is_absolute() else repo_root / p
+
+        return _abs(self.processed_root_rel), _abs(self.holimo_file_rel), _abs(self.output_root_rel)
+
+
+def build_psd_waterfall_settings(repo_root: Path) -> PsdWaterfallSettings:
+    raw = _raw_psd_waterfall_yaml(repo_root)
+    pt = raw.get("plotting") or {}
+    tm = raw.get("time") or {}
+    wf = raw.get("waterfall") or {}
+
+    model_seed = np.datetime64(str(tm.get("seed_start", DEFAULT_MODEL_SEED)))
+
+    if pt.get("altitude_bands"):
+        alt_bands = tuple(_edges_to_alt_bands(pt["altitude_bands"]))
+    else:
+        alt_bands = tuple(DEFAULT_ALT_BANDS)
+
+    tw = pt.get("time_windows")
+    if not tw and pt.get("time_spacing_min") is not None:
+        tw = _spacing_min_to_time_windows(pt["time_spacing_min"])
+    if not tw:
+        tw = list(DEFAULT_TIME_WINDOWS)
+    time_windows = tuple(str(x) for x in tw)
+
+    plot_kinds = tuple(str(x) for x in pt["plot_kinds"]) if pt.get("plot_kinds") else DEFAULT_PLOT_KINDS
+
+    vs = _parse_varsets_from_yaml(pt.get("varsets"))
+    varsets = vs if vs else dict(DEFAULT_VARSETS)
+
+    runs_raw = pt.get("runs")
+    if runs_raw is not None:
+        parsed = _parse_runs_yaml(runs_raw)
+        runs = tuple(parsed) if parsed else tuple(DEFAULT_RUNS)
+    else:
+        runs = tuple(DEFAULT_RUNS)
+
+    obs_ids = tuple(str(x) for x in pt["obs_ids"]) if pt.get("obs_ids") else tuple(DEFAULT_OBS_IDS)
+    growth_times_min = (
+        tuple(float(x) for x in pt["growth_times_min"]) if pt.get("growth_times_min") else tuple(DEFAULT_GROWTH_TIMES_MIN)
+    )
+
+    holimo_w = wf.get("holimo_window")
+    if holimo_w and isinstance(holimo_w, (list, tuple)) and len(holimo_w) == 2:
+        holimo_window = (np.datetime64(str(holimo_w[0])), np.datetime64(str(holimo_w[1])))
+    else:
+        holimo_window = DEFAULT_HOLIMO_WINDOW
+
+    tfp_raw = wf.get("time_frames_plume")
+    if tfp_raw and isinstance(tfp_raw, list):
+        tfp: list[tuple[np.datetime64, np.datetime64]] = []
+        for pair in tfp_raw:
+            if isinstance(pair, (list, tuple)) and len(pair) == 2:
+                tfp.append((np.datetime64(str(pair[0])), np.datetime64(str(pair[1]))))
+        time_frames_plume = tuple(tfp) if tfp else tuple((a, b) for a, b in DEFAULT_TIME_FRAMES_PLUME)
+    else:
+        time_frames_plume = tuple((a, b) for a, b in DEFAULT_TIME_FRAMES_PLUME)
+
+    proc = Path(wf.get("processed_root", DEFAULT_PROCESSED_ROOT))
+    holimo = Path(wf.get("holimo_file", DEFAULT_HOLIMO_FILE))
+    out_root = Path(wf.get("output_root", DEFAULT_OUTPUT_ROOT))
+
+    return PsdWaterfallSettings(
+        processed_root_rel=proc,
+        holimo_file_rel=holimo,
+        output_root_rel=out_root,
+        model_seed=model_seed,
+        holimo_window=holimo_window,
+        time_frames_plume=time_frames_plume,
+        obs_ids=obs_ids,
+        growth_times_min=growth_times_min,
+        alt_bands=alt_bands,
+        time_windows=time_windows,
+        plot_kinds=plot_kinds,
+        varsets=varsets,
+        runs=runs,
+    )
+
+
+def get_psd_waterfall_cli_defaults(repo_root: Path) -> dict[str, Any]:
+    """Path and plot-kind defaults for ``run_psd_waterfall`` argparse (from YAML + fallbacks)."""
+    s = build_psd_waterfall_settings(repo_root)
+    pr, hf, gfx = s.resolved_paths(repo_root)
+    return {"processed_root": pr, "holimo_file": hf, "output_root": gfx, "plot_kinds": s.plot_kinds}
 
 
 def default_psd_waterfall_cmap():
@@ -100,9 +258,10 @@ def _net_tendency_label(basis: str) -> str:
     return r"$\Delta q / \Delta t$ (g m$^{-3}$ min$^{-1}$)" if basis == "mass" else r"$\Delta N / \Delta t$ (L$^{-1}$ min$^{-1}$)"
 
 
-def waterfall_output_root(repo_root: Path) -> Path:
-    """Return the shared gfx output root (output/gfx). PNG/CSV/TeX subdirs live under it."""
-    return repo_root / DEFAULT_OUTPUT_ROOT
+def waterfall_output_root(repo_root: Path, settings: PsdWaterfallSettings | None = None) -> Path:
+    """Return the gfx output root from YAML ``waterfall.output_root`` or ``DEFAULT_OUTPUT_ROOT``."""
+    s = settings or build_psd_waterfall_settings(repo_root)
+    return s.resolved_paths(repo_root)[2]
 
 
 def get_moments(conc: np.ndarray, diam: np.ndarray) -> tuple[float, float]:
@@ -764,12 +923,13 @@ def _y_label_for_var_kind(var_kind: str) -> str:
     return r"Mass Concentration (at lowest altitude)" if var_kind.startswith("mass") else r"Number Concentration (at lowest altitude) / L$^{-1}$"
 
 
-def _load_holimo_obs(holimo_file: Path) -> list[dict[str, Any]]:
+def _load_holimo_obs(holimo_file: Path, settings: PsdWaterfallSettings) -> list[dict[str, Any]]:
     ds_holimo, _, _ = load_and_prepare_holimo(str(holimo_file))
-    ds_holimo = ds_holimo.sel(time=slice(*DEFAULT_HOLIMO_WINDOW))
+    ds_holimo = ds_holimo.sel(time=slice(*settings.holimo_window))
     ds_holimo = ds_holimo.assign_coords({"diameter": ds_holimo.diameter * 1e6})
     ds_hd10 = ds_holimo.resample(time="10s").mean()
-    return build_holimo_obs_series(ds_hd10, DEFAULT_TIME_FRAMES_PLUME, DEFAULT_OBS_IDS, DEFAULT_GROWTH_TIMES_MIN)
+    tfp = [[t[0], t[1]] for t in settings.time_frames_plume]
+    return build_holimo_obs_series(ds_hd10, tfp, list(settings.obs_ids), list(settings.growth_times_min))
 
 
 def load_psd_waterfall_context(
@@ -780,9 +940,11 @@ def load_psd_waterfall_context(
     runs: list[dict[str, str]] | None = None,
     use_holimo: bool = False,
 ) -> dict[str, Any]:
-    processed_root = repo_root / DEFAULT_PROCESSED_ROOT if processed_root is None else Path(processed_root)
-    holimo_file = repo_root / DEFAULT_HOLIMO_FILE if holimo_file is None else Path(holimo_file)
-    runs = DEFAULT_RUNS if runs is None else runs
+    settings = build_psd_waterfall_settings(repo_root)
+    pr_def, holimo_def, _ = settings.resolved_paths(repo_root)
+    processed_root = pr_def if processed_root is None else Path(processed_root)
+    holimo_file = holimo_def if holimo_file is None else Path(holimo_file)
+    runs = list(settings.runs) if runs is None else runs
 
     datasets = load_plume_path_runs(runs, processed_root=processed_root, kinds=("integrated", "extreme"))
     kind = "extreme"
@@ -793,7 +955,7 @@ def load_psd_waterfall_context(
     diag = diagnostics_table(datasets, kind=kind, variable="nf", xlim=xlim)
 
     cs_run_datasets = load_plume_path_runs(runs, processed_root=processed_root, kinds=("vertical", "integrated"))
-    holimo_obs = _load_holimo_obs(holimo_file) if use_holimo else None
+    holimo_obs = _load_holimo_obs(holimo_file, settings) if use_holimo else None
     cfg = {run["label"]: {"flare_start_datetime": run.get("flare_start_datetime")} for run in runs if "label" in run}
 
     return {
@@ -805,7 +967,8 @@ def load_psd_waterfall_context(
         "cs_run_datasets": cs_run_datasets,
         "cfg": cfg,
         "holimo_obs": holimo_obs,
-        "output_root": waterfall_output_root(repo_root),
+        "output_root": waterfall_output_root(repo_root, settings),
+        "psd_waterfall_settings": settings,
     }
 
 
@@ -829,8 +992,11 @@ def render_psd_waterfall_case(
     dpi: int = 400,
 ) -> dict[str, Any]:
     """Render one run/variable-kind combination and save figure plus LaTeX table."""
-    if var_kind not in DEFAULT_VARSETS:
-        raise KeyError(f"Unknown var_kind '{var_kind}'. Valid: {', '.join(DEFAULT_VARSETS)}")
+    settings: PsdWaterfallSettings = context.get("psd_waterfall_settings") or build_psd_waterfall_settings(
+        context["repo_root"]
+    )
+    if var_kind not in settings.varsets:
+        raise KeyError(f"Unknown var_kind '{var_kind}'. Valid: {', '.join(settings.varsets)}")
 
     run_ds = context["cs_run_datasets"][run_label]
     ds_case = run_ds.get("vertical", run_ds.get("integrated"))
@@ -839,15 +1005,15 @@ def render_psd_waterfall_case(
     if "cell" in ds_case.dims:
         ds_case = ds_case.sum("cell")
 
-    var_l, var_i, z_lo, z_hi, x_lo, x_hi, show_small_diameters = DEFAULT_VARSETS[var_kind]
+    var_l, var_i, z_lo, z_hi, x_lo, x_hi, show_small_diameters = settings.varsets[var_kind]
     basis = _basis_for_var_kind(var_kind)
     plot_da_liquid, plot_da_ice = prepare_waterfall_inputs(ds_case, var_name_liq=var_l, var_name_ice=var_i)
     prepared = prepare_psd_waterfall_data(
         plot_da_liquid,
         plot_da_ice,
-        time_windows=DEFAULT_TIME_WINDOWS,
-        t0=DEFAULT_MODEL_SEED,
-        alt_bands=DEFAULT_ALT_BANDS,
+        time_windows=settings.time_windows,
+        t0=settings.model_seed,
+        alt_bands=settings.alt_bands,
         da_w=None,
         cmap=default_psd_waterfall_cmap(),
         x_shift=-0.1,
@@ -855,7 +1021,7 @@ def render_psd_waterfall_case(
     )
     fig, _ = plot_psd_waterfall(
         prepared,
-        alt_bands=DEFAULT_ALT_BANDS,
+        alt_bands=settings.alt_bands,
         zlim=(z_lo, z_hi),
         xlim=(x_lo, x_hi),
         cmap=default_psd_waterfall_cmap(),
@@ -869,7 +1035,9 @@ def render_psd_waterfall_case(
         stats_basis=basis,
     )
 
-    run_id = ds_case.attrs.get("run_id", next((run.get("exp_id") for run in DEFAULT_RUNS if run["label"] == run_label), run_label))
+    run_id = ds_case.attrs.get(
+        "run_id", next((run.get("exp_id") for run in settings.runs if run["label"] == run_label), run_label)
+    )
     if show_suptitle:
         fig.suptitle(
             f"PSD altitude–time evolution ({var_kind}): liquid and frozen along plume path — {run_id}",
@@ -917,7 +1085,7 @@ def render_psd_waterfall_case(
 def render_all_psd_waterfall_cases(
     context: dict[str, Any],
     *,
-    plot_kinds: tuple[str, ...] = DEFAULT_PLOT_KINDS,
+    plot_kinds: tuple[str, ...] | None = None,
     run_labels: list[str] | None = None,
     output_root: str | Path | None = None,
     show_cloud_bounds: bool = True,
@@ -926,6 +1094,11 @@ def render_all_psd_waterfall_cases(
     dpi: int = 400,
 ) -> list[dict[str, Any]]:
     """Render and save all requested run/variable-kind combinations."""
+    settings: PsdWaterfallSettings = context.get("psd_waterfall_settings") or build_psd_waterfall_settings(
+        context["repo_root"]
+    )
+    if plot_kinds is None:
+        plot_kinds = settings.plot_kinds
     run_labels = list(context["cs_run_datasets"].keys()) if run_labels is None else run_labels
     outputs = []
     for var_kind in plot_kinds:
