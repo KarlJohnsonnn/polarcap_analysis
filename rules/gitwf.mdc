@@ -1,0 +1,16 @@
+---
+description: Short command "gitwf" runs the git workflow (commit all, best practices, push)
+alwaysApply: true
+---
+
+# gitwf command
+
+When the user says **gitwf** (or "run gitwf", "do gitwf"), treat it as:
+
+**Run the git workflow:** commit all changes following git-commit-best-practices, then push.
+
+- Stage and commit all modified/added files (respect .gitignore).
+- Use imperative commit messages, ≤50 chars subject, atomic commits.
+- Push the current branch when done.
+
+If they add scope (e.g. "gitwf but don't push", "gitwf only scripts/"), follow that. Otherwise: commit everything, then push.
