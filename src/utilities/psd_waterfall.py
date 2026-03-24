@@ -2,7 +2,8 @@
 PSD waterfall helpers promoted from notebook 04.
 
 Defaults merge ``config/psd_waterfall.yaml`` (under the repo root) with the
-``DEFAULT_*`` module constants. ``load_psd_waterfall_context`` attaches
+``DEFAULT_*`` module constants. ``plotting.axis_tick_label_pt`` sets diameter /
+concentration / altitude tick label sizes (pt). ``load_psd_waterfall_context`` attaches
 ``psd_waterfall_settings`` to the returned context for rendering.
 """
 from __future__ import annotations
@@ -31,7 +32,7 @@ from utilities.plume_path_plot import build_common_xlim, diagnostics_table
 from utilities.style_profiles import FULL_COL_IN, MAX_H_IN, SINGLE_COL_IN
 
 # Scale factor for gallery/publication: larger figure for higher effective resolution
-PSD_WATERFALL_FIG_SCALE = 1.3
+PSD_WATERFALL_FIG_SCALE = 1.2
 
 xr.set_options(keep_attrs=True)
 
@@ -77,6 +78,11 @@ DEFAULT_TIME_WINDOWS = [
     "25min",
 ]
 DEFAULT_PLOT_KINDS = ("mass", "number", "mass_small", "number_small")
+DEFAULT_COL_WRAP = 3  # Panel columns per row in ``plot_psd_waterfall`` when YAML omits ``plotting.col_wrap``.
+DEFAULT_SHOW_SUPTITLE = True  # When YAML omits ``waterfall.show_suptitle``.
+DEFAULT_TICK_LABEL_PT_DIAMETER = 10.0  # Log-diameter axis tick labels (panels); YAML ``plotting.axis_tick_label_pt``.
+DEFAULT_TICK_LABEL_PT_CONCENTRATION = 10.0  # Synthetic concentration scale ($10^n$) on first column.
+DEFAULT_TICK_LABEL_PT_ALTITUDE = 10.0  # Altitude colorbar tick labels.
 DEFAULT_VARSETS = {
     "mass":         ("qw", "qfw", 1e-6, 1e3, 1.0,  9e3, False),
     "number":       ("nw", "nf",  5e-1, 9e7, 1.0,  9e3, False),
@@ -140,6 +146,19 @@ def _parse_runs_yaml(raw: Any) -> list[dict[str, str]] | None:
     return out
 
 
+def _parse_axis_tick_label_pt(raw: Any) -> tuple[float, float, float]:
+    """Return (diameter, concentration, altitude) tick label sizes in points from YAML dict."""
+    dd, dc, da = DEFAULT_TICK_LABEL_PT_DIAMETER, DEFAULT_TICK_LABEL_PT_CONCENTRATION, DEFAULT_TICK_LABEL_PT_ALTITUDE
+    if not isinstance(raw, dict):
+        return (dd, dc, da)
+
+    def _num(key: str, default: float) -> float:
+        v = raw.get(key)
+        return default if v is None else float(v)
+
+    return (_num("diameter", dd), _num("concentration", dc), _num("altitude", da))
+
+
 @dataclass
 class PsdWaterfallSettings:
     """Resolved defaults from ``config/psd_waterfall.yaml`` with Python fallbacks."""
@@ -155,6 +174,11 @@ class PsdWaterfallSettings:
     alt_bands: tuple[tuple[float, float], ...]
     time_windows: tuple[str, ...]
     plot_kinds: tuple[str, ...]
+    col_wrap: int
+    show_suptitle: bool
+    tick_label_pt_diameter: float
+    tick_label_pt_concentration: float
+    tick_label_pt_altitude: float
     varsets: dict[str, tuple[Any, ...]]
     runs: tuple[dict[str, str], ...]
 
@@ -186,6 +210,12 @@ def build_psd_waterfall_settings(repo_root: Path) -> PsdWaterfallSettings:
     time_windows = tuple(str(x) for x in tw)
 
     plot_kinds = tuple(str(x) for x in pt["plot_kinds"]) if pt.get("plot_kinds") else DEFAULT_PLOT_KINDS
+
+    cw_raw = pt.get("col_wrap")
+    col_wrap = int(cw_raw) if cw_raw is not None else DEFAULT_COL_WRAP
+    col_wrap = max(1, col_wrap)
+
+    t_d, t_c, t_a = _parse_axis_tick_label_pt(pt.get("axis_tick_label_pt"))
 
     vs = _parse_varsets_from_yaml(pt.get("varsets"))
     varsets = vs if vs else dict(DEFAULT_VARSETS)
@@ -222,6 +252,11 @@ def build_psd_waterfall_settings(repo_root: Path) -> PsdWaterfallSettings:
     holimo = Path(wf.get("holimo_file", DEFAULT_HOLIMO_FILE))
     out_root = Path(wf.get("output_root", DEFAULT_OUTPUT_ROOT))
 
+    if "show_suptitle" in wf:
+        show_suptitle = bool(wf["show_suptitle"])
+    else:
+        show_suptitle = DEFAULT_SHOW_SUPTITLE
+
     return PsdWaterfallSettings(
         processed_root_rel=proc,
         holimo_file_rel=holimo,
@@ -234,6 +269,11 @@ def build_psd_waterfall_settings(repo_root: Path) -> PsdWaterfallSettings:
         alt_bands=alt_bands,
         time_windows=time_windows,
         plot_kinds=plot_kinds,
+        col_wrap=col_wrap,
+        show_suptitle=show_suptitle,
+        tick_label_pt_diameter=t_d,
+        tick_label_pt_concentration=t_c,
+        tick_label_pt_altitude=t_a,
         varsets=varsets,
         runs=runs,
     )
@@ -243,7 +283,14 @@ def get_psd_waterfall_cli_defaults(repo_root: Path) -> dict[str, Any]:
     """Path and plot-kind defaults for ``run_psd_waterfall`` argparse (from YAML + fallbacks)."""
     s = build_psd_waterfall_settings(repo_root)
     pr, hf, gfx = s.resolved_paths(repo_root)
-    return {"processed_root": pr, "holimo_file": hf, "output_root": gfx, "plot_kinds": s.plot_kinds}
+    return {
+        "processed_root": pr,
+        "holimo_file": hf,
+        "output_root": gfx,
+        "plot_kinds": s.plot_kinds,
+        "col_wrap": s.col_wrap,
+        "show_suptitle": s.show_suptitle,
+    }
 
 
 def default_psd_waterfall_cmap():
@@ -335,6 +382,54 @@ def draw_reference_grid(ax: Axes, n_bands: int, x_shift: float, y_shift: float) 
         ax.plot(xs, ys, "k:", lw=0.2, alpha=0.8, zorder=1)
 
 
+def _axes_x_extra_for_cb_ct_labels(
+    nf: xr.DataArray,
+    t_lo: np.datetime64,
+    t_hi: np.datetime64,
+    alt_bands: Sequence[tuple[float, float]],
+    zlim: tuple[float, float],
+    xlim: tuple[float, float],
+) -> float:
+    """Axes-fraction shift right for CB/CT when lowest-altitude ice exceeds ``zlim[0]`` far to the right."""
+    if not alt_bands or "altitude" not in nf.dims:
+        return 0.0
+    hi, lo = alt_bands[-1]
+    sub = nf.sel(time=slice(t_lo, t_hi), altitude=slice(hi, lo))
+    if sub.size == 0:
+        return 0.0
+    if "cell" in sub.dims:
+        sub = sub.mean("cell", skipna=True)
+    if "time" in sub.dims:
+        sub = sub.mean("time", skipna=True)
+    if "altitude" in sub.dims:
+        sub = sub.mean("altitude", skipna=True)
+    vals = np.asarray(sub.values, dtype=float).ravel()
+    diam = np.asarray(nf.diameter.values, dtype=float)
+    n = min(vals.size, diam.size)
+    if n == 0:
+        return 0.0
+    vals, diam = vals[:n], diam[:n]
+    mask = np.isfinite(vals) & (vals > float(zlim[0]))
+    if not np.any(mask):
+        return 0.0
+    d_right = float(np.nanmax(diam[mask]))
+    x_lo, x_hi = float(xlim[0]), float(xlim[1])
+    if d_right <= 0 or x_lo <= 0 or x_hi <= x_lo:
+        return 0.0
+    log_lo, log_hi = np.log10(x_lo), np.log10(x_hi)
+    span = log_hi - log_lo
+    if span <= 0:
+        return 0.0
+    pos = (np.log10(np.clip(d_right, x_lo, x_hi)) - log_lo) / span
+    # Ramp extra offset as ice signal reaches the upper part of the log-x axis (overlap with right-anchored text).
+    start, full, max_extra = 0.68, 0.90, 0.12
+    if pos <= start:
+        return 0.0
+    if pos >= full:
+        return max_extra
+    return max_extra * (pos - start) / (full - start)
+
+
 def draw_cloud_top_base(
     ax: Axes,
     nw: xr.DataArray,
@@ -348,6 +443,9 @@ def draw_cloud_top_base(
     x_shift: float,
     y_shift: float,
     idx_faint_start: int = 0,
+    *,
+    zlim: tuple[float, float] = (1e0, 1e6),
+    xlim: tuple[float, float] = (1e-3, 3e3),
 ) -> None:
     """Draw cloud-top and cloud-base markers in projected coordinates."""
     alt_tops = np.array(alt_bands)[:, 0]
@@ -356,6 +454,7 @@ def draw_cloud_top_base(
     if len(active) == 0:
         return
 
+    label_x_extra = _axes_x_extra_for_cb_ct_labels(nf, t_lo, t_hi, alt_bands, zlim, xlim)
     h0, h1 = alt_bands[0][0], alt_bands[1][0]
     for name, alt in [("CT", active.max().values), ("CB", active.min().values)]:
         idx_x = int(np.argmin(np.abs(alt - alt_tops)))
@@ -372,15 +471,17 @@ def draw_cloud_top_base(
             zorder=3,
         )
         ax.text(
-            0.99 + x_off * 0.1,
+            0.99 + x_off * 0.1 + label_x_extra,
             y_pos + 0.6,
             f"{name} ({int(alt)}m)",
             transform=ax.get_yaxis_transform(),
             ha="right",
             va="top",
-            fontsize=7,
+            fontsize=8,
             color="black",
             alpha=0.8,
+            clip_on=False,
+            zorder=5,
         )
 
 
@@ -390,6 +491,8 @@ def draw_concentration_scale(
     zlim: tuple[float, float],
     n_bands: int,
     y_shift: float,
+    *,
+    tick_label_pt: float = DEFAULT_TICK_LABEL_PT_CONCENTRATION,
 ) -> None:
     """Draw the concentration axis glyph in first-column panels."""
     y_front = (n_bands - 1) * y_shift
@@ -402,7 +505,15 @@ def draw_concentration_scale(
         y_tick = y_front + idx
         val_exp = int(log_min + idx)
         ax.plot([sb_x, sb_x * 0.6], [y_tick, y_tick], "k-", lw=1, zorder=100)
-        ax.text(sb_x * 0.4, y_tick, f"$10^{{{val_exp}}}$", ha="right", va="center", weight="bold")
+        ax.text(
+            sb_x * 0.4,
+            y_tick,
+            f"$10^{{{val_exp}}}$",
+            ha="right",
+            va="center",
+            weight="bold",
+            fontsize=tick_label_pt,
+        )
 
 
 def build_stats_rows(
@@ -623,6 +734,8 @@ def format_waterfall_panel(
     t_hi: np.datetime64,
     t_start: np.datetime64,
     xlim: tuple[float, float],
+    *,
+    diameter_tick_label_pt: float = DEFAULT_TICK_LABEL_PT_DIAMETER,
 ) -> None:
     """Apply shared axis formatting for each panel."""
     dt_lo = (t_lo - t_start) / np.timedelta64(1, "m")
@@ -633,6 +746,7 @@ def format_waterfall_panel(
     for spine in ["left", "top", "right"]:
         ax.spines[spine].set_visible(False)
     ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:g}"))
+    ax.tick_params(axis="x", which="major", labelsize=diameter_tick_label_pt)
     ax.text(
         0.02,
         0.96,
@@ -652,15 +766,19 @@ def add_altitude_colorbar(
     cmap,
     n_bands: int,
     alt_bands: Sequence[tuple[float, float]],
+    *,
+    tick_label_pt: float = DEFAULT_TICK_LABEL_PT_ALTITUDE,
 ) -> None:
     """Add the discrete altitude colorbar with band boundaries."""
     colors = [cmap(i / n_bands) for i in range(n_bands)]
     cb_bounds = [band[1] for band in alt_bands[::-1]] + [alt_bands[0][0]]
     norm = mcolors.BoundaryNorm(cb_bounds, n_bands)
     sm = plt.cm.ScalarMappable(cmap=mcolors.ListedColormap(colors[::-1]), norm=norm)
-    cbar = fig.colorbar(sm, ax=axes, pad=0.02, shrink=0.75, aspect=40, label="Altitude / m")
+    cbar = fig.colorbar(sm, ax=axes, pad=0.02, shrink=0.75, aspect=40)
+    cbar.set_label("Altitude / m", fontsize=tick_label_pt)
     cbar.set_ticks(cb_bounds)
     cbar.set_ticklabels([f"{int(level)}" for level in cb_bounds])
+    cbar.ax.tick_params(labelsize=tick_label_pt)
 
 
 def build_holimo_obs_series(
@@ -724,7 +842,7 @@ def overlay_holimo_obs(
         y = np.where(obs["psd"] > zlim[0], np.log10(obs["psd"] + 1e-14) - log_zlim_lo, np.nan)
 
         faint = dict(obs_style)
-        faint.update({"fc": (*obs_style["fc"][:3], 0.08), "ec": (*obs_style["ec"][:3], 0.15), "hatch": None})
+        faint.update({"fc": (*obs_style["fc"][:3], 0.04), "ec": (*obs_style["ec"][:3], 0.1), "hatch": None})
         n_vals = len(obs["diameter"])
         i_split = max(2, n_vals // 3)
 
@@ -828,7 +946,7 @@ def plot_psd_waterfall(
     cmap=None,
     n_cols: int = 3,
     y_shift: float = -0.75,
-    x_shift: float = -0.1,
+    x_shift: float = -0.125,
     cloud_thresh: float = 1e0,
     holimo_obs: list[dict[str, Any]] | None = None,
     show_cloud_bounds: bool = True,
@@ -836,6 +954,9 @@ def plot_psd_waterfall(
     show_small_diameters: bool = True,
     y_label: str = r"Number Concentration (at lowest altitude) / L$^{-1}$",
     stats_basis: str = "number",
+    diameter_tick_label_pt: float = DEFAULT_TICK_LABEL_PT_DIAMETER,
+    concentration_tick_label_pt: float = DEFAULT_TICK_LABEL_PT_CONCENTRATION,
+    altitude_tick_label_pt: float = DEFAULT_TICK_LABEL_PT_ALTITUDE,
 ) -> tuple[Figure, Any]:
     """3D-effect waterfall plot for liquid and frozen PSD fields."""
     cmap = plt.get_cmap("jet") if cmap is None else cmap
@@ -876,7 +997,7 @@ def plot_psd_waterfall(
                 ax.fill_between(band["d_proj"], y_off, y_nw, step="mid", **styles["nw"])
             else:
                 faint_nw = dict(styles["nw"])
-                faint_nw.update({"fc": (*styles["nw"]["fc"][:3], 0.05), "ec": (*styles["nw"]["ec"][:3], 0.1), "hatch": None})
+                faint_nw.update({"fc": (*styles["nw"]["fc"][:3], 0.025), "ec": (*styles["nw"]["ec"][:3], 0.05), "hatch": None})
                 ax.fill_between(band["d_proj"][idx_faint_start:31], y_off, y_nw[idx_faint_start:31], step="mid", **faint_nw)
                 ax.fill_between(band["d_proj"][30:], y_off, y_nw[30:], step="mid", **styles["nw"])
 
@@ -887,17 +1008,38 @@ def plot_psd_waterfall(
 
         draw_reference_grid(ax, n_bands, x_shift, y_shift)
         if show_cloud_bounds and has_altitude and n_bands > 1:
-            draw_cloud_top_base(ax, nw, nf, t_lo, t_hi, cloud_thresh, alt_bands_used, diam, n_bands, x_shift, y_shift, idx_faint_start)
+            draw_cloud_top_base(
+                ax,
+                nw,
+                nf,
+                t_lo,
+                t_hi,
+                cloud_thresh,
+                alt_bands_used,
+                diam,
+                n_bands,
+                x_shift,
+                y_shift,
+                idx_faint_start,
+                zlim=zlim,
+                xlim=xlim,
+            )
 
         if idx % n_cols == 0:
-            draw_concentration_scale(ax, xlim, zlim, n_bands, y_shift)
+            draw_concentration_scale(
+                ax, xlim, zlim, n_bands, y_shift, tick_label_pt=concentration_tick_label_pt
+            )
 
         if show_stats_table:
             add_stats_table(ax, panel["stats_rows"], basis=stats_basis)
-        format_waterfall_panel(ax, idx, t_lo, t_hi, bounds[0], xlim)
+        format_waterfall_panel(
+            ax, idx, t_lo, t_hi, bounds[0], xlim, diameter_tick_label_pt=diameter_tick_label_pt
+        )
 
     if has_altitude:
-        add_altitude_colorbar(fig, axes, cmap, n_bands, alt_bands_used)
+        add_altitude_colorbar(
+            fig, axes, cmap, n_bands, alt_bands_used, tick_label_pt=altitude_tick_label_pt
+        )
     fig.supylabel(y_label, fontsize=12)
     fig.supxlabel(r"Diameter / $\mu$m", fontsize=12)
     return fig, axes
@@ -986,17 +1128,21 @@ def render_psd_waterfall_case(
     var_kind: str,
     *,
     output_root: str | Path | None = None,
+    col_wrap: int | None = None,
     show_cloud_bounds: bool = True,
     show_stats_table: bool = False,
-    show_suptitle: bool = True,
+    show_suptitle: bool | None = None,
     dpi: int = 400,
 ) -> dict[str, Any]:
     """Render one run/variable-kind combination and save figure plus LaTeX table."""
     settings: PsdWaterfallSettings = context.get("psd_waterfall_settings") or build_psd_waterfall_settings(
         context["repo_root"]
     )
+    use_suptitle = settings.show_suptitle if show_suptitle is None else show_suptitle
     if var_kind not in settings.varsets:
         raise KeyError(f"Unknown var_kind '{var_kind}'. Valid: {', '.join(settings.varsets)}")
+
+    n_cols = max(1, int(col_wrap)) if col_wrap is not None else settings.col_wrap
 
     run_ds = context["cs_run_datasets"][run_label]
     ds_case = run_ds.get("vertical", run_ds.get("integrated"))
@@ -1025,20 +1171,24 @@ def render_psd_waterfall_case(
         zlim=(z_lo, z_hi),
         xlim=(x_lo, x_hi),
         cmap=default_psd_waterfall_cmap(),
-        y_shift=-0.5,
-        x_shift=-0.1,
+        n_cols=n_cols,
+        y_shift=-0.7,
+        x_shift=-0.2,
         holimo_obs=context.get("holimo_obs"),
         show_cloud_bounds=show_cloud_bounds,
         show_stats_table=show_stats_table,
         show_small_diameters=show_small_diameters,
         y_label=_y_label_for_var_kind(var_kind),
         stats_basis=basis,
+        diameter_tick_label_pt=settings.tick_label_pt_diameter,
+        concentration_tick_label_pt=settings.tick_label_pt_concentration,
+        altitude_tick_label_pt=settings.tick_label_pt_altitude,
     )
 
     run_id = ds_case.attrs.get(
         "run_id", next((run.get("exp_id") for run in settings.runs if run["label"] == run_label), run_label)
     )
-    if show_suptitle:
+    if use_suptitle:
         fig.suptitle(
             f"PSD altitude–time evolution ({var_kind}): liquid and frozen along plume path — {run_id}",
             fontsize=13,
@@ -1088,9 +1238,10 @@ def render_all_psd_waterfall_cases(
     plot_kinds: tuple[str, ...] | None = None,
     run_labels: list[str] | None = None,
     output_root: str | Path | None = None,
+    col_wrap: int | None = None,
     show_cloud_bounds: bool = True,
     show_stats_table: bool = False,
-    show_suptitle: bool = True,
+    show_suptitle: bool | None = None,
     dpi: int = 400,
 ) -> list[dict[str, Any]]:
     """Render and save all requested run/variable-kind combinations."""
@@ -1109,6 +1260,7 @@ def render_all_psd_waterfall_cases(
                     run_label,
                     var_kind,
                     output_root=output_root,
+                    col_wrap=col_wrap,
                     show_cloud_bounds=show_cloud_bounds,
                     show_stats_table=show_stats_table,
                     show_suptitle=show_suptitle,

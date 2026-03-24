@@ -71,17 +71,25 @@ size_ranges:
 plotting:
   active_range_key: "ALLBB"  # Default single size family for helpers that expect one active range.
   plot_range_keys: ["ALLBB"] # Size families rendered by the waterfall, left to right in the run loop.
+  time_windows: ["5min", "10min", "20min", "35min"]
   altitude_bands: [1350, 1275, 1200, 1125, 1050, 975, 900, 850, 800]  
   growth_times_min: [6.1, 8.0, 9.1]
   obs_ids: ["SM059", "SM058", "SM060"]
-  plot_kinds: ["mass", "number", "mass_small", "number_small"]
+  plot_kinds: ["mass", "number",
+  #  "mass_small", "number_small"
+   ]
+  col_wrap: 2
+  # Tick label font sizes (pt) for PSD waterfall: log diameter (panel x), synthetic concentration ($10^n$), altitude colorbar.
+  axis_tick_label_pt:
+    diameter: 10
+    concentration: 10
+    altitude: 10
   # Seven fields per kind: liquid var, ice var, z_lo, z_hi, x_lo, x_hi, show_small_diameters
   varsets:
     mass: [qw, qfw, 1.0e-6, 1.0e3, 1.0, 9.0e3, false]
     number: [nw, nf, 0.5, 9.0e7, 1.0, 9.0e3, false]
     mass_small: [qw, qfw, 1.0e-6, 1.0e3, 1.0e-3, 9.0e3, true]
     number_small: [nw, nf, 0.5, 9.0e7, 1.0e-3, 9.0e3, true]
-  time_windows: ["0.0167min", "2min", "5min", "10min", "35min"]
   runs: [ {"label": "400m, inp 1e6, ccn 400 (analytic)",   "cs_run": "cs-eriswil__20260127_211338", "exp_id": "20260127211431"},
           {"label": "400m, inp 1e6, ccn 400 (planar)",     "cs_run": "cs-eriswil__20260127_211338", "exp_id": "20260127211551"},
           {"label": "400m, inp 1e6, ccn 400 (spherical)",  "cs_run": "cs-eriswil__20260121_131528", "exp_id": "20260121131550"},
@@ -90,6 +98,7 @@ plotting:
 
 # Optional overrides for `run_psd_waterfall.py` / `load_psd_waterfall_context` (paths relative to repo root).
 waterfall:
+  show_suptitle: false  # Figure suptitle; CLI `--hide-suptitle` still forces it off for a run.
   processed_root: data/processed
   holimo_file: data/observations/holimo_data/CL_20230125_1000_1140_SM058_SM060_ts1.nc
   output_root: output/gfx

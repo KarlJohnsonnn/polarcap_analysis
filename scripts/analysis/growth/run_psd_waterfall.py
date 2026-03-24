@@ -98,13 +98,20 @@ def main() -> None:
     parser.add_argument(
         "--hide-suptitle",
         action="store_true",
-        help="Skip the figure suptitle.",
+        help="Skip the figure suptitle (overrides config/psd_waterfall.yaml waterfall.show_suptitle).",
     )
     parser.add_argument(
         "--dpi",
         type=int,
         default=400,
         help="PNG output DPI.",
+    )
+    parser.add_argument(
+        "--col-wrap",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Panels per row (default from config/psd_waterfall.yaml plotting.col_wrap).",
     )
     args = parser.parse_args()
 
@@ -122,16 +129,17 @@ def main() -> None:
         plot_kinds=tuple(_parse_csv(args.plot_kinds) or _PSD_CLI["plot_kinds"]),
         run_labels=_parse_run_labels(args.run_labels, list(context["cs_run_datasets"].keys())),
         output_root=args.output_root,
+        col_wrap=args.col_wrap,
         show_stats_table=args.show_stats_table,
-        show_suptitle=not args.hide_suptitle,
+        show_suptitle=False if args.hide_suptitle else None,
         dpi=args.dpi,
     )
 
     for item in outputs:
-        print(f"saved figure -> {item['figure_path']}")
+        print(f"saved figure -> {item['figure_path'].resolve().as_uri()}")
         print(item["stats_df"].to_string(index=False))
-        print(f"saved stats  -> {item['stats_csv_path']}")
-        print(f"saved latex -> {item['table_path']}")
+        print(f"saved stats  -> {item['stats_csv_path'].resolve().as_uri()}")
+        print(f"saved latex -> {item['table_path'].resolve().as_uri()}")
 
 
 if __name__ == "__main__":
