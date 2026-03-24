@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 - **Meteogram Zarr Chunk Defaults** – Updated `build_meteogram_zarr` (`src/utilities/meteogram_io.py`) default chunk sizes to be optimal for time-frame and single-station analysis: `time=100`, `station=1`, `bins=30` (added `target_bins_chunk` parameter).
-- **Compression** – Moved to `scripts/nc_compression/`: `compress_nc.sh`, `compress_nc_slurm.sh`. Processing chain README now points to that directory.
+- **Compression** – Simplified `scripts/nc_compression/` to `compress.sh`, `archive.sh`, and `run_compess_and_archive.sh`.
 - **`_paths.py`** → `src/utilities/processing_paths.py` – Path resolution moved into utilities for reuse by notebooks and other scripts.
 - **Output root defaults** – `run_chain.py`, `run_lv1_tracking.py`, `run_lv2_meteogram_zarr.py`, and `run_lv3_analysis.py` now resolve output roots via explicit `--out`, then `$POLARCAP_OUTPUT_ROOT`, then the matching `RUN_ERISWILL_*x100/ensemble_output` tree for the run, else local `processed`.
 - **Spectral waterfall entrypoint** – The preferred launcher is now `scripts/analysis/growth/run_spectral_waterfall.py`; the processing-chain script stays in place for compatibility.

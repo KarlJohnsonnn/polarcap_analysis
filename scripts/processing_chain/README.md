@@ -108,7 +108,7 @@ The preferred spectral waterfall launcher now lives in `scripts/analysis/growth/
 - Use `--skip-tracking`, `--skip-meteogram`, `--skip-lv3` in `run_chain.py` to run only later stages.
 - Use `--dry-run` to print commands without executing (useful to check config and paths).
 
-**Compress M_*.nc and 3D_*.nc:** See `scripts/nc_compression/` for `compress_nc.sh` and SLURM usage.
+**Compress M_*.nc and 3D_*.nc:** See `scripts/nc_compression/` for `compress.sh` and `run_compess_and_archive.sh`.
 
 ## Metadata and provenance
 
