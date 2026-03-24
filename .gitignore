@@ -86,3 +86,5 @@ article_draft/PolarCAP
 !output/gallery/*.mp4
 !output/gallery/*.yaml
 !output/gallery/README.md
+# keep gfx artifacts local-only
+output/gfx/
