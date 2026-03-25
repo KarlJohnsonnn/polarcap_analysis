@@ -298,6 +298,13 @@ def run_tobac_tracking(
     ds_ref = _load_3d_for_tracking(
         ctx.ref_nc_file, ctx.extpar_file, nml_ref, reduced, ["nf", "t"]
     )
+    # If the reference run has coarser temporal resolution, interpolate it
+    # onto the flare time grid (e.g. 30s -> 10s) before further processing.
+    if "time" in ds_flare.coords and "time" in ds_ref.coords:
+        flare_time = ds_flare["time"]
+        ref_time = ds_ref["time"]
+        if ref_time.size != flare_time.size or not np.array_equal(ref_time.values, flare_time.values):
+            ds_ref = ds_ref.interp(time=flare_time)
     flare_alt_idx = getattr(ctx, "flare_alt_idx", -nml_flare["flare_sbm"]["flare_hight"])
     ds_flare.attrs["flare_alt"] = float(ds_flare.altitude.values[100 - flare_alt_idx])
 
