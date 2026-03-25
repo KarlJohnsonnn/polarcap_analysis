@@ -21,8 +21,20 @@ export PATH="$POLARCAP_ROOT/scripts/nc_compression:$PATH"
 
 ## Command
 
+Compress and archive NetCDF files from one source directory to one HSM tape.
 ```bash
 archive2tape [source_dir] <compressed_name>
+```
+
+Compress and archive NetCDF files from multiple source directories to one HSM tape.
+
+```bash
+cd /path/to/ensemble_output
+for d in ./cs-eriswil__*
+do
+    [[ -d "$d" ]] || continue
+    archive2tape "$d" "${d}.tar.zst"
+done
 ```
 
 ## Workflow sketch
@@ -111,6 +123,7 @@ Behavior:
 - `ARCHIVE_JOBS` (number of parallel archive jobs, default: `2`)
 - `OVERWRITE=1` (overwrite existing compressed files)
 - `RETRY=1` (retry archive if it fails) and `RETRY_DELAY=60` (delay between retries in seconds)
+- `LOG_DIR` (optional; default: `./.slurm/<run_name>_<timestamp>/` in the directory where `archive2tape` is executed)
 
 Note: `<user_name>` (e.g. `b382237`) and `<project_name>` (e.g. `bb1262`) are placeholders for your actual user and project names.
 

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+CALL_DIR="$(pwd -P)"
 GRAVEYARD="${GRAVEYARD:-/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output}"
 HSM_ROOT="${HSM_ROOT:-/arch/bb1262/cosmo-specs/ensemble_output}"
 
@@ -45,7 +46,7 @@ compressed_dir="${GRAVEYARD%/}/${run_name}"
 mkdir -p "$compressed_dir"
 compressed_dir="$(dir_abs "$compressed_dir")"
 
-LOG_DIR="${LOG_DIR:-$SCRIPT_DIR/.slurm/${run_name}_$(date +%Y%m%d_%H%M%S)}"
+LOG_DIR="${LOG_DIR:-$CALL_DIR/.slurm/${run_name}_$(date +%Y%m%d_%H%M%S)}"
 mkdir -p "$LOG_DIR"
 
 source_manifest="$LOG_DIR/source.txt"
