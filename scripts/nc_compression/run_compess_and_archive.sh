@@ -25,6 +25,31 @@ EOF
 
 dir_abs() { cd "$1" && pwd -P; }
 line_count() { awk 'END{print NR+0}' "$1"; }
+print_archive_summary() {
+    local log_dir="$1"
+    local file_count="$2"
+    shopt -s nullglob
+    local out_logs=("$log_dir"/archive_*_*.out)
+    shopt -u nullglob
+    local n_logs="${#out_logs[@]}"
+    local completed=0 failed=0
+    if (( n_logs > 0 )); then
+        completed="$(grep -h -c 'Non-recursive Archive completed' "${out_logs[@]}" 2>/dev/null | awk '{s+=$1} END{print s+0}')"
+        failed="$(grep -h -E -c 'Non-recursive Archive failed|ERROR:' "${out_logs[@]}" 2>/dev/null | awk '{s+=$1} END{print s+0}')"
+    fi
+    echo
+    echo "=== archive2tape summary ==="
+    echo "LOG_DIR:               $log_dir"
+    echo "Archive tasks planned: $file_count"
+    echo "Archive logs found:    $n_logs"
+    echo "Completed (so far):    $completed"
+    echo "Failed (so far):       $failed"
+    if (( failed > 0 )); then
+        echo
+        echo "Failed archive entries (so far):"
+        grep -H -n -E 'Non-recursive Archive failed|ERROR:' "$log_dir"/archive_*_*.out 2>/dev/null || true
+    fi
+}
 run_name_from_archive() {
     local name="$1"
     name="$(basename "$name")"
@@ -58,6 +83,13 @@ file_count="$(line_count "$source_manifest")"
 while IFS= read -r file; do printf '%s/%s.zst\n' "$compressed_dir" "$(basename "$file")"; done < "$source_manifest" > "$compressed_manifest"
 
 hsm_namespace="${HSM_ROOT%/}/${run_name}"
+archive_jobs="${ARCHIVE_JOBS:-2}"
+[[ "$archive_jobs" =~ ^[0-9]+$ ]] || { echo "ARCHIVE_JOBS must be an integer (got '$archive_jobs')." >&2; exit 1; }
+(( archive_jobs >= 1 )) || { echo "ARCHIVE_JOBS must be >= 1." >&2; exit 1; }
+if (( archive_jobs > 3 )); then
+    echo "WARNING: ARCHIVE_JOBS=$archive_jobs exceeds recommended max (3); using 3." >&2
+    archive_jobs=3
+fi
 
 compress_job_id="$(
     sbatch --parsable \
@@ -97,7 +129,7 @@ archive_job_id="$(
         --mem=8G \
         --output="$LOG_DIR/archive_%A_%a.out" \
         --error="$LOG_DIR/archive_%A_%a.err" \
-        --array="0-$((file_count - 1))%${ARCHIVE_JOBS:-2}" \
+        --array="0-$((file_count - 1))%${archive_jobs}" \
         --export="ALL,SCRIPT_DIR=$SCRIPT_DIR,MANIFEST=$compressed_manifest,HSM_NAMESPACE=$hsm_namespace,RETRY=${RETRY:-0},RETRY_DELAY=${RETRY_DELAY:-60}" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -114,5 +146,7 @@ printf 'COMPRESSED_DIR=%s\n' "$compressed_dir"
 printf 'HSM_NAMESPACE=%s\n' "$hsm_namespace"
 printf 'SOURCE_MANIFEST=%s\n' "$source_manifest"
 printf 'COMPRESSED_MANIFEST=%s\n' "$compressed_manifest"
+printf 'LOG_DIR=%s\n' "$LOG_DIR"
 printf 'COMPRESS_JOB_ID=%s\n' "$compress_job_id"
 printf 'ARCHIVE_JOB_ID=%s\n' "$archive_job_id"
+print_archive_summary "$LOG_DIR" "$file_count"

@@ -2,8 +2,8 @@
 
 Tools in this folder:
 
-- `archive2tape` - short command wrapper
-- `run_compess_and_archive.sh` - Slurm orchestrator
+- `archive2tape` - short command wrapper (thin `exec` wrapper)
+- `run_compess_and_archive.sh` - Slurm orchestrator (submits jobs + prints summary)
 - `compress.sh` - list/compress/extract `M_*.nc` and `3D_*.nc`
 - `archive.sh` - list/archive `*.nc.zst` with `slk archive -vv`
 
@@ -120,6 +120,10 @@ Behavior in order:
 2. Compress NetCDF files directly into `$GRAVEYARD/<run_name>/`
 3. Archive compressed files to `$HSM_ROOT/<run_name>/`
 
+After submission, `run_compess_and_archive.sh` prints an **automatic summary** based on the
+current contents of `LOG_DIR` (it will typically show `0` completed/failed immediately,
+and update as Slurm writes `archive_*.out` files).
+
 ## Archive only (skip compression)
 
 If compression already succeeded and only archiving failed, archive existing `*.nc.zst` files directly.
@@ -146,8 +150,10 @@ for run_dir in ./cs-eriswil__*; do
   ls -1 "$GRAVEYARD/$run"/*.nc.zst > "$manifest" 2>/dev/null || { rm -f "$manifest"; continue; }
   n=$(awk 'END{print NR}' "$manifest")
   (( n > 0 )) || { rm -f "$manifest"; continue; }
+  archive_jobs="${ARCHIVE_JOBS:-2}"
+  (( archive_jobs > 3 )) && archive_jobs=3
 
-  sbatch --array="0-$((n-1))%2" --partition=shared --account=bb1262 --time=04:00:00 --mem=8G \
+  sbatch --array="0-$((n-1))%$archive_jobs" --partition=shared --account=bb1262 --time=04:00:00 --mem=8G \
     --export="ALL,MANIFEST=$manifest,HSM_NS=$HSM_ROOT/$run,SCRIPT_DIR=$PWD/scripts/nc_compression,RETRY=1,RETRY_DELAY=60" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -166,7 +172,7 @@ Key environment variables:
 - `GRAVEYARD`: temporary location for compressed files
 - `HSM_ROOT`: destination tape namespace root
 - `COMPRESS_JOBS`: compression array concurrency (default `8`)
-- `ARCHIVE_JOBS`: archive array concurrency (default `2`)
+- `ARCHIVE_JOBS`: archive array concurrency (default `2`, capped at `3`)
 - `OVERWRITE=1`: overwrite existing compressed files
 - `RETRY=1`: retry failed archive once
 - `RETRY_DELAY=60`: wait time before retry in seconds
@@ -177,6 +183,7 @@ Printed output variables:
 - `RUN_NAME=...`
 - `COMPRESSED_DIR=...`
 - `HSM_NAMESPACE=...`
+- `LOG_DIR=...`
 - `COMPRESS_JOB_ID=...`
 - `ARCHIVE_JOB_ID=...`
 
