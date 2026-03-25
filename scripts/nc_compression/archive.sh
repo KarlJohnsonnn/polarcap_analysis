@@ -39,11 +39,15 @@ archive_one() {
     code=$?
     set -e
     if [[ "$code" -ne 0 && "${RETRY:-0}" == 1 ]]; then
+        echo "WARNING: slk archive failed for '$src' (exit $code). Retrying in ${RETRY_DELAY:-60}s..." >&2
         sleep "${RETRY_DELAY:-60}"
         set +e
         slk archive -vv "$src" "$ns"
         code=$?
         set -e
+    fi
+    if [[ "$code" -ne 0 ]]; then
+        echo "WARNING: archive failed for '$src' -> '$ns' (exit $code)." >&2
     fi
     return "$code"
 }

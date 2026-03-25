@@ -27,6 +27,7 @@ dir_abs() { cd "$1" && pwd -P; }
 line_count() { awk 'END{print NR+0}' "$1"; }
 run_name_from_archive() {
     local name="$1"
+    name="$(basename "$name")"
     name="${name%.tar.zst}"
     name="${name%.zst}"
     printf '%s\n' "$name"

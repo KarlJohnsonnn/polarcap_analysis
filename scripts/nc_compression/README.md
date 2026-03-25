@@ -1,43 +1,57 @@
 # NetCDF compression and HSM archive
 
-- `compress.sh`: list/compress/extract `M_*.nc` and `3D_*.nc`
-- `archive.sh`: list `*.nc.zst` or archive one file via `slk archive -vv`
-- `run_compess_and_archive.sh`: submits compression+archive Slurm arrays
-- `archive2tape`: short wrapper command
+Tools in this folder:
 
-Before archiving on Levante, run `module load slk` and `slk login`.
+- `archive2tape` - short command wrapper
+- `run_compess_and_archive.sh` - Slurm orchestrator
+- `compress.sh` - list/compress/extract `M_*.nc` and `3D_*.nc`
+- `archive.sh` - list/archive `*.nc.zst` with `slk archive -vv`
 
-DKRZ docs:
+Before archiving on Levante, run:
+
+```bash
+module load slk
+slk login
+```
+
+DKRZ references:
 
 - [Archivals to tape](https://docs.dkrz.de/doc/datastorage/hsm/archivals.html#)
 - [Getting Started with slk](https://docs.dkrz.de/doc/datastorage/hsm/getting_started.html)
 
-## Enable `archive2tape` from anywhere
+## Quick start
+
+Enable `archive2tape` from anywhere:
 
 ```bash
 export POLARCAP_ROOT=/path/to/polarcap_analysis
 export PATH="$POLARCAP_ROOT/scripts/nc_compression:$PATH"
 ```
 
-## Command
+Run one directory:
 
-Compress and archive NetCDF files from one source directory to one HSM tape.
 ```bash
 archive2tape [source_dir] <compressed_name>
 ```
 
-Compress and archive NetCDF files from multiple source directories to one HSM tape.
+Example:
 
 ```bash
 cd /path/to/ensemble_output
-for d in ./cs-eriswil__*
-do
-    [[ -d "$d" ]] || continue
-    archive2tape "$d" "${d}.tar.zst"
+archive2tape ./cs-eriswil__20260318_153631 cs-eriswil__20260318_153631.tar.zst
+```
+
+Batch all `cs-eriswil__*` subdirectories in current directory:
+
+```bash
+for d in ./cs-eriswil__*; do
+  [[ -d "$d" ]] || continue
+  run="${d#./}"
+  archive2tape "$d" "${run}.tar.zst"
 done
 ```
 
-## Workflow sketch
+## Workflow
 
 ```mermaid
 %%{init: { "theme": "neutral", "flowchart": { "curve": "linear", "nodeSpacing": 30, "rankSpacing": 40, "padding": 8, "useMaxWidth": true } }}%%
@@ -92,8 +106,6 @@ flowchart TD
     style STEP3 fill:#fafafa,stroke:#d9dde2,stroke-width:1px
 ```
 
-
-
 **Legend**
 
 - **Dark gray**: command entrypoint (`archive2tape`)
@@ -102,36 +114,71 @@ flowchart TD
 - **Light gray**: metadata and monitoring details
 - **Pale stage container**: grouped workflow stage
 
-Example:
-
-```bash
-cd /path/to/ensemble_output
-archive2tape ./cs-eriswil__20260318_153631 cs-eriswil__20260318_153631.tar.zst
-```
-
-Behavior:
+Behavior in order:
 
 1. Create run dir in `$GRAVEYARD`: `cs-eriswil__YYYYMMDD_HHMMSS`
 2. Compress NetCDF files directly into `$GRAVEYARD/<run_name>/`
 3. Archive compressed files to `$HSM_ROOT/<run_name>/`
 
-## Key environmental variables
+## Archive only (skip compression)
 
-- `GRAVEYARD` (temporary storage of compressed files, default: `/scratch/b/<user_name>/path/to/ensemble_output`)
-- `HSM_ROOT` (HSM storage of archived files, default: `/arch/<project_name>/path/to/cosmo_specs/ensemble_output`)
-- `COMPRESS_JOBS` (number of parallel compression jobs, default: `8`)
-- `ARCHIVE_JOBS` (number of parallel archive jobs, default: `2`)
-- `OVERWRITE=1` (overwrite existing compressed files)
-- `RETRY=1` (retry archive if it fails) and `RETRY_DELAY=60` (delay between retries in seconds)
-- `LOG_DIR` (optional; default: `./.slurm/<run_name>_<timestamp>/` in the directory where `archive2tape` is executed)
+If compression already succeeded and only archiving failed, archive existing `*.nc.zst` files directly.
 
-Note: `<user_name>` (e.g. `b382237`) and `<project_name>` (e.g. `bb1262`) are placeholders for your actual user and project names.
+Sequential:
 
-## Printed output variables
+```bash
+module load slk
+slk login
+run=cs-eriswil__20251125_114053
+for f in "$GRAVEYARD/$run"/*.nc.zst; do
+  [[ -f "$f" ]] || continue
+  scripts/nc_compression/archive.sh archive "$f" "$HSM_ROOT/$run"
+done
+```
 
-- `RUN_NAME=...` (derived from the compressed file name)
-- `COMPRESSED_DIR=...` (path to the compressed files)
-- `HSM_NAMESPACE=...` (path to the HSM archive)
-- `COMPRESS_JOB_ID=...` (job ID for the compression job)
-- `ARCHIVE_JOB_ID=...` (job ID for the archive job)
+Slurm array (faster):
+
+```bash
+for run_dir in ./cs-eriswil__*; do
+  [[ -d "$run_dir" ]] || continue
+  run="${run_dir#./}"
+  manifest="$(mktemp)"
+  ls -1 "$GRAVEYARD/$run"/*.nc.zst > "$manifest" 2>/dev/null || { rm -f "$manifest"; continue; }
+  n=$(awk 'END{print NR}' "$manifest")
+  (( n > 0 )) || { rm -f "$manifest"; continue; }
+
+  sbatch --array="0-$((n-1))%2" --partition=shared --account=bb1262 --time=04:00:00 --mem=8G \
+    --export="ALL,MANIFEST=$manifest,HSM_NS=$HSM_ROOT/$run,SCRIPT_DIR=$PWD/scripts/nc_compression,RETRY=1,RETRY_DELAY=60" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+f="$(sed -n "$((SLURM_ARRAY_TASK_ID+1))p" "$MANIFEST")"
+"$SCRIPT_DIR/archive.sh" archive "$f" "$HSM_NS"
+EOF
+done
+```
+
+When an archive task fails, `archive.sh` prints a `WARNING:` message (and warns again before retry if `RETRY=1`).
+
+## Configuration reference
+
+Key environment variables:
+
+- `GRAVEYARD`: temporary location for compressed files
+- `HSM_ROOT`: destination tape namespace root
+- `COMPRESS_JOBS`: compression array concurrency (default `8`)
+- `ARCHIVE_JOBS`: archive array concurrency (default `2`)
+- `OVERWRITE=1`: overwrite existing compressed files
+- `RETRY=1`: retry failed archive once
+- `RETRY_DELAY=60`: wait time before retry in seconds
+- `LOG_DIR`: optional log root (default `./.slurm/<run_name>_<timestamp>/` where `archive2tape` is executed)
+
+Printed output variables:
+
+- `RUN_NAME=...`
+- `COMPRESSED_DIR=...`
+- `HSM_NAMESPACE=...`
+- `COMPRESS_JOB_ID=...`
+- `ARCHIVE_JOB_ID=...`
+
+Note: `<user_name>` and `<project_name>` in path examples are placeholders.
 

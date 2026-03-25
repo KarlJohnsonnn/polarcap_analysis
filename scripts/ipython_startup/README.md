@@ -5,13 +5,13 @@ Install once to make PolarCAP runtime helpers available in every new notebook ke
 ## Install
 
 ```bash
-bash scripts/ipython_startup/install.sh
+$ scripts/ipython_startup/install.sh
 ```
 
 ## Uninstall
 
 ```bash
-bash scripts/ipython_startup/uninstall.sh
+$ scripts/ipython_startup/uninstall.sh
 ```
 
 ## What it does
