@@ -9,6 +9,7 @@ Scripts under `scripts/processing_chain` run the full pipeline from raw COSMO-SP
 | **LV1a** | `run_lv1_tracking.py` | 3D NetCDFs, run JSON | `lv1_tracking/`: tobac features/tracks CSVs, segmentation mask NetCDF |
 | **LV1b** | `run_lv1_tracking.py` | LV1a + 3D fields | `lv1_paths/`: per-cell plume path NetCDFs (integrated, extreme, vertical) |
 | **LV2** | `run_lv2_meteogram_zarr.py` | Meteogram NetCDFs `M_??_??_*.nc` | `lv2_meteogram/`: single Zarr store |
+| **LV2b** | `run_lv2_3d_zarr.py` | 3D NetCDFs `3D_*.nc`, run JSON, extpar | `lv2_3d/`: normalized ensemble Zarr + manifest |
 | **LV3** | `run_lv3_analysis.py` | LV2 Zarr | `lv3_rates/`: process-budget rate NetCDFs per experiment |
 
 ## Layout
@@ -19,6 +20,7 @@ processed/
     lv1_tracking/    # Tobac CSVs + *_nf_tobac_mask_xarray.nc (tracer: size-integrated ice number)
     lv1_paths/       # data_<cs_run>_<exp>_<integrated|extreme|vertical>_plume_path_nf_cell<N>.nc
     lv2_meteogram/   # Meteogram_<cs_run>_*.zarr
+    lv2_3d/          # 3D_<cs_run>_*.zarr + 3D_<cs_run>_*.manifest.json
     lv3_rates/       # process_rates_exp<N>.nc
     manifests/       # run_manifest.json
 ```
@@ -38,6 +40,17 @@ Plume tracking follows the approach in Omanovic et al. 2024 and the archive note
 
 - **`--ref-idx -1` (default)**: Automatically select the reference experiment that matches the chosen flare in all non-emission parameters. If no such reference exists (e.g. flare has different `ishape` than any ref), discovery fails with a clear error.
 - **`--ref-idx N`**: Use the N-th reference experiment by index (previous behaviour). Use when you have multiple refs and want to force a specific one.
+
+## LV2b 3D ensemble Zarr
+
+`run_lv2_3d_zarr.py` converts multiple top-level `3D_*.nc` experiment files into one normalized Zarr store along `expname`.
+
+- **Time harmonization**: experiments are interpolated to a shared output grid (default `10 s`) using the overlap of all runs, so lower-frequency members (for example `30 s`) can be combined with `10 s` members.
+- **Dimension convention**: the output uses physical coordinate names and prefers the order `expname`, `time`, `altitude`, `longitude`, `latitude`, `diameter` when spectral variables are present.
+- **Variable preservation**: by default the script keeps the native 3D fields from the source NetCDFs; use `--var-sets` only when you intentionally want a smaller subset.
+- **Growth strategy**: appending in place is intentionally avoided; when new experiments arrive, rerun the script with `--overwrite` to rebuild the Zarr from the full set of `3D_*.nc` inputs.
+- **Manifest**: each build writes a sidecar `*.manifest.json` listing the exact source files used for the Zarr, which is useful for validation and later cleanup.
+- **Smoke tests**: use `--limit-experiments 2` to validate the workflow on a subset before processing the full ensemble.
 
 ## Levante / NumPy
 
@@ -79,6 +92,8 @@ python run_lv1_tracking.py --cs-run cs-eriswil__20260123_180947 --root /path/to/
 
 # LV2 only (--root defaults to $CS_RUNS_DIR; scripts resolve RUN_ERISWILL_*/ensemble_output/)
 python run_lv2_meteogram_zarr.py -r cs-eriswil__20260123_180947
+python run_lv2_3d_zarr.py -r cs-eriswil__20260123_180947
+python run_lv2_3d_zarr.py -r cs-eriswil__20260123_180947 --limit-experiments 2 --overwrite
 
 # LV3 only (needs LV2 Zarr)
 python run_lv3_analysis.py --cs-run cs-eriswil__20260123_180947
@@ -109,6 +124,12 @@ The preferred spectral waterfall launcher now lives in `scripts/analysis/growth/
 - Use `--dry-run` to print commands without executing (useful to check config and paths).
 
 **Compress M_*.nc and 3D_*.nc:** See `scripts/nc_compression/` for `compress.sh` and `run_compess_and_archive.sh`.
+
+For the new 3D Zarr workflow, the safe storage-recovery sequence is:
+
+1. Build and reopen the `lv2_3d/*.zarr` store successfully.
+2. Optionally archive the original top-level `3D_*.nc` files with `scripts/nc_compression/compress.sh`.
+3. Delete the original `3D_*.nc` files only after the Zarr and manifest look correct.
 
 ## Slurm job health dashboard
 
@@ -158,6 +179,8 @@ Optional YAML/JSON config via `--config` (e.g. `config/processing_chain.yaml`). 
 - **Domain vs directory name**: LV1 builds paths as `RUN_ERISWILL_{domain}x100` (e.g. `50x40` → `50x40x100`). If your run lives under `RUN_ERISWILL_50x42x100`, pass `--domain 50x42`. LV2 finds any `RUN_ERISWILL_*x100` that contains the run.
 - **Flare/ref indices**: Use `--flare-idx` to pick which flare experiment to track. Use `--ref-idx -1` (default) to auto-select the reference that matches the flare in all non-emission params; use `--ref-idx N` to force the N-th reference. If auto fails (no matching ref, e.g. different `ishape`), discovery returns no context with a clear error.
 - **Missing run JSON**: LV1 needs `*.json` and `3D_*.nc` in the run dir. LV2 needs `{cs_run}.json` in the run dir and meteogram NetCDFs. Missing metadata yields an explicit error.
+- **LV2b time axis**: `run_lv2_3d_zarr.py` uses the overlapping time window across all experiments when it interpolates to the shared output step, so the combined Zarr may be shorter than the longest individual member.
+- **LV2b future experiments**: the intended workflow is rebuild, not append; add new `3D_*.nc` files to the run directory and rerun `run_lv2_3d_zarr.py --overwrite`.
 - **Empty Zarr / no experiments**: LV3 exits with a clear message if the Zarr has no `expname` dimension or `--exp-ids` is empty.
 - **Multiple Zarrs**: LV3 prefers a non-`_dbg` Zarr when both exist under `lv2_meteogram/`.
 - **Config paths**: `model_data_root` and `output_root` in YAML support `$VAR` and `~`; they are expanded before use. Missing `RUN_ERISWILL_*x100/ensemble_output` under the data root is reported instead of using a non-existent fallback path.
