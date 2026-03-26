@@ -11,11 +11,20 @@
 #SBATCH --output=logs/chain-%j.out
 #SBATCH --error=logs/chain-%j.err
 
+# ----- config for a 200x160 domain -----
+# DOMAIN="200x160"
+# CS_RUN="cs-eriswil__20260318_153631"
+# FLARE_IDX_LIST=(0 1 3 4)
+# REF_IDX_LIST=(0 1 1 1)
+
+# ----- config for a 50x42 domain -----
+DOMAIN="50x42"
+CS_RUN="cs-eriswil__20260313_111441"
+FLARE_IDX_LIST=(0 1)
+REF_IDX_LIST=(0 1)
+
+
 DATA_ROOT="$CS_RUNS_DIR"
-DOMAIN="200x160"
-CS_RUN="cs-eriswil__20260318_153631"
-FLARE_IDX_LIST=(0 1 3 4)
-REF_IDX_LIST=(0 1 1 1)
 CONFIG="${POLARCAP_ROOT}/config/processing_chain.yaml"
 OUTPUT_ROOT="${POLARCAP_ROOT}/data/processed"
 DEBUG_LOG="${POLARCAP_ROOT}/.cursor/debug-f85260.log"
