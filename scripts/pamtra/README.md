@@ -19,9 +19,9 @@ are therefore not suitable as a radar-profile default.
 
 The working remote install now lives at:
 
-- code: `/home/b/b382237/code/radar_forward/pamtra`
-- data: `/home/b/b382237/code/radar_forward/pamtra/pamtra_data`
-- venv: `/home/b/b382237/code/radar_forward/pamtra/.venv`
+- code: `~/code/radar_forward/pamtra`
+- data: `~/code/radar_forward/pamtra/pamtra_data`
+- venv: `~/code/radar_forward/pamtra/.venv`
 
 Use a clean environment when running the wrapper so an older `~/lib/python`
 install does not override the dedicated venv:
@@ -34,7 +34,7 @@ spack load /fnfhvr6
 spack load /tpmfvw
 unset PYTHONPATH
 export PYTHONNOUSERSITE=1
-export PAMTRA_DATADIR=/home/b/b382237/code/radar_forward/pamtra/pamtra_data
+export PAMTRA_DATADIR=~/code/radar_forward/pamtra/pamtra_data
 export OPENBLAS_NUM_THREADS=1
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/sw/spack-levante/openblas-0.3.18-tpmfvw/lib/:/sw/spack-levante/fftw-3.3.10-fnfhvr/lib/
 ```
@@ -63,10 +63,10 @@ make -f Makefile.levante pyinstall F2PY=$(pwd)/.venv/bin/f2py PYINSTDIR=$PYINSTD
 Example on `lev`:
 
 ```bash
-/home/b/b382237/code/radar_forward/pamtra/.venv/bin/python \
+~/code/radar_forward/pamtra/.venv/bin/python \
   /path/to/polarcap_analysis/scripts/pamtra/run_pamtra_plume_paths.py \
-  /work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/<cs-run-dir>/processed/lv1_paths \
-  --output-dir /work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/<cs-run-dir>/pamtra
+  $CS_RUNS_DIR/RUN_ERISWILL_50x42x100/ensemble_output/<cs-run-dir>/processed/lv1_paths \
+  --output-dir $CS_RUNS_DIR/RUN_ERISWILL_50x42x100/ensemble_output/<cs-run-dir>/pamtra
 ```
 
 For a quick smoke test, add `--limit-times 2`.
@@ -79,10 +79,10 @@ run the remote smoke test, and optionally process one real vertical plume file:
 ```bash
 ./scripts/pamtra/enable_remote_levante.sh \
   lev \
-  /home/b/b382237/code/radar_forward/pamtra \
-  /home/b/b382237/code/radar_forward/pamtra/test_output \
-  --real-input /home/b/b382237/code/jupyterhub_nbs/processed/data_cs-eriswil__20251125_114053_20251125114238_vertical_plume_path_qs_cell1.nc \
-  --real-output-dir /home/b/b382237/code/radar_forward/pamtra/real_test_output
+  ~/code/radar_forward/pamtra \
+  ~/code/radar_forward/pamtra/test_output \
+  --real-input ~/code/jupyterhub_nbs/processed/data_cs-eriswil__20251125_114053_20251125114238_vertical_plume_path_qs_cell1.nc \
+  --real-output-dir ~/code/radar_forward/pamtra/real_test_output
 ```
 
 To submit the real-file processing through SLURM instead of running on the
@@ -90,8 +90,8 @@ login node, add `--submit-slurm`. Defaults are `4` CPUs, `16G`, and `01:00:00`.
 
 ```bash
 ./scripts/pamtra/enable_remote_levante.sh \
-  --real-input /home/b/b382237/code/jupyterhub_nbs/processed/data_cs-eriswil__20251125_114053_20251125114238_vertical_plume_path_qs_cell1.nc \
-  --real-output-dir /home/b/b382237/code/radar_forward/pamtra/real_test_output \
+  --real-input ~/code/jupyterhub_nbs/processed/data_cs-eriswil__20251125_114053_20251125114238_vertical_plume_path_qs_cell1.nc \
+  --real-output-dir ~/code/radar_forward/pamtra/real_test_output \
   --submit-slurm \
   --slurm-cpus 8 \
   --slurm-mem 32G \

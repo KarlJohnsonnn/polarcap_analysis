@@ -21,6 +21,6 @@ export PAMTRA_DATADIR="${ROOT_DIR}/pamtra_data"
 export OPENBLAS_NUM_THREADS=1
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}:/sw/spack-levante/openblas-0.3.18-tpmfvw/lib/:/sw/spack-levante/fftw-3.3.10-fnfhvr/lib/"
 
-"${ROOT_DIR}/.venv/bin/python" \
+"${ROOT_DIR}/.venv/bin/python" 
     "${ROOT_DIR}/scripts/pamtra/run_pamtra_plume_paths.py" \
     "$@"

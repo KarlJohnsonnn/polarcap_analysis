@@ -8,7 +8,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 DEFAULT_REMOTE_HOST="lev"
-DEFAULT_REMOTE_ROOT="/home/b/b382237/code/radar_forward/pamtra"
+DEFAULT_REMOTE_ROOT="${HOME}/code/radar_forward/pamtra"
 
 REMOTE_HOST="${DEFAULT_REMOTE_HOST}"
 REMOTE_ROOT="${DEFAULT_REMOTE_ROOT}"
