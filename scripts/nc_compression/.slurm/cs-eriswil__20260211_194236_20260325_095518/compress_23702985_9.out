@@ -1,0 +1,32 @@
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 23703144
+* JobName          : compress_nc                                       
+* Account          : bb1262
+* User             : b382237 (201556), bb1262 (201189)                 
+* Partition        : compute
+* QOS              : normal
+* Nodelist         : l50352 (1)                                                
+* Submit date      : 2026-03-25T09:55:19
+* Start time       : 2026-03-25T10:01:01
+* End time         : 2026-03-25T10:01:19
+* Elapsed time     : 00:00:18 (Timelimit=02:00:00)                     
+* Command          : (null)
+* WorkDir          : /work/bb1262/user/schimmel/cosmo-specs-torch/
+*                    cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* batch  | batch            0.005
+* extern | extern           0.005                 856K (0)
+* ------------------------------------------------------------------------------
+

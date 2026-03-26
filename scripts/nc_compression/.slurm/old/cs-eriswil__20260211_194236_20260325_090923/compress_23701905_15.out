@@ -1,0 +1,77 @@
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 23701905
+* JobName          : compress_nc                                       
+* Account          : bb1262
+* User             : b382237 (201556), bb1262 (201189)                 
+* Partition        : compute
+* QOS              : normal
+* Nodelist         : l40588 (1)                                                
+* Submit date      : 2026-03-25T09:09:23
+* Start time       : 2026-03-25T09:17:46
+* End time         : 2026-03-25T09:19:52
+* Elapsed time     : 00:02:06 (Timelimit=02:00:00)                     
+* Command          : (null)
+* WorkDir          : /work/bb1262/user/schimmel/cosmo-specs-torch/
+*                    cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* undefi | compress_nc      0.035                       ()
+* batch  | batch            0.035
+* extern | extern           0.035                 856K (0)
+* undefi | compress_nc     0.0061                       ()
+* batch  | batch           0.0061
+* extern | extern          0.0061                 856K (0)
+* undefi | compress_nc     0.0069                       ()
+* batch  | batch           0.0069
+* extern | extern          0.0069                 856K (0)
+* undefi | compress_nc     0.0061                       ()
+* batch  | batch           0.0061
+* extern | extern          0.0061                 856K (0)
+* undefi | compress_nc     0.0053                       ()
+* batch  | batch           0.0053
+* extern | extern          0.0053                 856K (0)
+* undefi | compress_nc     0.0053                       ()
+* batch  | batch           0.0053
+* extern | extern          0.0053                 856K (0)
+* undefi | compress_nc     0.0061                       ()
+* batch  | batch           0.0061
+* extern | extern          0.0061                 856K (0)
+* undefi | compress_nc     0.0072                       ()
+* batch  | batch           0.0072
+* extern | extern          0.0072                 856K (0)
+* undefi | compress_nc     0.0058                       ()
+* batch  | batch           0.0058
+* extern | extern          0.0058                 856K (0)
+* undefi | compress_nc     0.0097                       ()
+* batch  | batch           0.0097
+* extern | extern          0.0097                 856K (0)
+* undefi | compress_nc     0.0067                       ()
+* batch  | batch           0.0067
+* extern | extern          0.0067                 856K (0)
+* undefi | compress_nc     0.0044                       ()
+* batch  | batch           0.0044
+* extern | extern          0.0044                 856K (0)
+* undefi | compress_nc     0.0067                       ()
+* batch  | batch           0.0067
+* extern | extern          0.0067                 856K (0)
+* undefi | compress_nc    4.2e+01                       ()
+* batch  | batch          4.2e+01
+* extern | extern         4.2e+01                       ()
+* undefi | compress_nc    4.2e+01                       ()
+* batch  | batch          4.2e+01
+* extern | extern         4.2e+01                       ()
+* batch  | batch          4.2e+01
+* extern | extern         4.2e+01                       ()
+* ------------------------------------------------------------------------------
+

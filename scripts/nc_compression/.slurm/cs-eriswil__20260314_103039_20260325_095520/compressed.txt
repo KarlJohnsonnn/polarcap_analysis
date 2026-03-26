@@ -1,0 +1,12 @@
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260314_103039/M_01_00_20260314103040.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260314_103039/M_01_01_20260314103041.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260314_103039/M_01_02_20260314103044.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260314_103039/M_01_03_20260314103045.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260314_103039/M_02_00_20260314103040.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260314_103039/M_02_01_20260314103041.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260314_103039/M_02_02_20260314103044.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260314_103039/M_02_03_20260314103045.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260314_103039/M_03_00_20260314103040.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260314_103039/M_03_01_20260314103041.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260314_103039/M_03_02_20260314103044.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260314_103039/M_03_03_20260314103045.nc.zst

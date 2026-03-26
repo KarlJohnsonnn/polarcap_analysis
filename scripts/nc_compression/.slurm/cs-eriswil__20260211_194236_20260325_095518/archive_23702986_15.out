@@ -1,0 +1,79 @@
+3D_20260211194810.nc.zst SUCCESSFUL
+Non-recursive Archive completed
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 23702986
+* JobName          : archive_hsm                                       
+* Account          : bb1262
+* User             : b382237 (201556), bb1262 (201189)                 
+* Partition        : shared
+* QOS              : normal
+* Nodelist         : l40001 (1)                                                
+* Submit date      : 2026-03-25T09:55:19
+* Start time       : 2026-03-25T10:14:35
+* End time         : 2026-03-25T10:15:17
+* Elapsed time     : 00:00:42 (Timelimit=04:00:00)                     
+* Command          : (null)
+* WorkDir          : /work/bb1262/user/schimmel/cosmo-specs-torch/
+*                    cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* undefi | archive_hsm    0.00046                       ()
+* batch  | batch          0.00046
+* extern | extern         0.00046                 856K (0)
+* undefi | archive_hsm    0.00074                       ()
+* batch  | batch          0.00074
+* extern | extern         0.00074                 856K (0)
+* undefi | archive_hsm    0.00084                       ()
+* batch  | batch          0.00084
+* extern | extern         0.00084                 856K (0)
+* undefi | archive_hsm    0.00041                       ()
+* batch  | batch          0.00041
+* extern | extern         0.00041                 856K (0)
+* undefi | archive_hsm    0.00041                       ()
+* batch  | batch          0.00041
+* extern | extern         0.00041                 856K (0)
+* undefi | archive_hsm    0.00043                       ()
+* batch  | batch          0.00043
+* extern | extern         0.00043                 856K (0)
+* undefi | archive_hsm    0.00052                       ()
+* batch  | batch          0.00052
+* extern | extern         0.00052                 856K (0)
+* undefi | archive_hsm    0.00041                       ()
+* batch  | batch          0.00041
+* extern | extern         0.00041                 856K (0)
+* undefi | archive_hsm    0.00024                       ()
+* batch  | batch          0.00024
+* extern | extern         0.00024                 856K (0)
+* undefi | archive_hsm     0.0004                       ()
+* batch  | batch           0.0004
+* extern | extern          0.0004                 856K (0)
+* undefi | archive_hsm    0.00052                       ()
+* batch  | batch          0.00052
+* extern | extern         0.00052                 856K (0)
+* undefi | archive_hsm    0.00028                       ()
+* batch  | batch          0.00028
+* extern | extern         0.00028                 856K (0)
+* undefi | archive_hsm    0.00052                       ()
+* batch  | batch          0.00052
+* extern | extern         0.00052                 856K (0)
+* undefi | archive_hsm    0.00073                       ()
+* batch  | batch          0.00073
+* extern | extern         0.00073                 856K (0)
+* undefi | archive_hsm    0.00072                       ()
+* batch  | batch          0.00072
+* extern | extern         0.00072                 856K (0)
+* batch  | batch          4.2e+01
+* extern | extern         4.2e+01                       ()
+* ------------------------------------------------------------------------------
+

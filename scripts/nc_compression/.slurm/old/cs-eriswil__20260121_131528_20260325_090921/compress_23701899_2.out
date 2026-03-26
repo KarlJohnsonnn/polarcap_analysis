@@ -1,0 +1,38 @@
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 23701899
+* JobName          : compress_nc                                       
+* Account          : bb1262
+* User             : b382237 (201556), bb1262 (201189)                 
+* Partition        : compute
+* QOS              : normal
+* Nodelist         : l30049 (1)                                                
+* Submit date      : 2026-03-25T09:09:21
+* Start time       : 2026-03-25T09:11:52
+* End time         : 2026-03-25T09:13:48
+* Elapsed time     : 00:01:56 (Timelimit=02:00:00)                     
+* Command          : (null)
+* WorkDir          : /work/bb1262/user/schimmel/cosmo-specs-torch/
+*                    cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* undefi | compress_nc      0.032                       ()
+* batch  | batch            0.032
+* extern | extern           0.032                 856K (0)
+* undefi | compress_nc      0.033                       ()
+* batch  | batch            0.033
+* extern | extern           0.033                 856K (0)
+* batch  | batch            0.033
+* extern | extern           0.033                 856K (0)
+* ------------------------------------------------------------------------------
+

@@ -1,0 +1,56 @@
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 23702974
+* JobName          : compress_nc                                       
+* Account          : bb1262
+* User             : b382237 (201556), bb1262 (201189)                 
+* Partition        : compute
+* QOS              : normal
+* Nodelist         : l30567 (1)                                                
+* Submit date      : 2026-03-25T09:55:16
+* Start time       : 2026-03-25T09:56:19
+* End time         : 2026-03-25T09:57:42
+* Elapsed time     : 00:01:23 (Timelimit=02:00:00)                     
+* Command          : (null)
+* WorkDir          : /work/bb1262/user/schimmel/cosmo-specs-torch/
+*                    cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* undefi | compress_nc      0.023                       ()
+* batch  | batch            0.023
+* extern | extern           0.023                 856K (0)
+* undefi | compress_nc     0.0047                       ()
+* batch  | batch           0.0047
+* extern | extern          0.0047                 856K (0)
+* undefi | compress_nc      0.005                       ()
+* batch  | batch            0.005
+* extern | extern           0.005                 856K (0)
+* undefi | compress_nc     0.0047                       ()
+* batch  | batch           0.0047
+* extern | extern          0.0047                 856K (0)
+* undefi | compress_nc     0.0047                       ()
+* batch  | batch           0.0047
+* extern | extern          0.0047                 856K (0)
+* undefi | compress_nc     0.0047                       ()
+* batch  | batch           0.0047
+* extern | extern          0.0047                 856K (0)
+* undefi | compress_nc     0.0086                       ()
+* batch  | batch           0.0086
+* extern | extern          0.0086                 856K (0)
+* undefi | compress_nc      0.023                       ()
+* batch  | batch            0.023
+* extern | extern           0.023                 856K (0)
+* batch  | batch          4.2e+01
+* extern | extern         4.2e+01                       ()
+* ------------------------------------------------------------------------------
+

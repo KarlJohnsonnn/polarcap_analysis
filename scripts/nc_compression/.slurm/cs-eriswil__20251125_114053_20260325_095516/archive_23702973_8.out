@@ -1,0 +1,58 @@
+3D_20260120122711.nc.zst SUCCESSFUL
+Non-recursive Archive completed
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 23702973
+* JobName          : archive_hsm                                       
+* Account          : bb1262
+* User             : b382237 (201556), bb1262 (201189)                 
+* Partition        : shared
+* QOS              : normal
+* Nodelist         : l40002 (1)                                                
+* Submit date      : 2026-03-25T09:55:16
+* Start time       : 2026-03-25T10:02:16
+* End time         : 2026-03-25T10:03:29
+* Elapsed time     : 00:01:13 (Timelimit=04:00:00)                     
+* Command          : (null)
+* WorkDir          : /work/bb1262/user/schimmel/cosmo-specs-torch/
+*                    cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* undefi | archive_hsm    0.00079                       ()
+* batch  | batch          0.00079
+* extern | extern         0.00079                 856K (0)
+* undefi | archive_hsm    0.00047                       ()
+* batch  | batch          0.00047
+* extern | extern         0.00047                 856K (0)
+* undefi | archive_hsm    0.00044                       ()
+* batch  | batch          0.00044
+* extern | extern         0.00044                 856K (0)
+* undefi | archive_hsm     0.0003                       ()
+* batch  | batch           0.0003
+* extern | extern          0.0003                 856K (0)
+* undefi | archive_hsm    0.00027                       ()
+* batch  | batch          0.00027
+* extern | extern         0.00027                 856K (0)
+* undefi | archive_hsm     0.0004                       ()
+* batch  | batch           0.0004
+* extern | extern          0.0004                 856K (0)
+* undefi | archive_hsm    0.00052                       ()
+* batch  | batch          0.00052
+* extern | extern         0.00052                 856K (0)
+* undefi | archive_hsm     0.0005                       ()
+* batch  | batch           0.0005
+* extern | extern          0.0005                 856K (0)
+* batch  | batch          0.00075
+* extern | extern         0.00075                 856K (0)
+* ------------------------------------------------------------------------------
+

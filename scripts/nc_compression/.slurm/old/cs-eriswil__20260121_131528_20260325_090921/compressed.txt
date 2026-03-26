@@ -1,0 +1,3 @@
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260121_131528/3D_20260121131528.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260121_131528/3D_20260121131550.nc.zst
+/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output/cs-eriswil__20260121_131528/3D_20260121131632.nc.zst

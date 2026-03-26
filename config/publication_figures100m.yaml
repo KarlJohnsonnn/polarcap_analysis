@@ -29,8 +29,8 @@ default_args:
   # Render the promoted cloud-field overview figure with script defaults.
   cloud_field_overview: 
     - "--station-ids 0 1 2 3 4"
-    - "--plot-start 2026-03-23T12:25:00"
-    - "--plot-end 2026-03-23T13:00:00"
+    - "--plot-start 2023-01-25T12:29:50"
+    - "--plot-end 2023-01-25T13:05:00"
     - "--extpar-low $CS_RUNS_DIR/extPar_Eriswil_50x40.nc"
     - "--extpar-high $CS_RUNS_DIR/extPar_Eriswil_200x160.nc"
     - "--output output/gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_<exp>_<range>.png"

@@ -12,6 +12,7 @@ Replaces the slow ``00-prepM.py`` workflow with:
 from __future__ import annotations
 
 import glob
+import json
 import os
 import shutil
 import subprocess
@@ -28,6 +29,34 @@ from utilities.init_common import get_station_coords_from_cfg
 # ---------------------------------------------------------------------------
 
 _ENGINE_CACHE: Optional[str] = None
+_DEBUG_LOG_PATH = "/home/b/b382237/code/polarcap/python/polarcap_analysis/.cursor/debug-f85260.log"
+
+
+def _debug_maxrss_mb() -> float | None:
+    try:
+        import resource
+        return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0, 1)
+    except Exception:
+        return None
+
+
+def _agent_debug_log(hypothesis_id: str, location: str, message: str, data: Dict[str, Any]) -> None:
+    try:
+        import time
+
+        payload = {
+            "sessionId": "f85260",
+            "runId": os.environ.get("SLURM_JOB_ID", "local"),
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data,
+            "timestamp": int(time.time() * 1000),
+        }
+        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload) + "\n")
+    except Exception:
+        pass
 
 
 def _detect_nc_engine(path: str) -> str:
@@ -353,6 +382,23 @@ def build_meteogram_zarr(
     expnames = list(file_dict.keys())
     n_experiments = len(expnames)
 
+    # region agent log
+    _agent_debug_log(
+        "H7",
+        "meteogram_io.py:build_meteogram_zarr:start",
+        "lv2_build_start",
+        {
+            "n_experiments": n_experiments,
+            "n_files_total": sum(len(v) for v in file_dict.values()),
+            "n_variables": len(variables),
+            "max_time": max_time,
+            "max_height_level": max_height_level,
+            "debug_mode": debug_mode,
+            "rss_mb": _debug_maxrss_mb(),
+        },
+    )
+    # endregion
+
     # --- target chunks (set once — no rechunking later) ---
     target_chunks: Dict[str, int] = {
         "time": min(target_time_chunk, max_time) if max_time > 0 else target_time_chunk,
@@ -380,6 +426,20 @@ def build_meteogram_zarr(
         station_ids = _station_id_array(sorted({_coerce_station_id(k) for k in station_coords.keys()}))
     else:
         station_ids = _station_id_array(sorted(set(station_ids_seen)))
+
+    # region agent log
+    _agent_debug_log(
+        "H7",
+        "meteogram_io.py:build_meteogram_zarr:after_open",
+        "lv2_open_complete",
+        {
+            "n_exp_datasets": len(exp_datasets),
+            "n_station_ids": int(len(station_ids)),
+            "first_exp_sizes": dict(exp_datasets[0].sizes) if exp_datasets else {},
+            "rss_mb": _debug_maxrss_mb(),
+        },
+    )
+    # endregion
 
     exp_datasets = [ds_exp.reindex(station=station_ids) for ds_exp in exp_datasets]
     n_stations = len(station_ids)
@@ -456,9 +516,39 @@ def build_meteogram_zarr(
 
     delayed = ds_all.to_zarr(zarr_path, mode="w", compute=False,
                              encoding=encoding, zarr_format=2)
+    graph = delayed.__dask_graph__()
+    write_t0 = __import__("time").time()
+
+    # region agent log
+    _agent_debug_log(
+        "H7",
+        "meteogram_io.py:build_meteogram_zarr:before_compute",
+        "lv2_write_start",
+        {
+            "zarr_path": zarr_path,
+            "sizes": dict(ds_all.sizes),
+            "chunks": {k: list(v) for k, v in dict(ds_all.chunks).items()},
+            "n_tasks": len(graph) if graph is not None else None,
+            "rss_mb": _debug_maxrss_mb(),
+        },
+    )
+    # endregion
 
     with ProgressBar(minimum=2):
         dask.compute(delayed)
+
+    # region agent log
+    _agent_debug_log(
+        "H7",
+        "meteogram_io.py:build_meteogram_zarr:after_compute",
+        "lv2_write_complete",
+        {
+            "zarr_path": zarr_path,
+            "elapsed_s": round(__import__("time").time() - write_t0, 1),
+            "rss_mb": _debug_maxrss_mb(),
+        },
+    )
+    # endregion
 
     print(f"\nZarr store complete: {zarr_path}")
     return zarr_path

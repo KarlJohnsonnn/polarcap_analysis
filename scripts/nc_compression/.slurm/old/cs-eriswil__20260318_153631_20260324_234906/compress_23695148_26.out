@@ -1,0 +1,110 @@
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 23695148
+* JobName          : compress_nc                                       
+* Account          : bb1262
+* User             : b382237 (201556), bb1262 (201189)                 
+* Partition        : compute
+* QOS              : normal
+* Nodelist         : l30379 (1)                                                
+* Submit date      : 2026-03-24T23:49:06
+* Start time       : 2026-03-24T23:51:24
+* End time         : 2026-03-25T00:37:05
+* Elapsed time     : 00:45:41 (Timelimit=02:00:00)                     
+* Command          : (null)
+* WorkDir          : /home/b/b382237/code/polarcap/python/polarcap_analysis/
+*                    scripts/nc_compression
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* undefi | compress_nc       0.76                       ()
+* batch  | batch             0.76
+* extern | extern            0.76                 856K (0)
+* undefi | compress_nc     0.0031                       ()
+* batch  | batch           0.0031
+* extern | extern          0.0031                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0031                       ()
+* batch  | batch           0.0031
+* extern | extern          0.0031                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0031                       ()
+* batch  | batch           0.0031
+* extern | extern          0.0031                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0036                       ()
+* batch  | batch           0.0036
+* extern | extern          0.0036                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0036                       ()
+* batch  | batch           0.0036
+* extern | extern          0.0036                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0036                       ()
+* batch  | batch           0.0036
+* extern | extern          0.0036                 856K (0)
+* undefi | compress_nc     0.0033                       ()
+* batch  | batch           0.0033
+* extern | extern          0.0033                 856K (0)
+* undefi | compress_nc     0.0036                       ()
+* batch  | batch           0.0036
+* extern | extern          0.0036                 856K (0)
+* undefi | compress_nc       0.24                       ()
+* batch  | batch             0.24
+* extern | extern            0.24                 856K (0)
+* undefi | compress_nc       0.23                       ()
+* batch  | batch             0.23
+* extern | extern            0.23                 856K (0)
+* undefi | compress_nc       0.26                       ()
+* batch  | batch             0.26
+* extern | extern            0.26                 856K (0)
+* undefi | compress_nc       0.24                       ()
+* batch  | batch             0.24
+* extern | extern            0.24                 856K (0)
+* undefi | compress_nc       0.72                       ()
+* batch  | batch             0.72
+* extern | extern            0.72                 856K (0)
+* batch  | batch             0.74
+* extern | extern            0.74                 856K (0)
+* ------------------------------------------------------------------------------
+

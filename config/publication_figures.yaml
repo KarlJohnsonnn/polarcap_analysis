@@ -15,9 +15,9 @@
 #   `spectral_waterfall_N` and `spectral_waterfall_Q` separate
 
 ensemble:
-  cs_runs: [cs-eriswil__20260304_110254, cs-eriswil__20260318_153631]  # Picks the run to load and names every PNG / MP4 / CSV output folder.
-  cs_run: cs-eriswil__20260318_153631
-  domain: 200x160
+  cs_runs: [cs-eriswil__20260304_110254]  # Picks the run to load and names every PNG / MP4 / CSV output folder.
+  cs_run: cs-eriswil__20260304_110254
+  domain: 50x42
   
 paths:
   server_root: "" # "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/"
@@ -29,11 +29,11 @@ default_args:
   # Render the promoted cloud-field overview figure with script defaults.
   cloud_field_overview: 
     - "--station-ids 0 1 2 3 4"
-    - "--plot-start 2026-03-23T12:25:00"
-    - "--plot-end 2026-03-23T13:05:00"
+    - "--plot-start 2023-01-25T12:29:50"
+    - "--plot-end 2023-01-25T13:05:00"
     - "--extpar-low /Users/schimmel/data/cosmo-specs/meteograms/extPar_Eriswil_50x40.nc"
     - "--extpar-high /Users/schimmel/data/cosmo-specs/meteograms/extPar_Eriswil_200x160.nc"
-    - "--output output/gfx/png/01/cloud_field_overview_mass__20260318_153631_ALLBB.png"
+    - "--output output/gfx/png/01/cloud_field_overview_mass__20260304_110254_ALLBB.png"
     - "--dpi 300"
   cloud_phase_budget_table: []  # Export the companion phase-budget tables that support the overview figure.
   plume_lagrangian: []  # Build the plume-lagrangian evolution figure with its default styling.

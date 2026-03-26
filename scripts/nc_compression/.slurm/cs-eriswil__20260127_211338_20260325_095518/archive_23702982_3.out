@@ -1,0 +1,43 @@
+3D_20260127211551.nc.zst SUCCESSFUL
+Non-recursive Archive completed
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 23702982
+* JobName          : archive_hsm                                       
+* Account          : bb1262
+* User             : b382237 (201556), bb1262 (201189)                 
+* Partition        : shared
+* QOS              : normal
+* Nodelist         : l40005 (1)                                                
+* Submit date      : 2026-03-25T09:55:18
+* Start time       : 2026-03-25T10:02:16
+* End time         : 2026-03-25T10:03:11
+* Elapsed time     : 00:00:55 (Timelimit=04:00:00)                     
+* Command          : (null)
+* WorkDir          : /work/bb1262/user/schimmel/cosmo-specs-torch/
+*                    cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* undefi | archive_hsm     0.0006                       ()
+* batch  | batch           0.0006
+* extern | extern          0.0006                 856K (0)
+* undefi | archive_hsm    0.00075                       ()
+* batch  | batch          0.00075
+* extern | extern         0.00075                 856K (0)
+* undefi | archive_hsm    0.00085                       ()
+* batch  | batch          0.00085
+* extern | extern         0.00085                 856K (0)
+* batch  | batch          4.2e+01
+* extern | extern         4.2e+01                       ()
+* ------------------------------------------------------------------------------
+

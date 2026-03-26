@@ -1,0 +1,76 @@
+M_03_05_20260304111212.nc.zst SUCCESSFUL
+Non-recursive Archive completed
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 23702988
+* JobName          : archive_hsm                                       
+* Account          : bb1262
+* User             : b382237 (201556), bb1262 (201189)                 
+* Partition        : shared
+* QOS              : normal
+* Nodelist         : l40002 (1)                                                
+* Submit date      : 2026-03-25T09:55:19
+* Start time       : 2026-03-25T10:12:45
+* End time         : 2026-03-25T10:13:20
+* Elapsed time     : 00:00:35 (Timelimit=04:00:00)                     
+* Command          : (null)
+* WorkDir          : /work/bb1262/user/schimmel/cosmo-specs-torch/
+*                    cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* undefi | archive_hsm    0.00038                       ()
+* batch  | batch          0.00038
+* extern | extern         0.00038                 856K (0)
+* undefi | archive_hsm    0.00055                       ()
+* batch  | batch          0.00055
+* extern | extern         0.00055                 856K (0)
+* undefi | archive_hsm    0.00058                       ()
+* batch  | batch          0.00058
+* extern | extern         0.00058                 856K (0)
+* undefi | archive_hsm    0.00046                       ()
+* batch  | batch          0.00046
+* extern | extern         0.00046                 856K (0)
+* undefi | archive_hsm    0.00048                       ()
+* batch  | batch          0.00048
+* extern | extern         0.00048                 856K (0)
+* undefi | archive_hsm    0.00035                       ()
+* batch  | batch          0.00035
+* extern | extern         0.00035                 856K (0)
+* undefi | archive_hsm    0.00039                       ()
+* batch  | batch          0.00039
+* extern | extern         0.00039                 856K (0)
+* undefi | archive_hsm    0.00041                       ()
+* batch  | batch          0.00041
+* extern | extern         0.00041                 856K (0)
+* undefi | archive_hsm    0.00038                       ()
+* batch  | batch          0.00038
+* extern | extern         0.00038                 856K (0)
+* undefi | archive_hsm    0.00035                       ()
+* batch  | batch          0.00035
+* extern | extern         0.00035                 856K (0)
+* undefi | archive_hsm    0.00034                       ()
+* batch  | batch          0.00034
+* extern | extern         0.00034                 856K (0)
+* undefi | archive_hsm    0.00037                       ()
+* batch  | batch          0.00037
+* extern | extern         0.00037                 856K (0)
+* undefi | archive_hsm    0.00035                       ()
+* batch  | batch          0.00035
+* extern | extern         0.00035                 856K (0)
+* undefi | archive_hsm    0.00026                       ()
+* batch  | batch          0.00026
+* extern | extern         0.00026                 856K (0)
+* batch  | batch          0.00043
+* extern | extern         0.00043                 856K (0)
+* ------------------------------------------------------------------------------
+

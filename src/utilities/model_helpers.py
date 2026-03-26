@@ -706,6 +706,69 @@ def fetch_3d_data(ncfile_3d, ncfile_extpar, nml_input_org, var_sets=['meteo'], c
     return ds
 
 
+def _median_time_step_seconds(time_values: np.ndarray) -> float:
+    tv = np.asarray(time_values, dtype="datetime64[ns]")
+    if tv.size < 2:
+        raise ValueError("need at least two time steps to infer Δt")
+    deltas = np.diff(tv.astype(np.int64))
+    return float(np.median(deltas)) / 1e9
+
+
+def harmonize_experiment_time_to_finest(ds_list, exp_names=None, method: str = "linear"):
+    """Interpolate each dataset to one shared time axis so ensembles can be ``xr.concat``'d.
+
+    Uses the **finest** native median Δt across members (e.g. 10 s when some files are 30 s).
+    The grid spans the **overlap** of all time ranges ``[max(start), min(end)]`` with that Δt,
+    so values are interpolated, not extrapolated.
+
+    Parameters
+    ----------
+    ds_list
+        One xarray Dataset per experiment, each with a ``time`` coordinate.
+    exp_names
+        Optional ids for logging (same order as ``ds_list``).
+    method
+        Passed to :meth:`xarray.Dataset.interp`.
+    """
+    if not ds_list:
+        return ds_list
+    times_list = [np.asarray(ds.time.values, dtype="datetime64[ns]") for ds in ds_list]
+    if all(np.array_equal(times_list[0], t) for t in times_list[1:]):
+        return ds_list
+
+    dts = [_median_time_step_seconds(t) for t in times_list]
+    dt_target = min(dts)
+    step_ns = int(round(float(dt_target) * 1e9))
+
+    t0 = max(t[0] for t in times_list)
+    t1 = min(t[-1] for t in times_list)
+    if t1 < t0:
+        raise ValueError(
+            "experiments have no overlapping time range; cannot build a common time axis"
+        )
+
+    t0_i = t0.astype(np.int64)
+    t1_i = t1.astype(np.int64)
+    n = int(np.floor((t1_i - t0_i) / step_ns)) + 1
+    common = (t0_i + np.arange(n, dtype=np.int64) * step_ns).astype("datetime64[ns]")
+    common = common[common <= t1]
+
+    common_time = xr.DataArray(common, dims=("time",))
+    labels = exp_names if exp_names is not None else [f"{i}" for i in range(len(ds_list))]
+    print(
+        "Time harmonization: median native Δt (s) → target grid Δt=%s s, n_time=%s, overlap [%s … %s]"
+        % (
+            step_ns / 1e9,
+            common.size,
+            np.datetime_as_string(common[0], unit="s"),
+            np.datetime_as_string(common[-1], unit="s"),
+        )
+    )
+    print("  per experiment:", dict(zip(labels, dts)))
+
+    return [ds.interp(time=common_time, method=method) for ds in ds_list]
+
+
 def calculate_supersaturation_ice(temperature, absolute_humidity):
     """
     Calculate supersaturation over ice, according to Murphy & Koop (2005)

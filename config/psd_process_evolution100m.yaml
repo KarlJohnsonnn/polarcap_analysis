@@ -27,9 +27,9 @@ zarr:
   rechunk_on_open: false  # `true` often makes plotting more responsive on laptop-sized memory.
 
 selection:
-  experiment_index_default: 0  # Fallback single experiment for helpers that expect exactly one active member.
+  experiment_index_default: 3  # Fallback single experiment for helpers that expect exactly one active member.
   station_index_default: 0  # Fallback single station for helpers that expect exactly one active site.
-  plot_experiment_ids: [0]  # Default experiment ids rendered when CLI `--exp-ids` is omitted.
+  plot_experiment_ids: [0,1,2,3,4]  # Default experiment ids rendered when CLI `--exp-ids` is omitted.
   plot_station_ids: [0]  # Default station columns rendered when CLI `--station-ids` is omitted.
   station_labels: {
     0: "S1 — Seeding loc.",  # Titles shown above the station columns.

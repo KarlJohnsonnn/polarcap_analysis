@@ -110,6 +110,32 @@ The preferred spectral waterfall launcher now lives in `scripts/analysis/growth/
 
 **Compress M_*.nc and 3D_*.nc:** See `scripts/nc_compression/` for `compress.sh` and `run_compess_and_archive.sh`.
 
+## Slurm job health dashboard
+
+Use `slurm_job_health_dashboard.py` to track key job metrics over time from `sstat`/`sacct` and render an interactive HTML dashboard.
+
+Examples:
+
+```bash
+# Watch a running job, sample every 10s, and auto-render when terminal.
+python scripts/processing_chain/slurm_job_health_dashboard.py \
+  --job-id 23706854 \
+  --interval 10
+
+# Render only (reuse previously collected NDJSON samples).
+python scripts/processing_chain/slurm_job_health_dashboard.py \
+  --job-id 23706854 \
+  --mode render
+```
+
+Artifacts are written to `scripts/processing_chain/logs/` by default:
+
+- `job-<jobid>-health.ndjson` (time-series snapshots)
+- `job-<jobid>-health.html` (interactive Plotly dashboard)
+
+The script follows parsable-output patterns from Slurm docs:
+[`sstat`](https://slurm.schedmd.com/sstat.html).
+
 ## Metadata and provenance
 
 All written datasets receive global attributes: `stage`, `processing_level`, `created_utc`, `git_commit`, `git_commit_short`, `cs_run`, `exp_label` (where applicable), `input_files` (or summary). Variable and coordinate attributes (units, long_name, description) are set from `metadata_config.json` and pipeline conventions.

@@ -1,0 +1,15 @@
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_01_01_20260304110446.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_01_02_20260304110638.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_01_03_20260304110829.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_01_04_20260304111020.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_01_05_20260304111212.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_02_01_20260304110446.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_02_02_20260304110638.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_02_03_20260304110829.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_02_04_20260304111020.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_02_05_20260304111212.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_03_01_20260304110446.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_03_02_20260304110638.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_03_03_20260304110829.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_03_04_20260304111020.nc
+/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/ensemble_output/cs-eriswil__20260304_110254/M_03_05_20260304111212.nc

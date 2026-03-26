@@ -1,0 +1,112 @@
+3D_20260324165040.nc.zst SUCCESSFUL
+Non-recursive Archive completed
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 23695149
+* JobName          : archive_hsm                                       
+* Account          : bb1262
+* User             : b382237 (201556), bb1262 (201189)                 
+* Partition        : shared
+* QOS              : normal
+* Nodelist         : l40001 (1)                                                
+* Submit date      : 2026-03-24T23:49:07
+* Start time       : 2026-03-25T01:12:48
+* End time         : 2026-03-25T01:27:28
+* Elapsed time     : 00:14:40 (Timelimit=04:00:00)                     
+* Command          : (null)
+* WorkDir          : /home/b/b382237/code/polarcap/python/polarcap_analysis/
+*                    scripts/nc_compression
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* undefi | archive_hsm     0.0095                       ()
+* batch  | batch           0.0095
+* extern | extern          0.0095                 856K (0)
+* undefi | archive_hsm    0.00014                       ()
+* batch  | batch          0.00014
+* extern | extern         0.00014                 856K (0)
+* undefi | archive_hsm    0.00014                       ()
+* batch  | batch          0.00014
+* extern | extern         0.00014                 856K (0)
+* undefi | archive_hsm    0.00016                       ()
+* batch  | batch          0.00016
+* extern | extern         0.00016                 856K (0)
+* undefi | archive_hsm     0.0002                       ()
+* batch  | batch           0.0002
+* extern | extern          0.0002                 856K (0)
+* undefi | archive_hsm    0.00015                       ()
+* batch  | batch          0.00015
+* extern | extern         0.00015                 856K (0)
+* undefi | archive_hsm    0.00014                       ()
+* batch  | batch          0.00014
+* extern | extern         0.00014                 856K (0)
+* undefi | archive_hsm    0.00017                       ()
+* batch  | batch          0.00017
+* extern | extern         0.00017                 856K (0)
+* undefi | archive_hsm    0.00018                       ()
+* batch  | batch          0.00018
+* extern | extern         0.00018                 856K (0)
+* undefi | archive_hsm    0.00016                       ()
+* batch  | batch          0.00016
+* extern | extern         0.00016                 856K (0)
+* undefi | archive_hsm    0.00015                       ()
+* batch  | batch          0.00015
+* extern | extern         0.00015                 856K (0)
+* undefi | archive_hsm    0.00017                       ()
+* batch  | batch          0.00017
+* extern | extern         0.00017                 856K (0)
+* undefi | archive_hsm    0.00013                       ()
+* batch  | batch          0.00013
+* extern | extern         0.00013                 856K (0)
+* undefi | archive_hsm    0.00021                       ()
+* batch  | batch          0.00021
+* extern | extern         0.00021                 856K (0)
+* undefi | archive_hsm    0.00018                       ()
+* batch  | batch          0.00018
+* extern | extern         0.00018                 856K (0)
+* undefi | archive_hsm    0.00017                       ()
+* batch  | batch          0.00017
+* extern | extern         0.00017                 856K (0)
+* undefi | archive_hsm    0.00013                       ()
+* batch  | batch          0.00013
+* extern | extern         0.00013                 856K (0)
+* undefi | archive_hsm    0.00015                       ()
+* batch  | batch          0.00015
+* extern | extern         0.00015                 856K (0)
+* undefi | archive_hsm    0.00013                       ()
+* batch  | batch          0.00013
+* extern | extern         0.00013                 856K (0)
+* undefi | archive_hsm    0.00015                       ()
+* batch  | batch          0.00015
+* extern | extern         0.00015                 856K (0)
+* undefi | archive_hsm    0.00013                       ()
+* batch  | batch          0.00013
+* extern | extern         0.00013                 856K (0)
+* undefi | archive_hsm     0.0036                       ()
+* batch  | batch           0.0036
+* extern | extern          0.0036                 856K (0)
+* undefi | archive_hsm     0.0022                       ()
+* batch  | batch           0.0022
+* extern | extern          0.0022                 856K (0)
+* undefi | archive_hsm      0.002                       ()
+* batch  | batch            0.002
+* extern | extern           0.002                 856K (0)
+* undefi | archive_hsm     0.0016                       ()
+* batch  | batch           0.0016
+* extern | extern          0.0016                 856K (0)
+* undefi | archive_hsm      0.016                       ()
+* batch  | batch            0.016
+* extern | extern           0.016                 856K (0)
+* batch  | batch            0.016
+* extern | extern           0.016                 856K (0)
+* ------------------------------------------------------------------------------
+

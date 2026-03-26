@@ -51,6 +51,13 @@ for d in ./cs-eriswil__*; do
 done
 ```
 
+Compress one Meteogram Zarr store to a single tarball:
+
+```bash
+./compress.sh compress /path/to/lv2_meteogram/Meteogram_cs-eriswil__20260318_153631_nVar136_nMet5_nExp4.zarr \
+  "$GRAVEYARD/Meteogram_cs-eriswil__20260318_153631_nVar136_nMet5_nExp4.tar.zst"
+```
+
 ## Workflow
 
 ```mermaid
