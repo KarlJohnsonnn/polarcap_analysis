@@ -131,6 +131,201 @@ def _rechunk_meteogram_for_env(ds: xr.Dataset, cfg: dict) -> xr.Dataset:
     return ds.chunk({k: v for k, v in chunk_dict.items() if k in ds.sizes})
 
 
+def _size_ranges_from_cfg(cfg: dict) -> dict[str, dict[str, object]]:
+    """Return configured diameter slices with legacy-compatible keys."""
+    yaml_sr = _cfg_get(cfg, "size_ranges", default={}) or {}
+    aerlbb = _slice_from_cfg(yaml_sr.get("AERLBB", {}), slice(None, 30))
+    crybb = _slice_from_cfg(yaml_sr.get("CRYBB", {}), slice(30, 50))
+    precbb = _slice_from_cfg(yaml_sr.get("PRECBB", {}), slice(50, None))
+    allbb = _slice_from_cfg(yaml_sr.get("ALLBB", {}), slice(None, None))
+    return {
+        "AERLBB": {
+            "slice": aerlbb,
+            "label": yaml_sr.get("AERLBB", {}).get("label", "Range AERLBB"),
+            "tag": yaml_sr.get("AERLBB", {}).get("tag", "aerlbb"),
+        },
+        "CRYBB": {
+            "slice": crybb,
+            "label": yaml_sr.get("CRYBB", {}).get("label", "Range CRYBB"),
+            "tag": yaml_sr.get("CRYBB", {}).get("tag", "crybb"),
+        },
+        "PRECBB": {
+            "slice": precbb,
+            "label": yaml_sr.get("PRECBB", {}).get("label", "Range PRECBB"),
+            "tag": yaml_sr.get("PRECBB", {}).get("tag", "precbb"),
+        },
+        "ALLBB": {
+            "slice": allbb,
+            "label": yaml_sr.get("ALLBB", {}).get("label", "Range ALLBB"),
+            "tag": yaml_sr.get("ALLBB", {}).get("tag", "allbb"),
+        },
+    }
+
+
+def _diameter_um_from_dataset(ds: xr.Dataset) -> np.ndarray | None:
+    if ds is None or "bins" not in ds.sizes:
+        return None
+    if "diameter_um" in ds.coords:
+        return np.asarray(ds["diameter_um"].values, dtype=float)
+    from utilities.meteogram_io import _compute_bin_coords
+
+    _m_edges, _m_cen, _r_edges, r_cen = _compute_bin_coords(n_bins=ds.sizes["bins"])
+    return np.asarray(r_cen * 2e6, dtype=float)
+
+
+def build_process_budget_cfg_from_dataset(
+    ds: xr.Dataset,
+    *,
+    cfg: dict,
+    repo_root: Path,
+    cs_run: Optional[str] = None,
+) -> dict:
+    """Build the standard process-budget cfg from an already opened dataset."""
+    cs_run = cs_run or _cfg_get(cfg, "ensemble", "cs_run", default="cs-eriswil__20260304_110254")
+    size_ranges = _size_ranges_from_cfg(cfg)
+    cfg["size_ranges"] = size_ranges
+
+    plot_exp_ids = _cfg_get(cfg, "selection", "plot_experiment_ids", default=[1])
+    aerlbb = size_ranges["AERLBB"]["slice"]
+    crybb = size_ranges["CRYBB"]["slice"]
+    rates_by_exp, _ = build_rates_for_experiments(
+        ds=ds,
+        exp_ids=plot_exp_ids,
+        config=None,
+        LBB=aerlbb,
+        CBB=crybb,
+        repo_root=repo_root,
+    )
+
+    for eid in plot_exp_ids:
+        ds_exp = ds.isel(expname=eid)
+        if "HMLd" in ds_exp.coords:
+            ds_exp = ds_exp.assign_coords(height_level=ds_exp.HMLd)
+        if "HHLd" in ds_exp.coords:
+            ds_exp = ds_exp.assign_coords(height_level2=ds_exp.HHLd)
+        rho = ds_exp["RHO"] if "RHO" in ds_exp.data_vars else None
+        proc_vars = build_proc_vars(ds_exp)
+        for range_key, range_cfg in size_ranges.items():
+            b = range_cfg["slice"]
+            rates_by_exp[eid][f"rates_N_liq_{range_key}"] = build_rates(ds_exp, rho, proc_vars, "N", b, spectrum="W")
+            rates_by_exp[eid][f"rates_Q_liq_{range_key}"] = build_rates(ds_exp, rho, proc_vars, "Q", b, spectrum="W")
+            rates_by_exp[eid][f"rates_N_ice_{range_key}"] = build_rates(ds_exp, rho, proc_vars, "N", b, spectrum="F")
+            rates_by_exp[eid][f"rates_Q_ice_{range_key}"] = build_rates(ds_exp, rho, proc_vars, "Q", b, spectrum="F")
+            mirror_immersion_freezing(
+                {
+                    "rates_N_liq": rates_by_exp[eid][f"rates_N_liq_{range_key}"],
+                    "rates_Q_liq": rates_by_exp[eid][f"rates_Q_liq_{range_key}"],
+                    "rates_N_ice": rates_by_exp[eid][f"rates_N_ice_{range_key}"],
+                    "rates_Q_ice": rates_by_exp[eid][f"rates_Q_ice_{range_key}"],
+                }
+            )
+
+        sum_vars = sorted(v for v in ds_exp.data_vars if v.startswith("SUM_"))
+        proc_vars_pos = {}
+        proc_vars_neg = {}
+        from utilities.process_rates import classify_tendency
+
+        for sv in sum_vars:
+            stripped = sv.replace("SUM_", "")
+            if stripped.startswith("P_"):
+                info = classify_tendency(sv)
+                if info is not None:
+                    _base, kind, grp, spec = info
+                    proc_vars_pos.setdefault(grp, {"N": {"W": [], "F": []}, "Q": {"W": [], "F": []}})
+                    proc_vars_pos[grp][kind][spec].append(sv)
+            elif stripped.startswith("N_"):
+                info = classify_tendency(sv)
+                if info is not None:
+                    _base, kind, grp, spec = info
+                    proc_vars_neg.setdefault(grp, {"N": {"W": [], "F": []}, "Q": {"W": [], "F": []}})
+                    proc_vars_neg[grp][kind][spec].append(sv)
+
+        def _build_pos_neg(kind, spectrum):
+            net = build_spectral_rates(ds_exp, rho, proc_vars, kind, spectrum)
+            r_pos, r_neg = {}, {}
+            for grp in net:
+                n = net[grp]
+                pos_v = proc_vars_pos.get(grp, {}).get(kind, {}).get(spectrum, []) if spectrum else []
+                neg_v = proc_vars_neg.get(grp, {}).get(kind, {}).get(spectrum, []) if spectrum else []
+                if not pos_v:
+                    pos_v = proc_vars_pos.get(grp, {}).get(kind, {}).get("W", []) + proc_vars_pos.get(grp, {}).get(kind, {}).get("F", [])
+                if not neg_v:
+                    neg_v = proc_vars_neg.get(grp, {}).get(kind, {}).get("W", []) + proc_vars_neg.get(grp, {}).get(kind, {}).get("F", [])
+                r_pos[grp] = sum(spectral_rate(ds_exp, rho, v, kind) for v in pos_v) if pos_v else xr.where(n > 0, n, 0.0)
+                r_neg[grp] = sum(spectral_rate(ds_exp, rho, v, kind) for v in neg_v) if neg_v else xr.where(n < 0, n, 0.0)
+            return r_pos, r_neg
+
+        rates_by_exp[eid]["spec_rates_N_W_pos"], rates_by_exp[eid]["spec_rates_N_W_neg"] = _build_pos_neg("N", "W")
+        rates_by_exp[eid]["spec_rates_N_F_pos"], rates_by_exp[eid]["spec_rates_N_F_neg"] = _build_pos_neg("N", "F")
+        rates_by_exp[eid]["spec_rates_Q_W_pos"], rates_by_exp[eid]["spec_rates_Q_W_neg"] = _build_pos_neg("Q", "W")
+        rates_by_exp[eid]["spec_rates_Q_F_pos"], rates_by_exp[eid]["spec_rates_Q_F_neg"] = _build_pos_neg("Q", "F")
+
+        if rho is not None:
+            if "NW" in ds_exp.data_vars:
+                rates_by_exp[eid]["spec_conc_N_W"] = ds_exp["NW"] * rho
+            if "NF" in ds_exp.data_vars:
+                rates_by_exp[eid]["spec_conc_N_F"] = ds_exp["NF"] * rho
+            if "QW" in ds_exp.data_vars:
+                rates_by_exp[eid]["spec_conc_Q_W"] = ds_exp["QW"] * rho * 1000.0
+            if "QF" in ds_exp.data_vars:
+                rates_by_exp[eid]["spec_conc_Q_F"] = ds_exp["QF"] * rho * 1000.0
+
+    _raw_expnames = [v.decode() if isinstance(v, bytes) else str(v) for v in ds.expname.values]
+    if is_server():
+        server_root = Path(_cfg_get(cfg, "paths", "server_root", default=None))
+        _config_dir = server_root / "ensemble_output"
+    else:
+        _cfg_root = _cfg_get(cfg, "paths", "local_ensemble_config_root", default=None)
+        _config_dir = Path(_cfg_root).expanduser() if _cfg_root else Path.home() / "data" / "cosmo-specs" / "polarcap_analysis" / "data" / "ensemble_output"
+    config_json = _config_dir / f"{cs_run}.json"
+
+    experiment_meta = []
+    if config_json.is_file():
+        with open(config_json) as _f:
+            _cfg_json = json.load(_f)
+        for ename in _raw_expnames:
+            entry = _cfg_json.get(ename, {})
+            sbm = entry.get("INPUT_ORG", {}).get("sbm_par", {})
+            flare = entry.get("INPUT_ORG", {}).get("flare_sbm", {})
+            lflare = sbm.get("lflare", False)
+            emission = flare.get("flare_emission", 0.0)
+            ishape = sbm.get("ishape", -1)
+            ikeis = sbm.get("ikeis", -1)
+            is_ref = (not lflare) or emission == 0
+            label = f"REF ishape={ishape}" if is_ref else f"EMIS {emission:.0e} ishape={ishape}"
+            experiment_meta.append(
+                {
+                    "expname": ename,
+                    "lflare": lflare,
+                    "emission": emission,
+                    "ishape": ishape,
+                    "ikeis": ikeis,
+                    "label": label,
+                    "is_reference": is_ref,
+                }
+            )
+    else:
+        experiment_meta = [
+            {
+                "expname": e,
+                "lflare": False,
+                "emission": 0,
+                "ishape": -1,
+                "ikeis": -1,
+                "label": e,
+                "is_reference": False,
+            }
+            for e in _raw_expnames
+        ]
+    cfg["experiment_meta"] = experiment_meta
+
+    cfg["ds"] = ds
+    cfg["rates_by_exp"] = rates_by_exp
+    _apply_cfg_defaults(cfg)
+    cfg["diameter_um"] = _diameter_um_from_dataset(ds)
+    return cfg
+
+
 def load_process_budget_data(
     repo_root: Path,
     config_path: Optional[Union[str, Path]] = None,
@@ -178,146 +373,7 @@ def load_process_budget_data(
                 print(f"  rechunk (env): {_chunk_summary(ds)}")
     else:
         raise ValueError(f"No Zarr dataset found for config: {zarr_path}")
-
-    # size ranges (keys stay AERLBB etc. for compatibility with rates_N_liq_AERLBB)
-    yaml_sr = _cfg_get(cfg, "size_ranges", default={}) or {}
-    aerlbb = _slice_from_cfg(yaml_sr.get("AERLBB", {}), slice(None, 30))
-    crybb = _slice_from_cfg(yaml_sr.get("CRYBB", {}), slice(30, 50))
-    precbb = _slice_from_cfg(yaml_sr.get("PRECBB", {}), slice(50, None))
-    allbb = _slice_from_cfg(yaml_sr.get("ALLBB", {}), slice(None, None))
-
-    size_ranges = {
-        "AERLBB": {"slice": aerlbb, "label": yaml_sr.get("AERLBB", {}).get("label", "Range AERLBB"), "tag": yaml_sr.get("AERLBB", {}).get("tag", "aerlbb")},
-        "CRYBB": {"slice": crybb, "label": yaml_sr.get("CRYBB", {}).get("label", "Range CRYBB"), "tag": yaml_sr.get("CRYBB", {}).get("tag", "crybb")},
-        "PRECBB": {"slice": precbb, "label": yaml_sr.get("PRECBB", {}).get("label", "Range PRECBB"), "tag": yaml_sr.get("PRECBB", {}).get("tag", "precbb")},
-        "ALLBB": {"slice": allbb, "label": yaml_sr.get("ALLBB", {}).get("label", "Range ALLBB"), "tag": yaml_sr.get("ALLBB", {}).get("tag", "allbb")},
-    }
-    cfg["size_ranges"] = size_ranges
-
-    plot_exp_ids = _cfg_get(cfg, "selection", "plot_experiment_ids", default=[1])
-
-    rates_by_exp, _ = build_rates_for_experiments(
-        ds=ds,
-        exp_ids=plot_exp_ids,
-        config=None,
-        LBB=aerlbb,
-        CBB=crybb,
-        repo_root=repo_root,
-    )
-
-    for eid in plot_exp_ids:
-        ds_exp = ds.isel(expname=eid)
-        if "HMLd" in ds_exp.coords:
-            ds_exp = ds_exp.assign_coords(height_level=ds_exp.HMLd)
-        if "HHLd" in ds_exp.coords:
-            ds_exp = ds_exp.assign_coords(height_level2=ds_exp.HHLd)
-        rho = ds_exp["RHO"] if "RHO" in ds_exp.data_vars else None
-        proc_vars = build_proc_vars(ds_exp)
-        for range_key, range_cfg in size_ranges.items():
-            b = range_cfg["slice"]
-            rates_by_exp[eid][f"rates_N_liq_{range_key}"] = build_rates(ds_exp, rho, proc_vars, "N", b, spectrum="W")
-            rates_by_exp[eid][f"rates_Q_liq_{range_key}"] = build_rates(ds_exp, rho, proc_vars, "Q", b, spectrum="W")
-            rates_by_exp[eid][f"rates_N_ice_{range_key}"] = build_rates(ds_exp, rho, proc_vars, "N", b, spectrum="F")
-            rates_by_exp[eid][f"rates_Q_ice_{range_key}"] = build_rates(ds_exp, rho, proc_vars, "Q", b, spectrum="F")
-            mirror_immersion_freezing({
-                "rates_N_liq": rates_by_exp[eid][f"rates_N_liq_{range_key}"],
-                "rates_Q_liq": rates_by_exp[eid][f"rates_Q_liq_{range_key}"],
-                "rates_N_ice": rates_by_exp[eid][f"rates_N_ice_{range_key}"],
-                "rates_Q_ice": rates_by_exp[eid][f"rates_Q_ice_{range_key}"],
-            })
-
-        sum_vars = sorted(v for v in ds_exp.data_vars if v.startswith("SUM_"))
-        proc_vars_pos = {}
-        proc_vars_neg = {}
-        from utilities.process_rates import classify_tendency
-        for sv in sum_vars:
-            stripped = sv.replace("SUM_", "")
-            if stripped.startswith("P_"):
-                info = classify_tendency(sv)
-                if info is not None:
-                    base, kind, grp, spec = info
-                    proc_vars_pos.setdefault(grp, {"N": {"W": [], "F": []}, "Q": {"W": [], "F": []}})
-                    proc_vars_pos[grp][kind][spec].append(sv)
-            elif stripped.startswith("N_"):
-                info = classify_tendency(sv)
-                if info is not None:
-                    base, kind, grp, spec = info
-                    proc_vars_neg.setdefault(grp, {"N": {"W": [], "F": []}, "Q": {"W": [], "F": []}})
-                    proc_vars_neg[grp][kind][spec].append(sv)
-
-        def _build_pos_neg(kind, spectrum):
-            net = build_spectral_rates(ds_exp, rho, proc_vars, kind, spectrum)
-            r_pos, r_neg = {}, {}
-            for grp in net:
-                n = net[grp]
-                pos_v = proc_vars_pos.get(grp, {}).get(kind, {}).get(spectrum, []) if spectrum else []
-                neg_v = proc_vars_neg.get(grp, {}).get(kind, {}).get(spectrum, []) if spectrum else []
-                if not pos_v:
-                    pos_v = proc_vars_pos.get(grp, {}).get(kind, {}).get("W", []) + proc_vars_pos.get(grp, {}).get(kind, {}).get("F", [])
-                if not neg_v:
-                    neg_v = proc_vars_neg.get(grp, {}).get(kind, {}).get("W", []) + proc_vars_neg.get(grp, {}).get(kind, {}).get("F", [])
-                r_pos[grp] = sum(spectral_rate(ds_exp, rho, v, kind) for v in pos_v) if pos_v else xr.where(n > 0, n, 0.0)
-                r_neg[grp] = sum(spectral_rate(ds_exp, rho, v, kind) for v in neg_v) if neg_v else xr.where(n < 0, n, 0.0)
-            return r_pos, r_neg
-
-        rates_by_exp[eid]["spec_rates_N_W_pos"], rates_by_exp[eid]["spec_rates_N_W_neg"] = _build_pos_neg("N", "W")
-        rates_by_exp[eid]["spec_rates_N_F_pos"], rates_by_exp[eid]["spec_rates_N_F_neg"] = _build_pos_neg("N", "F")
-        rates_by_exp[eid]["spec_rates_Q_W_pos"], rates_by_exp[eid]["spec_rates_Q_W_neg"] = _build_pos_neg("Q", "W")
-        rates_by_exp[eid]["spec_rates_Q_F_pos"], rates_by_exp[eid]["spec_rates_Q_F_neg"] = _build_pos_neg("Q", "F")
-
-        # Spectral concentrations
-        if rho is not None:
-            if "NW" in ds_exp.data_vars:
-                rates_by_exp[eid]["spec_conc_N_W"] = ds_exp["NW"] * rho
-            if "NF" in ds_exp.data_vars:
-                rates_by_exp[eid]["spec_conc_N_F"] = ds_exp["NF"] * rho
-            if "QW" in ds_exp.data_vars:
-                rates_by_exp[eid]["spec_conc_Q_W"] = ds_exp["QW"] * rho * 1000.0
-            if "QF" in ds_exp.data_vars:
-                rates_by_exp[eid]["spec_conc_Q_F"] = ds_exp["QF"] * rho * 1000.0
-
-    _raw_expnames = [v.decode() if isinstance(v, bytes) else str(v) for v in ds.expname.values]
-    if is_server():
-        _config_dir = root / "ensemble_output"
-    else:
-        _cfg_root = _cfg_get(cfg, "paths", "local_ensemble_config_root", default=None)
-        _config_dir = Path(_cfg_root).expanduser() if _cfg_root else Path.home() / "data" / "cosmo-specs" / "polarcap_analysis" / "data" / "ensemble_output"
-    config_json = _config_dir / f"{cs_run}.json"
-
-    experiment_meta = []
-    if config_json.is_file():
-        with open(config_json) as _f:
-            _cfg_json = json.load(_f)
-        for ename in _raw_expnames:
-            entry = _cfg_json.get(ename, {})
-            sbm = entry.get("INPUT_ORG", {}).get("sbm_par", {})
-            flare = entry.get("INPUT_ORG", {}).get("flare_sbm", {})
-            lflare = sbm.get("lflare", False)
-            emission = flare.get("flare_emission", 0.0)
-            ishape = sbm.get("ishape", -1)
-            ikeis = sbm.get("ikeis", -1)
-            is_ref = (not lflare) or emission == 0
-            label = f"REF ishape={ishape}" if is_ref else f"EMIS {emission:.0e} ishape={ishape}"
-            experiment_meta.append({
-                "expname": ename, "lflare": lflare, "emission": emission,
-                "ishape": ishape, "ikeis": ikeis, "label": label, "is_reference": is_ref,
-            })
-    else:
-        experiment_meta = [{"expname": e, "lflare": False, "emission": 0, "ishape": -1, "ikeis": -1, "label": e, "is_reference": False} for e in _raw_expnames]
-    cfg["experiment_meta"] = experiment_meta
-
-    cfg["ds"] = ds
-    cfg["rates_by_exp"] = rates_by_exp
-    _apply_cfg_defaults(cfg)
-
-    from utilities.meteogram_io import _compute_bin_coords
-    if ds is not None and "bins" in ds.sizes:
-        m_edges, m_cen, r_edges, r_cen = _compute_bin_coords(n_bins=ds.sizes["bins"])
-        cfg["diameter_um"] = r_cen * 2e6
-    else:
-        cfg["diameter_um"] = None
-
-    return cfg
+    return build_process_budget_cfg_from_dataset(ds, cfg=cfg, repo_root=repo_root, cs_run=cs_run)
 
 
 def _apply_cfg_defaults(cfg: dict) -> None:
