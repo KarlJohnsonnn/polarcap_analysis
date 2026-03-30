@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -11,10 +12,18 @@ import pandas as pd
 import xarray as xr
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-REGISTRY_CSV = REPO_ROOT / "data" / "registry" / "analysis_registry.csv"
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from utilities.processing_paths import default_local_processed_root  # noqa: E402
+from utilities.table_paths import registry_output_paths, resolve_registry_input, sync_file  # noqa: E402
+
+REGISTRY_CSV = resolve_registry_input("analysis_registry.csv", repo_root=REPO_ROOT)
 PLAN_PC = REPO_ROOT / "data" / "plan_pc"
-PROCESSED_ROOT = REPO_ROOT / "scripts" / "data" / "processed"
-OUT_CSV = REPO_ROOT / "data" / "registry" / "first_ice_onset_metrics.csv"
+PROCESSED_ROOT = Path(default_local_processed_root())
+OUT_PATHS = registry_output_paths("first_ice_onset_metrics.csv", repo_root=REPO_ROOT)
+OUT_CSV = OUT_PATHS["canonical"]
 
 THRESHOLD_M3 = 1.0
 
@@ -33,8 +42,8 @@ def _seed_start(cs_run: str, flare_expname: str, time0: np.datetime64) -> np.dat
     return np.datetime64(time0, "s") + np.timedelta64(flare_sec, "s")
 
 
-def _local_zarr(cs_run: str) -> Path | None:
-    paths = sorted((PROCESSED_ROOT / cs_run / "lv2_meteogram").glob("Meteogram_*.zarr"))
+def _local_zarr(processed_root: Path, cs_run: str) -> Path | None:
+    paths = sorted((processed_root / cs_run / "lv2_meteogram").glob("Meteogram_*.zarr"))
     return paths[-1] if paths else None
 
 
@@ -67,6 +76,7 @@ def _peak(series: xr.DataArray) -> float:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Compute first excess-ice onset metrics from local LV2 outputs.")
     parser.add_argument("--registry", type=Path, default=REGISTRY_CSV, help="Merged analysis registry CSV.")
+    parser.add_argument("--processed-root", type=Path, default=PROCESSED_ROOT, help="Canonical processed output root.")
     parser.add_argument("--output", type=Path, default=OUT_CSV, help="Output CSV path.")
     args = parser.parse_args()
 
@@ -80,7 +90,7 @@ def main() -> None:
 
     rows: list[dict[str, object]] = []
     for row in sel.itertuples(index=False):
-        zarr_path = _local_zarr(row.cs_run)
+        zarr_path = _local_zarr(args.processed_root, row.cs_run)
         if zarr_path is None:
             continue
         try:
@@ -123,6 +133,8 @@ def main() -> None:
     out = pd.DataFrame(rows).sort_values(["cs_run", "exp_id", "station_idx"])
     args.output.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(args.output, index=False)
+    if args.output.resolve() == OUT_CSV.resolve():
+        sync_file(args.output, [OUT_PATHS["legacy"]])
     print(f"Wrote {len(out)} rows to {args.output}")
 
 

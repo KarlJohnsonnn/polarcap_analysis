@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-REGISTRY_DIR = REPO_ROOT / "data" / "registry"
-RIDGE_CSV = REGISTRY_DIR / "ridge_metrics.csv"
-PSD_CSV = REGISTRY_DIR / "psd_stats.csv"
-OUT_CSV = REGISTRY_DIR / "growth_summary.csv"
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from utilities.table_paths import registry_output_paths, resolve_registry_input, sync_file  # noqa: E402
+
+RIDGE_CSV = resolve_registry_input("ridge_metrics.csv", repo_root=REPO_ROOT)
+PSD_CSV = resolve_registry_input("psd_stats.csv", repo_root=REPO_ROOT)
+OUT_PATHS = registry_output_paths("growth_summary.csv", repo_root=REPO_ROOT)
+OUT_CSV = OUT_PATHS["canonical"]
 
 
 def _psd_variant_summary(df: pd.DataFrame) -> pd.Series:
@@ -85,6 +92,8 @@ def main() -> None:
         raise SystemExit("Could not build growth summary; ridge metrics or PSD stats are empty.")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(args.output, index=False)
+    if args.output.resolve() == OUT_CSV.resolve():
+        sync_file(args.output, [OUT_PATHS["legacy"]])
     print(f"Wrote {len(df)} rows to {args.output}")
 
 

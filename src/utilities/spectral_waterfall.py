@@ -47,6 +47,7 @@ from utilities import (  # noqa: E402
     stn_label,
 )
 from utilities.compute_fabric import is_server  # noqa: E402
+from utilities.table_paths import spectral_growth_output_paths, sync_file  # noqa: E402
 
 # CSV columns → Zarr names (first match per experiment). Empty tuple = filled only by derivation / YAML.
 # Verified against Meteogram_*_nVar136_*.zarr (COSMO-SPECS): ``T``, ``W`` (half levels), ``VW``/``VF``
@@ -2113,15 +2114,16 @@ def export_ridge_growth_csv(
 
     cs_run = cfg_yaml.get("ensemble", {}).get("cs_run", "unknown_cs_run")
     cs_run_tag = str(cs_run).replace("/", "_")
-    out = Path(output_csv) if output_csv is not None else (
-        repo_root / "output" / "gfx" / "csv" / "05" / cs_run_tag / f"ridge_growth_{kind_u}_{stn_tag}.csv"
-    )
+    default_paths = spectral_growth_output_paths(cs_run_tag, kind_u, stn_tag, repo_root=repo_root)
+    out = Path(output_csv) if output_csv is not None else default_paths["canonical"]
     out.parent.mkdir(parents=True, exist_ok=True)
     fields = list(growth_csv_rows[0].keys())
     with out.open("w", newline="", encoding="utf-8") as cf:
         w = csv.DictWriter(cf, fieldnames=fields)
         w.writeheader()
         w.writerows(growth_csv_rows)
+    if output_csv is None:
+        sync_file(out, [default_paths["legacy"]])
     print(f"  Ridge growth CSV: {out} ({len(growth_csv_rows)} rows)")
     return out
 
@@ -2296,14 +2298,15 @@ def main() -> None:
         ds=cfg.get("ds"),
     )
     if sw_cfg.get("write_growth_csv", False) and growth_csv_rows:
-        csv_dir = REPO_ROOT / "output" / "gfx" / "csv" / "05" / cs_run_tag
-        csv_dir.mkdir(parents=True, exist_ok=True)
-        csv_path = csv_dir / f"ridge_growth_{kind}_{stn_tag}.csv"
+        csv_paths = spectral_growth_output_paths(cs_run_tag, kind, stn_tag, repo_root=REPO_ROOT)
+        csv_path = csv_paths["canonical"]
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
         fields = list(growth_csv_rows[0].keys())
         with csv_path.open("w", newline="", encoding="utf-8") as cf:
             w = csv.DictWriter(cf, fieldnames=fields)
             w.writeheader()
             w.writerows(growth_csv_rows)
+        sync_file(csv_path, [csv_paths["legacy"]])
         print(f"  Ridge growth CSV: {csv_path} ({len(growth_csv_rows)} rows)")
 
     def render_task(task: tuple[int, str, int]) -> str:

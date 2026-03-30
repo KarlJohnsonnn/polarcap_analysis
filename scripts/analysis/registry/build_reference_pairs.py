@@ -12,9 +12,11 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from utilities.tracking_pipeline import _is_flare, find_matching_reference
+from utilities.table_paths import registry_output_paths, sync_file
 
 PLAN_PC = REPO_ROOT / "data" / "plan_pc"
-OUT_CSV = REPO_ROOT / "data" / "registry" / "flare_reference_pairs.csv"
+OUT_PATHS = registry_output_paths("flare_reference_pairs.csv", repo_root=REPO_ROOT)
+OUT_CSV = OUT_PATHS["canonical"]
 
 
 def _exp_meta(entry: dict) -> dict[str, object]:
@@ -79,6 +81,7 @@ def main() -> None:
         f.write(",".join(cols) + "\n")
         for row in rows:
             f.write(",".join(str(row[c]) for c in cols) + "\n")
+    sync_file(OUT_CSV, [OUT_PATHS["legacy"]])
     print(f"Wrote {len(rows)} pairs to {OUT_CSV}")
 
 

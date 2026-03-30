@@ -13,9 +13,9 @@ REMOTE_RUNS_ROOT = "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-run
 
 
 def default_local_processed_root() -> str:
-    """Absolute path to ``scripts/data/registry/processed`` under the polarcap_analysis repo."""
+    """Absolute path to the canonical ``data/processed`` tree under the repo."""
     repo_root = Path(__file__).resolve().parents[2]
-    return str((repo_root / "scripts" / "data" / "registry" / "processed").resolve())
+    return str((repo_root / "data" / "processed").resolve())
 
 
 def expand_path(path: str | None) -> str:
@@ -47,7 +47,7 @@ def get_output_root(
     3. Matching ``RUN_ERISWILL_*x100/ensemble_output`` under the active runs root.
     4. Matching ``RUN_ERISWILL_*x100/ensemble_output`` under the known levante
        work tree.
-    5. Local ``scripts/data/registry/processed`` under the repo (absolute path).
+    5. Local ``data/processed`` under the repo (absolute path).
     """
     chosen = expand_path(root)
     if chosen:

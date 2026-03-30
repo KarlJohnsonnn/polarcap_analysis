@@ -15,7 +15,11 @@ Usage:
   python run_chain.py --cs-run cs-eriswil__20260123_180947
   python run_chain.py --cs-run cs-eriswil__20260123_180947 --skip-tracking
   python run_chain.py --root $CS_RUNS_DIR --cs-run cs-eriswil__20260314_103039 --skip-tracking
-  POLARCAP_OUTPUT_ROOT=/work/.../RUN_ERISWILL_200x160x100/ensemble_output python run_chain.py --cs-run cs-eriswil__20260314_103039
+  POLARCAP_OUTPUT_ROOT=/work/.../RUN_ERISWILL_200x160x100/ensemble_output python run_chain.py --cs-run 
+  
+   python run_chain.py --root $CS_RUNS_DIR --cs-run cs-eriswil__20260328_205320 --out /work/bb1178/schimmel/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output/ --domain 50x40 --skip-tracking
+ 
+ 
 """
 
 from __future__ import annotations
@@ -128,7 +132,7 @@ Examples:
         default=None,
         help=(
             "Output root; writes <out>/<cs_run>/lv1_tracking|lv1_paths|lv2_meteogram|lv3_rates "
-            "(default: --out, else $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else repo scripts/data/processed)"
+            "(default: --out, else $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else repo data/processed)"
         ),
     )
     p.add_argument("--domain", default="200x160", help="Domain for LV1 (e.g. 50x40 or 200x160)")

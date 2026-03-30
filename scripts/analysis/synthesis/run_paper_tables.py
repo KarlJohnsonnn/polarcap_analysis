@@ -23,8 +23,16 @@ from utilities.paper_tables import (  # noqa: E402
     render_table_environment,
     resolve_repo_path,
 )
+from utilities.table_paths import (  # noqa: E402
+    paper_table_output_paths,
+    resolve_phase_budget_input,
+    resolve_registry_input,
+    sync_file,
+)
 
 DEFAULT_MANIFEST = REPO_ROOT / "scripts" / "analysis" / "synthesis" / "paper_tables.yaml"
+PHASE_BUDGET_EXP_LABEL = "20260304110446"
+PHASE_BUDGET_RANGE_KEY = "ALLBB"
 
 
 def _read_csv(path_like: str | Path, **kwargs) -> pd.DataFrame:
@@ -32,8 +40,12 @@ def _read_csv(path_like: str | Path, **kwargs) -> pd.DataFrame:
     return pd.read_csv(path, **kwargs)
 
 
+def _read_registry_csv(filename: str, **kwargs) -> pd.DataFrame:
+    return pd.read_csv(resolve_registry_input(filename, repo_root=REPO_ROOT), **kwargs)
+
+
 def _paper_subset(only_flares: bool) -> pd.DataFrame:
-    subset = _read_csv("data/registry/paper_core_subset.csv", dtype=str)
+    subset = _read_registry_csv("paper_core_subset.csv", dtype=str)
     subset["exp_id"] = subset["exp_id"].astype(str)
     if only_flares:
         subset = subset[subset["is_reference"].astype(str).str.upper() == "FALSE"].copy()
@@ -82,7 +94,7 @@ def build_experiment_matrix() -> pd.DataFrame:
 
 
 def build_initiation_metrics() -> pd.DataFrame:
-    df = _read_csv("data/registry/first_ice_onset_metrics.csv", dtype=str)
+    df = _read_registry_csv("first_ice_onset_metrics.csv", dtype=str)
     df = _semi_join_paper_subset(df, only_flares=True)
     df = _to_numeric(
         df,
@@ -118,7 +130,7 @@ def build_initiation_metrics() -> pd.DataFrame:
 
 
 def build_process_attribution() -> pd.DataFrame:
-    df = _read_csv("data/registry/pilot_process_attribution_matrix.csv", dtype=str)
+    df = _read_registry_csv("pilot_process_attribution_matrix.csv", dtype=str)
     df = _semi_join_paper_subset(df, only_flares=True)
     df = _to_numeric(
         df,
@@ -150,7 +162,7 @@ def build_process_attribution() -> pd.DataFrame:
 
 
 def build_growth_summary() -> pd.DataFrame:
-    df = _read_csv("data/registry/growth_summary.csv", dtype=str)
+    df = _read_registry_csv("growth_summary.csv", dtype=str)
     df = _semi_join_paper_subset(df, only_flares=True)
     df = _to_numeric(
         df,
@@ -198,8 +210,8 @@ def _select_featured_run(psd: pd.DataFrame, growth: pd.DataFrame) -> str:
 
 
 def build_psd_stats_selected() -> pd.DataFrame:
-    psd = _read_csv("data/registry/psd_stats.csv", dtype=str)
-    growth = _read_csv("data/registry/growth_summary.csv", dtype=str)
+    psd = _read_registry_csv("psd_stats.csv", dtype=str)
+    growth = _read_registry_csv("growth_summary.csv", dtype=str)
     featured_run_id = _select_featured_run(psd, growth)
     psd = _to_numeric(
         psd,
@@ -253,7 +265,7 @@ def build_psd_stats_selected() -> pd.DataFrame:
 
 
 def build_phase_budget_summary() -> pd.DataFrame:
-    df = _read_csv("output/gfx/csv/01/cloud_phase_budget_summary_20260304110446_ALLBB.csv")
+    df = _read_csv(resolve_phase_budget_input(PHASE_BUDGET_EXP_LABEL, PHASE_BUDGET_RANGE_KEY, repo_root=REPO_ROOT))
     return _to_numeric(
         df,
         ["liq_source_g_m2", "liq_sink_g_m2", "ice_source_g_m2", "ice_sink_g_m2"],
@@ -261,7 +273,14 @@ def build_phase_budget_summary() -> pd.DataFrame:
 
 
 def build_phase_budget_long() -> pd.DataFrame:
-    df = _read_csv("output/gfx/csv/01/cloud_phase_budget_summary_20260304110446_ALLBB_long.csv")
+    df = _read_csv(
+        resolve_phase_budget_input(
+            PHASE_BUDGET_EXP_LABEL,
+            PHASE_BUDGET_RANGE_KEY,
+            long_form=True,
+            repo_root=REPO_ROOT,
+        )
+    )
     return _to_numeric(df, ["t_lo_min", "t_hi_min", "column_net_g_m2"]).reset_index(drop=True)
 
 
@@ -296,6 +315,9 @@ def compile_table(spec: dict[str, object], sync_draft: bool) -> tuple[str, int]:
     out_df.to_csv(csv_output, index=False)
     tex_text = render_table_environment(df, spec, source_csvs)
     tex_output.write_text(tex_text, encoding="utf-8")
+    legacy_paths = paper_table_output_paths(csv_output.stem, repo_root=REPO_ROOT)
+    sync_file(csv_output, [legacy_paths["legacy_csv"]])
+    sync_file(tex_output, [legacy_paths["legacy_tex"]])
 
     if sync_draft and spec.get("draft_output"):
         copy_if_changed(tex_output, resolve_repo_path(spec["draft_output"]))

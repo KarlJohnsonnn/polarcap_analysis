@@ -16,9 +16,11 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from utilities.paper_tables import load_manifest  # noqa: E402
+from utilities.table_paths import registry_output_paths, sync_file  # noqa: E402
 
 MANIFEST = REPO_ROOT / "scripts" / "analysis" / "synthesis" / "paper_tables.yaml"
-OUT_CSV = REPO_ROOT / "data" / "registry" / "figure_inventory.csv"
+OUT_PATHS = registry_output_paths("figure_inventory.csv", repo_root=REPO_ROOT)
+OUT_CSV = OUT_PATHS["canonical"]
 
 
 def _load_script_caption(script_relpath: str) -> str:
@@ -26,7 +28,10 @@ def _load_script_caption(script_relpath: str) -> str:
     script_path = REPO_ROOT / script_relpath
     if not script_path.is_file():
         return ""
-    module = ast.parse(script_path.read_text(encoding="utf-8"), filename=str(script_path))
+    try:
+        module = ast.parse(script_path.read_text(encoding="utf-8"), filename=str(script_path))
+    except SyntaxError:
+        return ""
     for node in module.body:
         if not isinstance(node, ast.Assign):
             continue
@@ -107,6 +112,7 @@ def main() -> None:
     out = build_inventory(args.manifest)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(args.output, index=False)
+    sync_file(args.output, [OUT_PATHS["legacy"]])
     print(f"Wrote {len(out)} rows to {args.output}")
 
 

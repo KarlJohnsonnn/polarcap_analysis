@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
-# Check local plan_pc metadata and remote run data availability. Writes CSV + text summary to data/registry/.
+# Check local plan_pc metadata and run data availability. Writes canonical outputs under output/tables/registry/.
 set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 PLAN_PC="${PLAN_PC:-$REPO_ROOT/data/plan_pc}"
-REMOTE_BASE="${REMOTE_BASE:-/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output}"
-REMOTE_SSH="${REMOTE_SSH:-lev}"
-# Disable X11 forwarding to avoid "untrusted X11 forwarding setup failed" warnings when no display
-SSH_OPTS="-o ForwardX11=no"
+REMOTE_BASES="${REMOTE_BASES:-/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output:/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/ensemble_output:/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output}"
+IFS=':' read -r -a REMOTE_ROOTS <<< "$REMOTE_BASES"
 
-OUT_DIR="${OUT_DIR:-$REPO_ROOT/data/registry}"
+OUT_DIR="${OUT_DIR:-$REPO_ROOT/output/tables/registry}"
 OUT_CSV="$OUT_DIR/availability_check.csv"
 OUT_TXT="$OUT_DIR/availability_check.txt"
+LEGACY_DIR="$REPO_ROOT/data/registry"
+LEGACY_CSV="$LEGACY_DIR/availability_check.csv"
+LEGACY_TXT="$LEGACY_DIR/availability_check.txt"
 
-mkdir -p "$OUT_DIR"
+mkdir -p "$OUT_DIR" "$LEGACY_DIR"
 
 LOCAL_REQUIRED=(
   "INPUT_FILES"
@@ -60,38 +61,60 @@ fi
   echo
 } | tee -a "$OUT_TXT"
 
-echo "run_id,local_json,remote_run_dir,remote_json,meteogram_count,three_d_count,y_count,mp_par,lv1_ready,lv2_ready" > "$OUT_CSV"
+probe_run() {
+  local run="$1"
+  local local_json="$2"
+  local base run_dir json_file
+  local run_ok=MISSING
+  local json_ok=MISSING
+  local mp=MISSING
+  local lv1_ready=NO
+  local lv2_ready=NO
+  local m_count=0
+  local d3_count=0
+  local y_count=0
+  local resolved_root=""
+
+  for base in "${REMOTE_ROOTS[@]}"; do
+    [[ -z "${base:-}" ]] && continue
+    run_dir="$base/$run"
+    [[ -d "$run_dir" ]] || continue
+    resolved_root="$base"
+    json_file="$run_dir/$run.json"
+    m=("$run_dir"/M_??_??_*.nc)
+    d3=("$run_dir"/3D_*.nc)
+    y=("$run_dir"/Y*)
+    run_ok=OK
+    [[ -f "$json_file" ]] && json_ok=OK
+    [[ -f "$run_dir/mp_par.dat" ]] && mp=OK
+    m_count=${#m[@]}
+    d3_count=${#d3[@]}
+    y_count=${#y[@]}
+    [[ "$json_ok" = OK && "$d3_count" -gt 0 ]] && lv1_ready=YES
+    [[ "$json_ok" = OK && "$m_count" -gt 0 ]] && lv2_ready=YES
+    echo "$resolved_root,$local_json,$run_ok,$json_ok,$m_count,$d3_count,$y_count,$mp,$lv1_ready,$lv2_ready"
+    return
+  done
+
+  echo ",$local_json,MISSING,MISSING,0,0,0,MISSING,NO,NO"
+}
+
+echo "run_id,resolved_root,local_json,remote_run_dir,remote_json,meteogram_count,three_d_count,y_count,mp_par,lv1_ready,lv2_ready" > "$OUT_CSV"
 
 {
-  echo "== REMOTE availability via: ssh $REMOTE_SSH =="
-  echo "run_id|local_json|remote_run_dir|remote_json|M_count|3D_count|Y_count|mp_par|lv1_ready|lv2_ready"
+  echo "== Availability across ensemble roots =="
+  echo "run_id|resolved_root|local_json|remote_run_dir|remote_json|M_count|3D_count|Y_count|mp_par|lv1_ready|lv2_ready"
 } | tee -a "$OUT_TXT"
 
 for run in "${RUNS[@]}"; do
-  remote_line=$(ssh $SSH_OPTS "$REMOTE_SSH" "bash -c '
-    shopt -s nullglob
-    run_dir=\"$REMOTE_BASE/$run\"
-    json_file=\"\$run_dir/$run.json\"
-    m=(\"\$run_dir\"/M_??_??_*.nc)
-    d3=(\"\$run_dir\"/3D_*.nc)
-    y=(\"\$run_dir\"/Y*)
-    run_ok=MISSING
-    json_ok=MISSING
-    mp=MISSING
-    [[ -d \"\$run_dir\" ]] && run_ok=OK
-    [[ -f \"\$json_file\" ]] && json_ok=OK
-    [[ -f \"\$run_dir/mp_par.dat\" ]] && mp=OK
-    lv1_ready=NO
-    lv2_ready=NO
-    [[ \"\$json_ok\" = OK && \${#d3[@]} -gt 0 ]] && lv1_ready=YES
-    [[ \"\$json_ok\" = OK && \${#m[@]} -gt 0 ]] && lv2_ready=YES
-    echo \"\$run_ok,\$json_ok,\${#m[@]},\${#d3[@]},\${#y[@]},\$mp,\$lv1_ready,\$lv2_ready\"
-  '")
   local_json=MISSING
   [[ -f "$PLAN_PC/$run.json" ]] && local_json=OK
-  echo "$run,$local_json,$remote_line" >> "$OUT_CSV"
-  printf "%s|%s|%s\n" "$run" "$local_json" "$(echo "$remote_line" | tr ',' '|')" | tee -a "$OUT_TXT"
+  remote_line="$(probe_run "$run" "$local_json")"
+  echo "$run,$remote_line" >> "$OUT_CSV"
+  printf "%s|%s\n" "$run" "$(echo "$remote_line" | tr ',' '|')" | tee -a "$OUT_TXT"
 done
 
 echo "" | tee -a "$OUT_TXT"
+cp "$OUT_CSV" "$LEGACY_CSV"
+cp "$OUT_TXT" "$LEGACY_TXT"
 echo "Wrote: $OUT_CSV and $OUT_TXT"

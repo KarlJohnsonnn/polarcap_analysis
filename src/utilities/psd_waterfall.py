@@ -30,6 +30,7 @@ from utilities.plotting import create_new_jet3, make_pastel
 from utilities.plume_loader import load_plume_path_runs
 from utilities.plume_path_plot import build_common_xlim, diagnostics_table
 from utilities.style_profiles import FULL_COL_IN, MAX_H_IN, SINGLE_COL_IN
+from utilities.table_paths import psd_stats_output_paths, sync_file
 
 # Scale factor for gallery/publication: larger figure for higher effective resolution
 PSD_WATERFALL_FIG_SCALE = 1.2
@@ -1114,12 +1115,17 @@ def load_psd_waterfall_context(
     }
 
 
-def _output_paths(gfx_root: Path, var_kind: str, run_id: str) -> tuple[Path, Path, Path]:
-    """Return (figure_path, table_path, stats_path) under output/gfx/png|tex|csv/04."""
+def _output_paths(repo_root: Path, gfx_root: Path, var_kind: str, run_id: str) -> dict[str, Path]:
+    """Return canonical and legacy output paths for one PSD waterfall product."""
     figure_path = gfx_root / "png" / "04" / f"figure13_psd_alt_time_{var_kind}_{run_id}.png"
-    table_path = gfx_root / "tex" / "04" / f"figure13_psd_stats_{var_kind}_{run_id}.tex"
-    stats_path = gfx_root / "csv" / "04" / f"figure13_psd_stats_{var_kind}_{run_id}.csv"
-    return figure_path, table_path, stats_path
+    stats_paths = psd_stats_output_paths(var_kind, run_id, repo_root=repo_root)
+    return {
+        "figure_path": figure_path,
+        "canonical_tex": stats_paths["canonical_tex"],
+        "canonical_csv": stats_paths["canonical_csv"],
+        "legacy_tex": stats_paths["legacy_tex"],
+        "legacy_csv": stats_paths["legacy_csv"],
+    }
 
 
 def render_psd_waterfall_case(
@@ -1196,10 +1202,11 @@ def render_psd_waterfall_case(
         )
 
     gfx_root = context["output_root"] if output_root is None else Path(output_root)
-    figure_path, table_path, stats_path = _output_paths(Path(gfx_root), var_kind, run_id)
+    out_paths = _output_paths(context["repo_root"], Path(gfx_root), var_kind, run_id)
+    figure_path = out_paths["figure_path"]
     figure_path.parent.mkdir(parents=True, exist_ok=True)
-    table_path.parent.mkdir(parents=True, exist_ok=True)
-    stats_path.parent.mkdir(parents=True, exist_ok=True)
+    out_paths["canonical_tex"].parent.mkdir(parents=True, exist_ok=True)
+    out_paths["canonical_csv"].parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(figure_path, bbox_inches="tight", dpi=dpi)
 
     stats_df = build_psd_stats_dataframe(
@@ -1209,15 +1216,17 @@ def render_psd_waterfall_case(
         run_label=run_label,
         holimo_obs=context.get("holimo_obs"),
     )
-    stats_csv_path = save_psd_stats_csv(stats_df, stats_path)
+    stats_csv_path = save_psd_stats_csv(stats_df, out_paths["canonical_csv"])
     tex_path = save_latex_table(
         prepared,
-        table_path,
+        out_paths["canonical_tex"],
         var_kind=var_kind,
         run_id=run_id,
         run_label=run_label,
         holimo_obs=context.get("holimo_obs"),
     )
+    sync_file(stats_csv_path, [out_paths["legacy_csv"]])
+    sync_file(tex_path, [out_paths["legacy_tex"]])
 
     return {
         "run_label": run_label,

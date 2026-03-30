@@ -4,14 +4,21 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
 from pathlib import Path
 
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-REGISTRY_DIR = REPO_ROOT / "data" / "registry"
-INPUT_CSV = REGISTRY_DIR / "initiation_process_fractions.csv"
-OUT_CSV = REGISTRY_DIR / "pilot_process_attribution_matrix.csv"
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from utilities.table_paths import registry_output_paths, resolve_registry_input, sync_file  # noqa: E402
+
+INPUT_CSV = resolve_registry_input("initiation_process_fractions.csv", repo_root=REPO_ROOT)
+OUT_PATHS = registry_output_paths("pilot_process_attribution_matrix.csv", repo_root=REPO_ROOT)
+OUT_CSV = OUT_PATHS["canonical"]
 DEFAULT_CS_RUNS = (
     "cs-eriswil__20260304_110254",
     "cs-eriswil__20260210_113944",
@@ -117,6 +124,8 @@ def main() -> None:
     out = out.sort_values(["cs_run", "exp_id", "station_idx"]).reset_index(drop=True)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(args.output, index=False)
+    if args.output.resolve() == OUT_CSV.resolve():
+        sync_file(args.output, [OUT_PATHS["legacy"]])
     print(f"Wrote {len(out)} rows to {args.output}")
 
 

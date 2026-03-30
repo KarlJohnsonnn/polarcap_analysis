@@ -86,5 +86,12 @@ article_draft/PolarCAP
 !output/gallery/*.mp4
 !output/gallery/*.yaml
 !output/gallery/README.md
+!output/tables/
+!output/tables/**/*.csv
+!output/tables/**/*.tex
+!output/tables/**/*.txt
+!output/tables/**/*.md
+!output/tables/**/*.html
+!output/tables/**/*.svg
 # keep gfx artifacts local-only
 output/gfx/

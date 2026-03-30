@@ -4,16 +4,25 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-STATS_DIR = REPO_ROOT / "output" / "gfx" / "csv" / "04"
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from utilities.table_paths import registry_output_paths, resolve_registry_input, sync_file  # noqa: E402
+
+STATS_DIR = REPO_ROOT / "output" / "tables" / "psd"
+LEGACY_STATS_DIR = REPO_ROOT / "output" / "gfx" / "csv" / "04"
 LEGACY_TABLE_DIR = REPO_ROOT / "output" / "gfx" / "tex" / "04"
-REGISTRY_CSV = REPO_ROOT / "data" / "registry" / "experiment_registry.csv"
-OUT_CSV = REPO_ROOT / "data" / "registry" / "psd_stats.csv"
+REGISTRY_CSV = resolve_registry_input("experiment_registry.csv", repo_root=REPO_ROOT)
+OUT_PATHS = registry_output_paths("psd_stats.csv", repo_root=REPO_ROOT)
+OUT_CSV = OUT_PATHS["canonical"]
 
 KNOWN_VARIANTS = ("mass_small", "number_small", "mass", "number")
 NUMERIC_COLS = [
@@ -137,10 +146,13 @@ def _collect_legacy_latex(table_dir: Path) -> pd.DataFrame:
 
 def collect_psd_stats(
     stats_dir: Path = STATS_DIR,
+    legacy_stats_dir: Path = LEGACY_STATS_DIR,
     legacy_table_dir: Path = LEGACY_TABLE_DIR,
     registry_csv: Path = REGISTRY_CSV,
 ) -> pd.DataFrame:
     df = _collect_structured_stats(stats_dir)
+    if df.empty and legacy_stats_dir != stats_dir:
+        df = _collect_structured_stats(legacy_stats_dir)
     if df.empty:
         df = _collect_legacy_latex(legacy_table_dir)
     if df.empty:
@@ -172,14 +184,22 @@ def main() -> None:
         default=LEGACY_TABLE_DIR,
         help="Fallback directory with legacy figure13_psd_stats_*.tex files.",
     )
+    parser.add_argument(
+        "--legacy-stats-dir",
+        type=Path,
+        default=LEGACY_STATS_DIR,
+        help="Fallback directory with legacy figure13_psd_stats_*.csv files.",
+    )
     parser.add_argument("--output", type=Path, default=OUT_CSV, help="Output CSV path.")
     args = parser.parse_args()
 
-    df = collect_psd_stats(args.stats_dir, args.legacy_table_dir, REGISTRY_CSV)
+    df = collect_psd_stats(args.stats_dir, args.legacy_stats_dir, args.legacy_table_dir, REGISTRY_CSV)
     if df.empty:
-        raise SystemExit(f"No PSD stats found in {args.stats_dir} or {args.legacy_table_dir}")
+        raise SystemExit(f"No PSD stats found in {args.stats_dir}, {args.legacy_stats_dir}, or {args.legacy_table_dir}")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(args.output, index=False)
+    if args.output.resolve() == OUT_CSV.resolve():
+        sync_file(args.output, [OUT_PATHS["legacy"]])
     print(f"Wrote {len(df)} rows to {args.output}")
 
 

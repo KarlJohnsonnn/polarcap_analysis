@@ -9,9 +9,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from utilities.table_paths import registry_output_paths, sync_file  # noqa: E402
 
 PLAN_PC = REPO_ROOT / "data" / "plan_pc"
-OUT_CSV = REPO_ROOT / "data" / "registry" / "experiment_registry.csv"
+OUT_PATHS = registry_output_paths("experiment_registry.csv", repo_root=REPO_ROOT)
+OUT_CSV = OUT_PATHS["canonical"]
 
 
 def _exp_meta(entry: dict) -> dict:
@@ -61,6 +67,7 @@ def main() -> None:
         f.write(",".join(cols) + "\n")
         for r in rows:
             f.write(",".join(str(r[c]) for c in cols) + "\n")
+    sync_file(OUT_CSV, [OUT_PATHS["legacy"]])
     print(f"Wrote {len(rows)} rows to {OUT_CSV}")
 
 

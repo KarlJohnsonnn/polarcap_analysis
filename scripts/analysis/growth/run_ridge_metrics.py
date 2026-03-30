@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -10,11 +11,21 @@ import pandas as pd
 import xarray as xr
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from utilities.processing_paths import default_local_processed_root  # noqa: E402
+from utilities.table_paths import registry_output_paths, resolve_registry_input, sync_file  # noqa: E402
+
 REGISTRY_DIR = REPO_ROOT / "data" / "registry"
-REGISTRY_CSV = REGISTRY_DIR / "analysis_registry.csv"
-PROCESSED_ROOT = REPO_ROOT / "scripts" / "data" / "processed"
-OUT_CSV = REGISTRY_DIR / "ridge_metrics.csv"
-OUT_TS_CSV = REGISTRY_DIR / "ridge_timeseries.csv"
+REGISTRY_CSV = resolve_registry_input("analysis_registry.csv", repo_root=REPO_ROOT)
+PROCESSED_ROOT = Path(default_local_processed_root())
+OUT_PATHS = registry_output_paths("ridge_metrics.csv", repo_root=REPO_ROOT)
+OUT_CSV = OUT_PATHS["canonical"]
+OUT_TS_PATHS = registry_output_paths("ridge_timeseries.csv", repo_root=REPO_ROOT)
+OUT_TS_CSV = OUT_TS_PATHS["canonical"]
+OUT_CELL_PATHS = registry_output_paths("ridge_cell_metrics.csv", repo_root=REPO_ROOT)
 
 ANCHOR_THRESHOLD_L = 1.0
 RIDGE_MIN_UM = 5.0
@@ -36,8 +47,13 @@ def _paper_lv1_subset(registry_csv: Path) -> pd.DataFrame:
 
 
 def _path_files(cs_run: str, expname: str, processed_root: Path) -> list[Path]:
-    pattern = f"data_{cs_run}_{expname}_integrated_plume_path_nf_cell*.nc"
+    pattern = f"data_{cs_run}_{expname}_integrated_plume_path_*_cell*.nc"
     return sorted((processed_root / cs_run / "lv1_paths").glob(pattern))
+
+
+def _path_kind(path: Path) -> str:
+    suffix = path.stem.split("_integrated_plume_path_", 1)[-1]
+    return suffix.rsplit("_cell", 1)[0]
 
 
 def _safe_total_nf(nf: np.ndarray) -> np.ndarray:
@@ -162,6 +178,7 @@ def _run_summary(cell_rows: pd.DataFrame, ts_rows: pd.DataFrame, meta: dict[str,
     return {
         **meta,
         "data_source": "lv1_paths",
+        "path_kinds": ",".join(sorted({str(kind) for kind in cell_rows["path_kind"].dropna().unique()})),
         "anchor_threshold_l": ANCHOR_THRESHOLD_L,
         "n_cells": int(len(cell_rows)),
         "n_times": int(len(ts_rows)),
@@ -215,8 +232,9 @@ def compute_ridge_metrics_dataframes(
                 continue
             ts, summary = opened
             cell_id = int(path.stem.rsplit("cell", 1)[-1])
-            cell_meta = {**base_meta, "cell_id": cell_id, **summary}
-            ts_rows.append(ts.assign(cell_id=cell_id, **base_meta))
+            path_kind = _path_kind(path)
+            cell_meta = {**base_meta, "cell_id": cell_id, "path_kind": path_kind, **summary}
+            ts_rows.append(ts.assign(cell_id=cell_id, path_kind=path_kind, **base_meta))
             cell_rows.append(cell_meta)
         if not cell_rows:
             continue
@@ -231,8 +249,16 @@ def compute_ridge_metrics_dataframes(
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     out = pd.DataFrame(summary_rows).sort_values(["cs_run", "exp_id"]).reset_index(drop=True)
-    out_ts = pd.concat(ts_frames, ignore_index=True).sort_values(["cs_run", "exp_id", "time_rel_min"]).reset_index(drop=True)
-    out_cells = pd.concat(cell_frames, ignore_index=True).sort_values(["cs_run", "exp_id", "cell_id"]).reset_index(drop=True)
+    out_ts = (
+        pd.concat(ts_frames, ignore_index=True)
+        .sort_values(["cs_run", "exp_id", "time_rel_min"])
+        .reset_index(drop=True)
+    )
+    out_cells = (
+        pd.concat(cell_frames, ignore_index=True)
+        .sort_values(["cs_run", "exp_id", "path_kind", "cell_id"])
+        .reset_index(drop=True)
+    )
     return out, out_ts, out_cells
 
 
@@ -253,6 +279,12 @@ def main() -> None:
     args.timeseries_output.write_text(out_ts.to_csv(index=False), encoding="utf-8")
     cell_output = args.output.with_name("ridge_cell_metrics.csv")
     cell_output.write_text(out_cells.to_csv(index=False), encoding="utf-8")
+    if args.output.resolve() == OUT_CSV.resolve():
+        sync_file(args.output, [OUT_PATHS["legacy"]])
+    if args.timeseries_output.resolve() == OUT_TS_CSV.resolve():
+        sync_file(args.timeseries_output, [OUT_TS_PATHS["legacy"]])
+    if cell_output.resolve() == OUT_CELL_PATHS["canonical"].resolve():
+        sync_file(cell_output, [OUT_CELL_PATHS["legacy"]])
     print(f"Wrote {len(out)} rows to {args.output}")
     print(f"Wrote {len(out_ts)} rows to {args.timeseries_output}")
     print(f"Wrote {len(out_cells)} rows to {cell_output}")

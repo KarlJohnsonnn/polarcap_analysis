@@ -23,10 +23,29 @@ _src = _script_dir.parent.parent / "src"
 if _src.is_dir() and str(_src) not in sys.path:
     sys.path.insert(0, str(_src))
 
+import numpy as np
 import xarray as xr
 
 from utilities.process_rates import build_rates_for_experiments
 from utilities.processing_paths import get_output_root
+
+
+def _sanitize_attr_value(value):
+    """Convert NetCDF-incompatible metadata to strings before serialization."""
+    if isinstance(value, np.ndarray):
+        return repr(value.tolist()) if value.ndim > 1 else value
+    if isinstance(value, (list, tuple)) and value and isinstance(value[0], (list, tuple, dict)):
+        return repr(value)
+    return value
+
+
+def _sanitize_netcdf_attrs(ds: xr.Dataset) -> xr.Dataset:
+    """Strip or serialize attrs that NetCDF4 cannot write."""
+    clean = ds.copy(deep=False)
+    clean.attrs = {key: _sanitize_attr_value(val) for key, val in clean.attrs.items()}
+    for name in clean.variables:
+        clean[name].attrs = {key: _sanitize_attr_value(val) for key, val in clean[name].attrs.items()}
+    return clean
 
 
 def parse_args():
@@ -36,7 +55,7 @@ def parse_args():
     p.add_argument(
         "--out",
         default=None,
-        help="Output root for lv3_rates and LV2 lookup (default: $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else repo scripts/data/processed)",
+        help="Output root for lv3_rates and LV2 lookup (default: $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else repo data/processed)",
     )
     p.add_argument("--exp-ids", type=int, nargs="*", default=None,
                    help="Experiment indices to process (default: all)")
@@ -97,7 +116,7 @@ def main():
         if not args.overwrite and nc_path.exists():
             print(f"  Skip (exists): {nc_path}")
             continue
-        rates_ds.to_netcdf(str(nc_path), mode="w")
+        _sanitize_netcdf_attrs(rates_ds).to_netcdf(str(nc_path), mode="w")
         print(f"  Wrote {nc_path}")
     print(f"Done. LV3 rates under {out_dir}")
 

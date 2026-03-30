@@ -26,6 +26,7 @@ from utilities.plotting import get_extpar_data
 from utilities.process_budget_data import load_process_budget_data, select_rates_for_range, stn_label
 from utilities.process_rates import PROCESS_PLOT_ORDER
 from utilities.style_profiles import FULL_COL_IN, MAX_H_IN, MM, proc_color
+from utilities.table_paths import phase_budget_output_paths, sync_file
 
 DEFAULT_PLOT_START_MIN = 12 * 60 + 25
 DEFAULT_PLOT_END_MIN = 13 * 60 + 5
@@ -153,17 +154,42 @@ def _resolve_extpar_paths(
     low_path = local_root / "extPar_Eriswil_50x40.nc"
     high_path = local_root / "extPar_Eriswil_200x160.nc"
 
+    low_candidates = [low_path]
+    high_candidates = [high_path]
+
     if is_server():
         server_root_raw = cfg.get("paths", {}).get("server_root")
         if server_root_raw:
             server_root = Path(server_root_raw).expanduser()
-            low_path = server_root / "COS_in" / "extPar_Eriswil_50x40.nc"
-            high_path = (
-                server_root.parent
-                / "RUN_ERISWILL_200x160x100"
-                / "COS_in"
-                / "extPar_Eriswil_200x160.nc"
+            low_candidates = [
+                server_root / "COS_in" / "extPar_Eriswil_50x40.nc",
+                server_root / "extPar_Eriswil_50x40.nc",
+                server_root.parent / "RUN_ERISWILL_200x160x100" / "COS_in" / "extPar_Eriswil_50x40.nc",
+            ]
+            high_candidates = [
+                server_root.parent / "RUN_ERISWILL_200x160x100" / "COS_in" / "extPar_Eriswil_200x160.nc",
+                server_root.parent / "RUN_ERISWILL_200x160x100" / "extPar_Eriswil_200x160.nc",
+            ]
+        else:
+            high_root = Path(
+                "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100"
             )
+            low_candidates = [
+                Path(
+                    "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x42x100/COS_in/extPar_Eriswil_50x40.nc"
+                ),
+                high_root / "COS_in" / "extPar_Eriswil_50x40.nc",
+            ]
+            high_candidates = [high_root / "COS_in" / "extPar_Eriswil_200x160.nc"]
+
+    for candidate in low_candidates:
+        if candidate.exists():
+            low_path = candidate
+            break
+    for candidate in high_candidates:
+        if candidate.exists():
+            high_path = candidate
+            break
 
     if extpar_low is not None:
         low_path = Path(extpar_low).expanduser()
@@ -402,12 +428,14 @@ def default_cloud_phase_budget_outputs(
     active_range_key: str,
 ) -> dict[str, Path]:
     """Return default output paths for phase-integrated budget summaries."""
-    gfx = repo_root / "output" / "gfx"
-    stem = f"cloud_phase_budget_summary_{exp_label}_{active_range_key}"
+    paths = phase_budget_output_paths(exp_label, active_range_key, repo_root=repo_root)
     return {
-        "long_csv": gfx / "csv" / "01" / f"{stem}_long.csv",
-        "summary_csv": gfx / "csv" / "01" / f"{stem}.csv",
-        "summary_tex": gfx / "tex" / "01" / f"{stem}.tex",
+        "long_csv": paths["canonical_long_csv"],
+        "summary_csv": paths["canonical_summary_csv"],
+        "summary_tex": paths["canonical_summary_tex"],
+        "legacy_long_csv": paths["legacy_long_csv"],
+        "legacy_summary_csv": paths["legacy_summary_csv"],
+        "legacy_summary_tex": paths["legacy_summary_tex"],
     }
 
 
@@ -485,8 +513,8 @@ def save_cloud_phase_budget_tables(
     out_paths: dict[str, Path],
 ) -> dict[str, Path]:
     """Write phase-integrated budget summaries to CSV and LaTeX."""
-    for path in out_paths.values():
-        path.parent.mkdir(parents=True, exist_ok=True)
+    for key in ("long_csv", "summary_csv", "summary_tex"):
+        out_paths[key].parent.mkdir(parents=True, exist_ok=True)
     long_df.to_csv(out_paths["long_csv"], index=False)
     summary_df.to_csv(out_paths["summary_csv"], index=False)
     latex_df = summary_df.copy()
@@ -512,6 +540,9 @@ def save_cloud_phase_budget_tables(
         }
     )
     latex_df.to_latex(out_paths["summary_tex"], index=False)
+    sync_file(out_paths["long_csv"], [out_paths["legacy_long_csv"]])
+    sync_file(out_paths["summary_csv"], [out_paths["legacy_summary_csv"]])
+    sync_file(out_paths["summary_tex"], [out_paths["legacy_summary_tex"]])
     return out_paths
 
 

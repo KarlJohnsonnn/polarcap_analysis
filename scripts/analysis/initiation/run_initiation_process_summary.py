@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -11,10 +12,18 @@ import pandas as pd
 import xarray as xr
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-REGISTRY_CSV = REPO_ROOT / "data" / "registry" / "analysis_registry.csv"
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from utilities.processing_paths import default_local_processed_root  # noqa: E402
+from utilities.table_paths import registry_output_paths, resolve_registry_input, sync_file  # noqa: E402
+
+REGISTRY_CSV = resolve_registry_input("analysis_registry.csv", repo_root=REPO_ROOT)
 PLAN_PC = REPO_ROOT / "data" / "plan_pc"
-PROCESSED_ROOT = REPO_ROOT / "scripts" / "data" / "processed"
-OUT_CSV = REPO_ROOT / "data" / "registry" / "initiation_process_fractions.csv"
+PROCESSED_ROOT = Path(default_local_processed_root())
+OUT_PATHS = registry_output_paths("initiation_process_fractions.csv", repo_root=REPO_ROOT)
+OUT_CSV = OUT_PATHS["canonical"]
 
 H_LOW = 800.0
 H_HIGH = 1400.0
@@ -36,8 +45,8 @@ def _seed_start(cs_run: str, flare_expname: str, time0: np.datetime64) -> np.dat
     return np.datetime64(time0, "s") + np.timedelta64(flare_sec, "s")
 
 
-def _local_lv3(cs_run: str, exp_id: int) -> Path | None:
-    path = PROCESSED_ROOT / cs_run / "lv3_rates" / f"process_rates_exp{exp_id}.nc"
+def _local_lv3(processed_root: Path, cs_run: str, exp_id: int) -> Path | None:
+    path = processed_root / cs_run / "lv3_rates" / f"process_rates_exp{exp_id}.nc"
     return path if path.is_file() else None
 
 
@@ -71,6 +80,7 @@ def _mean_diff(ds_flare: xr.Dataset, ds_ref: xr.Dataset, rate_name: str, label_n
 def main() -> None:
     parser = argparse.ArgumentParser(description="Summarize early initiation process fractions from local LV3 rates.")
     parser.add_argument("--registry", type=Path, default=REGISTRY_CSV, help="Merged analysis registry CSV.")
+    parser.add_argument("--processed-root", type=Path, default=PROCESSED_ROOT, help="Canonical processed output root.")
     parser.add_argument("--output", type=Path, default=OUT_CSV, help="Output CSV path.")
     args = parser.parse_args()
 
@@ -83,8 +93,8 @@ def main() -> None:
     ]
     rows: list[dict[str, object]] = []
     for row in sel.itertuples(index=False):
-        flare_path = _local_lv3(row.cs_run, int(row.exp_id))
-        ref_path = _local_lv3(row.cs_run, int(row.ref_exp_id))
+        flare_path = _local_lv3(args.processed_root, row.cs_run, int(row.exp_id))
+        ref_path = _local_lv3(args.processed_root, row.cs_run, int(row.ref_exp_id))
         if flare_path is None or ref_path is None:
             continue
         ds_flare = xr.open_dataset(flare_path)
@@ -114,6 +124,8 @@ def main() -> None:
     out = pd.DataFrame(rows).sort_values(["cs_run", "exp_id", "station_idx", "phase_rate", "process_label"])
     args.output.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(args.output, index=False)
+    if args.output.resolve() == OUT_CSV.resolve():
+        sync_file(args.output, [OUT_PATHS["legacy"]])
     print(f"Wrote {len(out)} rows to {args.output}")
 
 

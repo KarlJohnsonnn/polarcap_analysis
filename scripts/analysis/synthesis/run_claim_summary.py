@@ -4,13 +4,25 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-PAPER_TABLES_DIR = REPO_ROOT / "data" / "registry" / "paper_tables"
-OUT_CSV = REPO_ROOT / "data" / "registry" / "claim_register.csv"
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from utilities.table_paths import (  # noqa: E402
+    registry_output_paths,
+    resolve_paper_table_input,
+    sync_file,
+)
+
+PAPER_TABLES_DIR = REPO_ROOT / "output" / "tables" / "paper"
+OUT_PATHS = registry_output_paths("claim_register.csv", repo_root=REPO_ROOT)
+OUT_CSV = OUT_PATHS["canonical"]
 
 
 def _safe_median(series: pd.Series) -> float | None:
@@ -36,11 +48,11 @@ def _mode_text(series: pd.Series) -> str:
 
 
 def build_claim_register(paper_tables_dir: Path = PAPER_TABLES_DIR) -> pd.DataFrame:
-    experiment = pd.read_csv(paper_tables_dir / "tab_experiment_matrix.csv")
-    initiation = pd.read_csv(paper_tables_dir / "tab_initiation_metrics.csv")
-    process = pd.read_csv(paper_tables_dir / "tab_process_attribution.csv")
-    growth = pd.read_csv(paper_tables_dir / "tab_growth_summary.csv")
-    phase_budget = pd.read_csv(paper_tables_dir / "tab_phase_budget_summary.csv")
+    experiment = pd.read_csv(resolve_paper_table_input("tab_experiment_matrix", repo_root=REPO_ROOT))
+    initiation = pd.read_csv(resolve_paper_table_input("tab_initiation_metrics", repo_root=REPO_ROOT))
+    process = pd.read_csv(resolve_paper_table_input("tab_process_attribution", repo_root=REPO_ROOT))
+    growth = pd.read_csv(resolve_paper_table_input("tab_growth_summary", repo_root=REPO_ROOT))
+    phase_budget = pd.read_csv(resolve_paper_table_input("tab_phase_budget_summary", repo_root=REPO_ROOT))
 
     rows: list[dict[str, object]] = []
 
@@ -168,6 +180,7 @@ def main() -> None:
     out = build_claim_register(args.paper_tables_dir)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(args.output, index=False)
+    sync_file(args.output, [OUT_PATHS["legacy"]])
     print(f"Wrote {len(out)} rows to {args.output}")
 
 

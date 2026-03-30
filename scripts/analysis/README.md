@@ -1,6 +1,6 @@
 # Publication analysis scripts
 
-Thin drivers for manuscript-critical diagnostics. Each script calls `src/utilities` and writes tables or figures to a stable path.
+Thin drivers for manuscript-critical diagnostics. Each script calls `src/utilities` and writes canonical tables and statistics to `output/tables/`, while keeping legacy compatibility copies where the draft pipeline still expects them.
 
 - **registry/** — Experiment metadata, availability, flare–reference pairing.
 - **forcing/** — Forcing and setup summaries.
@@ -9,25 +9,25 @@ Thin drivers for manuscript-critical diagnostics. Each script calls `src/utiliti
 - **impacts/** — Liquid depletion, radar/precipitation-facing metrics.
 - **synthesis/** — Claim register, figure inventory.
 
-Outputs go to `data/registry/` or paths documented in each script. Every paper figure should map to a script and output file here.
+Registry-style CSV outputs go to `output/tables/registry/` (mirrored to `data/registry/` for compatibility), and compiled manuscript tables go to `output/tables/paper/` (mirrored to `data/registry/paper_tables/`). Every paper figure should map to a script and output file here.
 
 Current promoted products:
 
-- `registry/build_analysis_registry.py` -> `data/registry/analysis_registry.csv`, `data/registry/paper_core_subset.csv`
+- `registry/build_analysis_registry.py` -> `output/tables/registry/analysis_registry.csv`, `output/tables/registry/paper_core_subset.csv`
 - `forcing/run_cloud_field_overview.py` -> `output/gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_<exp>_<range>.png`
-- `forcing/run_cloud_phase_budget_table.py` -> `output/gfx/csv/01/cloud_phase_budget_summary_<exp>_<range>.csv`, `output/gfx/tex/01/cloud_phase_budget_summary_<exp>_<range>.tex`
+- `forcing/run_cloud_phase_budget_table.py` -> `output/tables/phase_budget/cloud_phase_budget_summary_<exp>_<range>.csv`, `output/tables/phase_budget/cloud_phase_budget_summary_<exp>_<range>.tex`
 - `growth/run_plume_lagrangian_evolution.py` -> `output/gfx/png/03/figure12_ensemble_mean_plume_path_foo.png`
 - `growth/run_psd_waterfall.py` -> `output/gfx/png/04/figure13_psd_alt_time_<kind>_<run_id>.png`, `output/gfx/csv/04/figure13_psd_stats_<kind>_<run_id>.csv`, `output/gfx/tex/04/figure13_psd_stats_<kind>_<run_id>.tex`
-- `growth/run_psd_stats.py` -> `data/registry/psd_stats.csv`
-- `growth/run_growth_summary.py` -> `data/registry/growth_summary.csv`
-- `growth/run_ridge_metrics.py` -> `data/registry/ridge_metrics.csv`
+- `growth/run_psd_stats.py` -> `output/tables/registry/psd_stats.csv`
+- `growth/run_growth_summary.py` -> `output/tables/registry/growth_summary.csv`
+- `growth/run_ridge_metrics.py` -> `output/tables/registry/ridge_metrics.csv`
 - `growth/run_spectral_waterfall.py` -> `output/gfx/...` plus promoted gallery assets through the publication wrapper
-- `initiation/run_first_ice_metrics.py` -> `data/registry/first_ice_onset_metrics.csv`
-- `initiation/run_initiation_process_summary.py` -> `data/registry/initiation_process_fractions.csv`
-- `initiation/run_pilot_process_attribution.py` -> `data/registry/pilot_process_attribution_matrix.csv`
-- `synthesis/run_paper_tables.py` -> compiled manuscript tables in `data/registry/paper_tables/*.csv` and `article_draft/PolarCAP/tables/*.tex`
-- `synthesis/run_claim_summary.py` -> `data/registry/claim_register.csv`
-- `synthesis/run_figure_inventory.py` -> `data/registry/figure_inventory.csv`
+- `initiation/run_first_ice_metrics.py` -> `output/tables/registry/first_ice_onset_metrics.csv`
+- `initiation/run_initiation_process_summary.py` -> `output/tables/registry/initiation_process_fractions.csv`
+- `initiation/run_pilot_process_attribution.py` -> `output/tables/registry/pilot_process_attribution_matrix.csv`
+- `synthesis/run_paper_tables.py` -> compiled manuscript tables in `output/tables/paper/*.csv` and `article_draft/PolarCAP/tables/*.tex`
+- `synthesis/run_claim_summary.py` -> `output/tables/registry/claim_register.csv`
+- `synthesis/run_figure_inventory.py` -> `output/tables/registry/figure_inventory.csv`
 
 `growth/run_process_dominance.py` and `impacts/` remain deferred on purpose until the registry, ridge, PSD, and initiation products are stable.
 

@@ -8,6 +8,14 @@ import pandas as pd
 import xarray as xr
 
 
+def _candidate_plume_files(processed_root: Path, pattern: str) -> list[Path]:
+    """Return plume-path files from either flat or run-scoped processed layouts."""
+    return sorted(
+        {path for path in processed_root.rglob(pattern) if path.is_file()},
+        key=_cell_index,
+    )
+
+
 def _cell_index(path: Path) -> int:
     match = re.search(r"_cell(\d+)\.nc$", path.name)
     return int(match.group(1)) if match else -1
@@ -43,7 +51,7 @@ def _discover_runs_from_processed(processed_root: Path) -> list[dict]:
         r"^data_(?P<cs>cs-.*?__\d{8}_\d{6})_(?P<exp>\d{14})_(?P<kind>integrated|extreme|vertical)_plume_path_.*_cell\d+\.nc$"
     )
     found: dict[tuple[str, str], dict] = {}
-    for path in processed_root.glob("data_*_plume_path_*_cell*.nc"):
+    for path in processed_root.rglob("data_*_plume_path_*_cell*.nc"):
         match = pattern.match(path.name)
         if not match:
             continue
@@ -66,7 +74,7 @@ def _build_cfg(runs: list[dict], processed_root: Path, kinds: tuple[str, ...]) -
             files_by_tracer = []
             for tracer_var in ("qi", "qs"):
                 files_by_tracer.append(
-                    list(processed_root.glob(f"data_{cs_run}_{exp_id}_{kind}_plume_path_{tracer_var}_cell*.nc"))
+                    _candidate_plume_files(processed_root, f"data_{cs_run}_{exp_id}_{kind}_plume_path_{tracer_var}_cell*.nc")
                 )
             entry[f"flist_{kind}"] = sorted(_flatten(files_by_tracer), key=_cell_index)
         cfg[label] = entry

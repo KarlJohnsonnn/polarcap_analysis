@@ -2,19 +2,29 @@
 """Build one merged analysis-ready registry table and the first paper subset."""
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-REGISTRY_DIR = REPO_ROOT / "data" / "registry"
-PROCESSED_ROOT = REPO_ROOT / "scripts" / "data" / "processed"
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
-AVAIL_CSV = REGISTRY_DIR / "availability_check.csv"
-EXP_CSV = REGISTRY_DIR / "experiment_registry.csv"
-PAIR_CSV = REGISTRY_DIR / "flare_reference_pairs.csv"
-OUT_CSV = REGISTRY_DIR / "analysis_registry.csv"
-OUT_PAPER = REGISTRY_DIR / "paper_core_subset.csv"
+from utilities.processing_paths import default_local_processed_root  # noqa: E402
+from utilities.table_paths import registry_output_paths, resolve_registry_input, sync_file  # noqa: E402
+
+REGISTRY_DIR = REPO_ROOT / "output" / "tables" / "registry"
+PROCESSED_ROOT = Path(default_local_processed_root())
+
+AVAIL_CSV = resolve_registry_input("availability_check.csv", repo_root=REPO_ROOT)
+EXP_CSV = resolve_registry_input("experiment_registry.csv", repo_root=REPO_ROOT)
+PAIR_CSV = resolve_registry_input("flare_reference_pairs.csv", repo_root=REPO_ROOT)
+OUT_PATHS = registry_output_paths("analysis_registry.csv", repo_root=REPO_ROOT)
+OUT_CSV = OUT_PATHS["canonical"]
+OUT_PAPER_PATHS = registry_output_paths("paper_core_subset.csv", repo_root=REPO_ROOT)
+OUT_PAPER = OUT_PAPER_PATHS["canonical"]
 
 
 def _bool_flag(value: bool) -> str:
@@ -130,6 +140,8 @@ def main() -> None:
     REGISTRY_DIR.mkdir(parents=True, exist_ok=True)
     merged.to_csv(OUT_CSV, index=False)
     merged.loc[merged["include_in_paper"] == "TRUE"].to_csv(OUT_PAPER, index=False)
+    sync_file(OUT_CSV, [OUT_PATHS["legacy"]])
+    sync_file(OUT_PAPER, [OUT_PAPER_PATHS["legacy"]])
     print(f"Wrote {len(merged)} rows to {OUT_CSV}")
     print(f"Wrote paper subset to {OUT_PAPER}")
 

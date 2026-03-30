@@ -17,7 +17,7 @@ from utilities.process_rates import (
     mirror_immersion_freezing,
     spectral_rate,
 )
-from polarcap_runtime import is_server
+from utilities.processing_paths import default_local_processed_root
 
 
 def discover_candidate_datasets(repo_root: Path) -> list[Path]:
@@ -38,6 +38,51 @@ def open_dataset_auto(path: Path) -> xr.Dataset:
     if path.suffix == '.zarr':
         return xr.open_zarr(path)
     return xr.open_dataset(path)
+
+
+def _first_existing_path(paths: list[Path]) -> Path | None:
+    for path in paths:
+        if path.exists():
+            return path
+    return None
+
+
+def _meteogram_search_dirs(cfg: dict, cs_run: str) -> list[Path]:
+    dirs: list[Path] = []
+    local_root = _cfg_get(cfg, "paths", "local_meteogram_root", default=None)
+    if local_root:
+        base = Path(local_root).expanduser()
+        dirs.extend([base / cs_run, base / cs_run / "lv2_meteogram"])
+    else:
+        dirs.append(Path(default_local_processed_root()) / cs_run / "lv2_meteogram")
+
+    server_root = _cfg_get(cfg, "paths", "server_root", default=None)
+    if server_root:
+        dirs.append(Path(server_root).expanduser() / "ensemble_output" / cs_run)
+
+    legacy_local = Path.home() / "data" / "cosmo-specs" / "meteograms" / cs_run
+    if legacy_local not in dirs:
+        dirs.append(legacy_local)
+    return dirs
+
+
+def _config_json_candidates(repo_root: Path, cfg: dict, cs_run: str) -> list[Path]:
+    candidates: list[Path] = []
+    local_cfg_root = _cfg_get(cfg, "paths", "local_ensemble_config_root", default=None)
+    if local_cfg_root:
+        base = Path(local_cfg_root).expanduser()
+        candidates.extend([base / f"{cs_run}.json", base / cs_run / f"{cs_run}.json"])
+    else:
+        candidates.append(repo_root / "data" / "plan_pc" / f"{cs_run}.json")
+
+    server_root = _cfg_get(cfg, "paths", "server_root", default=None)
+    if server_root:
+        candidates.append(Path(server_root).expanduser() / "ensemble_output" / f"{cs_run}.json")
+
+    legacy_local = Path.home() / "data" / "cosmo-specs" / "polarcap_analysis" / "data" / "ensemble_output" / f"{cs_run}.json"
+    if legacy_local not in candidates:
+        candidates.append(legacy_local)
+    return candidates
 
 
 def make_synthetic_rates(n_time=180, n_height=52, n_station=2):
@@ -271,16 +316,10 @@ def build_process_budget_cfg_from_dataset(
                 rates_by_exp[eid]["spec_conc_Q_F"] = ds_exp["QF"] * rho * 1000.0
 
     _raw_expnames = [v.decode() if isinstance(v, bytes) else str(v) for v in ds.expname.values]
-    if is_server():
-        server_root = Path(_cfg_get(cfg, "paths", "server_root", default=None))
-        _config_dir = server_root / "ensemble_output"
-    else:
-        _cfg_root = _cfg_get(cfg, "paths", "local_ensemble_config_root", default=None)
-        _config_dir = Path(_cfg_root).expanduser() if _cfg_root else Path.home() / "data" / "cosmo-specs" / "polarcap_analysis" / "data" / "ensemble_output"
-    config_json = _config_dir / f"{cs_run}.json"
+    config_json = _first_existing_path(_config_json_candidates(repo_root, cfg, cs_run))
 
     experiment_meta = []
-    if config_json.is_file():
+    if config_json and config_json.is_file():
         with open(config_json) as _f:
             _cfg_json = json.load(_f)
         for ename in _raw_expnames:
@@ -347,18 +386,12 @@ def load_process_budget_data(
 
     cs_run = _cfg_get(cfg, "ensemble", "cs_run", default="cs-eriswil__20260304_110254")
 
-    if is_server():
-        root = Path(_cfg_get(cfg, "paths", "server_root", default=None))
-        data_dir = root / "ensemble_output" / cs_run
-    else:
-        local_meteogram_root = _cfg_get(cfg, "paths", "local_meteogram_root", default=None)
-        if local_meteogram_root:
-            data_dir = Path(local_meteogram_root).expanduser() / cs_run
-        else:
-            data_dir = Path.home() / "data" / "cosmo-specs" / "meteograms" / cs_run
-
-    zarr_candidates = sorted(data_dir.glob("Meteogram_*.zarr"))
-    zarr_path = zarr_candidates[-1] if zarr_candidates else None
+    zarr_path = None
+    for data_dir in _meteogram_search_dirs(cfg, cs_run):
+        zarr_candidates = sorted(data_dir.glob("Meteogram_*.zarr"))
+        if zarr_candidates:
+            zarr_path = zarr_candidates[-1]
+            break
     if not zarr_path:
         cands = discover_candidate_datasets(repo_root)
         if cands:

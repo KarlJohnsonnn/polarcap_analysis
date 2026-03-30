@@ -34,17 +34,21 @@ for _p in (SRC_DIR, GROWTH_DIR):
 
 from utilities.spectral_waterfall import export_ridge_growth_csv  # noqa: E402
 from utilities.style_profiles import apply_publication_style  # noqa: E402
+from utilities.table_paths import (  # noqa: E402
+    growth_bundle_output_dir,
+    resolve_registry_input,
+    spectral_growth_output_paths,
+    sync_tree,
+)
 
 import run_growth_summary as gsm  # noqa: E402
 import run_psd_stats as psd_mod  # noqa: E402
 import run_ridge_growth_quicklook as rgq  # noqa: E402
 import run_ridge_metrics as rrm  # noqa: E402
 
-DEFAULT_GROWTH_CSV = (
-    REPO_ROOT / "output" / "gfx" / "csv" / "05" / "cs-eriswil__20260304_110254" / "ridge_growth_Q_stn0.csv"
-)
+DEFAULT_GROWTH_CSV = spectral_growth_output_paths("cs-eriswil__20260304_110254", "Q", "stn0", repo_root=REPO_ROOT)["canonical"]
 DEFAULT_CONFIG = REPO_ROOT / "config" / "psd_process_evolution.yaml"
-RIDGE_METRICS_CSV = REGISTRY_DIR / "ridge_metrics.csv"
+RIDGE_METRICS_CSV = resolve_registry_input("ridge_metrics.csv", repo_root=REPO_ROOT)
 
 _REQUIRED_GROWTH_COLS = {
     "exp_id",
@@ -482,6 +486,7 @@ def main() -> None:
     p.add_argument("--station-ids", type=str, default=None)
     p.add_argument("--out-dir", type=Path, default=None, help="Bundle output root (default: output/growth_bundle/<cs_run>).")
     p.add_argument("--stats-dir", type=Path, default=psd_mod.STATS_DIR, help="PSD figure13 stats CSV directory.")
+    p.add_argument("--legacy-stats-dir", type=Path, default=psd_mod.LEGACY_STATS_DIR)
     p.add_argument("--legacy-table-dir", type=Path, default=psd_mod.LEGACY_TABLE_DIR)
     p.add_argument("--rebuild-ridge-metrics", action="store_true", help="Recompute LV1 ridge metrics via registry.")
     p.add_argument("--registry", type=Path, default=rrm.REGISTRY_CSV)
@@ -528,10 +533,15 @@ def main() -> None:
 
     base_out = args.out_dir
     if base_out is None:
-        base_out = REPO_ROOT / "output" / "growth_bundle" / cs_run
+        base_out = growth_bundle_output_dir(cs_run, repo_root=REPO_ROOT)["canonical"]
     base_out = base_out.resolve()
 
-    psd_df = psd_mod.collect_psd_stats(args.stats_dir, args.legacy_table_dir, psd_mod.REGISTRY_CSV)
+    psd_df = psd_mod.collect_psd_stats(
+        stats_dir=args.stats_dir,
+        legacy_stats_dir=args.legacy_stats_dir,
+        legacy_table_dir=args.legacy_table_dir,
+        registry_csv=psd_mod.REGISTRY_CSV,
+    )
     ridge_full = pd.read_csv(RIDGE_METRICS_CSV, dtype=str) if RIDGE_METRICS_CSV.is_file() else pd.DataFrame()
     rts_lv1 = pd.DataFrame()
     rcells_lv1 = pd.DataFrame()
@@ -607,6 +617,10 @@ def main() -> None:
         print(f"  csv: {base_out / 'csv'}")
         print(f"  tex: {base_out / 'tex'}")
         print(f"  png: {base_out / 'png'}")
+
+    default_bundle_dir = growth_bundle_output_dir(cs_run, repo_root=REPO_ROOT)["canonical"].resolve()
+    if base_out == default_bundle_dir:
+        sync_tree(base_out, growth_bundle_output_dir(cs_run, repo_root=REPO_ROOT)["legacy"])
 
 
 if __name__ == "__main__":
