@@ -16,9 +16,8 @@ import argparse
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Tuple
 
 import yaml
 
@@ -35,7 +34,7 @@ PAMTRA_MISSIONS = ("composite", "SM059", "SM058", "SM060")
 # Filename substring that marks single-frame outputs (e.g. spectral waterfall frames); exclude from gallery.
 SINGLE_FRAME_MARKER = "_itime"
 
-ArgBuilder = Callable[[argparse.Namespace], tuple[str, ...]]
+ArgBuilder = Callable[[argparse.Namespace], Tuple[str, ...]]
 
 
 def _load_publication_config(path: Path) -> dict[str, list[str]]:
@@ -61,28 +60,40 @@ def _load_publication_config(path: Path) -> dict[str, list[str]]:
     return out
 
 
-@dataclass(frozen=True)
 class FigureJob:
-    key: str
-    rel_script: str
-    description: str
-    default_args: tuple[str, ...] = ()
-    arg_builder: ArgBuilder | None = None
+    """One runnable publication driver (stdlib only; explicit __init__ for type checkers)."""
+
+    __slots__ = ("key", "rel_script", "description", "default_args", "arg_builder")
+
+    def __init__(
+        self,
+        key: str,
+        rel_script: str,
+        description: str,
+        *,
+        default_args: Tuple[str, ...] = (),
+        arg_builder: ArgBuilder | None = None,
+    ) -> None:
+        self.key = key
+        self.rel_script = rel_script
+        self.description = description
+        self.default_args = default_args
+        self.arg_builder = arg_builder
 
     @property
     def script_path(self) -> Path:
         return REPO_ROOT / self.rel_script
 
     def resolve_args(
-        self, cli_args: argparse.Namespace, config_args: tuple[str, ...] = ()
-    ) -> tuple[str, ...]:
+        self, cli_args: argparse.Namespace, config_args: Tuple[str, ...] = ()
+    ) -> Tuple[str, ...]:
         if self.arg_builder is not None:
             base = self.arg_builder(cli_args)
             return base + config_args
         return config_args if config_args else self.default_args
 
 
-def _pamtra_quicklook_args(args: argparse.Namespace) -> tuple[str, ...]:
+def _pamtra_quicklook_args(args: argparse.Namespace) -> Tuple[str, ...]:
     if args.pamtra_file is None:
         raise ValueError(
             "The pamtra_mira35_quicklook job requires --pamtra-file <path-to-*_pamtra.nc>."
@@ -101,11 +112,11 @@ def _pamtra_quicklook_args(args: argparse.Namespace) -> tuple[str, ...]:
     return tuple(out)
 
 
-PUBLICATION_PRODUCTS: tuple[FigureJob, ...] = (
+PUBLICATION_PRODUCTS: Tuple[FigureJob, ...] = (
     FigureJob(
         key="analysis_registry",
         rel_script="scripts/analysis/registry/build_analysis_registry.py",
-        description="Merged paper-ready registry plus the paper-core subset CSV.",
+        description="Unified analysis registry with paper-selection flags.",
     ),
     FigureJob(
         key="cloud_field_overview",
@@ -116,6 +127,11 @@ PUBLICATION_PRODUCTS: tuple[FigureJob, ...] = (
         key="cloud_phase_budget_table",
         rel_script="scripts/analysis/forcing/run_cloud_phase_budget_table.py",
         description="Phase-integrated budget summary tables for the overview figure.",
+    ),
+    FigureJob(
+        key="station_column_overview",
+        rel_script="scripts/analysis/forcing/run_station_column_overview.py",
+        description="5×6 orography + per-station column profiles (QW, QFW, T, RH, TKE, W) from LV2 zarr.",
     ),
     FigureJob(
         key="plume_lagrangian",
@@ -238,6 +254,8 @@ Examples:
   python run_publication_figures.py --figures cloud_field_overview,plume_lagrangian
   python run_publication_figures.py --skip psd_waterfall --dry-run
   python run_publication_figures.py --figures pamtra_mira35_quicklook --pamtra-file /path/to/example_pamtra.nc
+
+Config index (which YAML belongs to which script): config/_index.yaml
 """
     parser = argparse.ArgumentParser(
         description="Run the promoted publication figure, table, and metric scripts under scripts/analysis.",
@@ -305,7 +323,8 @@ Examples:
         "--config",
         type=Path,
         default=DEFAULT_CONFIG,
-        help="Path to publication_figures.yaml (default: config/publication_figures.yaml).",
+        help="Path to publication_figures.yaml (default: config/publication_figures.yaml). "
+        "See config/_index.yaml for all configs.",
     )
     return parser.parse_args()
 

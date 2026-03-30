@@ -1,4 +1,8 @@
-# Publication runner presets (`config/publication_figures.yaml` → run_publication_figures.py).
+# purpose: orchestration — alternate publication argv presets (e.g. 100 m workflows; not CLI default).
+# Primary entrypoints: notebooks/aereals.ipynb (pass as --config to run_publication_figures.py if needed)
+# Index: config/_index.yaml (all configs × scripts).
+#
+# Publication runner presets (`config/publication_figures100m.yaml` → run_publication_figures.py --config …).
 #
 # Use this file to keep promoted figures visually consistent without repeating
 # long CLI commands. Each job key below maps to one analysis driver.

@@ -1,0 +1,65 @@
+# Map of repo YAML configs → role and consumers. Grep this file or open the
+# matching YAML; each file repeats the same summary in its header comments.
+# Main runners also mention this index in --help (run_chain, run_publication_figures).
+
+version: 1
+
+configs:
+  - file: processing_chain.yaml
+    purpose: processing
+    summary: >-
+      LV1–LV3 stage toggles, model/output roots, cs_run validation regex, optional zarr hint;
+      optional input to the processing-chain launcher.
+    consumers:
+      - scripts/processing_chain/run_chain.py
+
+  - file: publication_figures.yaml
+    purpose: orchestration
+    summary: >-
+      Batch publication runner presets: job keys → argv fragments for curated scripts under
+      scripts/analysis. May duplicate ensemble/paths for standalone runs; see psd_process_evolution.yaml
+      for the shared process-budget contract.
+    consumers:
+      - scripts/processing_chain/run_publication_figures.py
+
+  - file: psd_process_evolution.yaml
+    purpose: analysis_data
+    summary: >-
+      Shared process-budget / meteogram / spectral-waterfall defaults (ensemble, paths, zarr,
+      selection, plotting). Default path for load_process_budget_data—not “PSD-only” despite the filename.
+    consumers:
+      - src/utilities/process_budget_data.py
+      - src/utilities/spectral_waterfall.py
+      - scripts/analysis/growth/run_spectral_waterfall.py
+      - scripts/processing_chain/run_spectral_waterfall.py
+      - scripts/analysis/forcing/run_cloud_field_overview.py
+      - scripts/analysis/forcing/run_cloud_phase_budget_table.py
+      - scripts/processing_chain/run_compartment_closure.py
+      - scripts/analysis/growth/run_ridge_growth_quicklook.py
+      - scripts/analysis/growth/run_growth_stats_bundle.py
+    related_tools:
+      - config/_gen_time_spacing.py
+
+  - file: psd_waterfall.yaml
+    purpose: plotting
+    summary: >-
+      Altitude–time PSD waterfall figure defaults (processed root, HOLIMO overlay, plot kinds, layout).
+    consumers:
+      - src/utilities/psd_waterfall.py
+      - scripts/analysis/growth/run_psd_waterfall.py
+
+  - file: publication_figures100m.yaml
+    purpose: orchestration
+    summary: >-
+      Alternate publication presets (e.g. 100 m grid / notebook workflows); not used as the default
+      --config for run_publication_figures.py.
+    consumers:
+      - notebooks/aereals.ipynb
+
+  - file: psd_process_evolution100m.yaml
+    purpose: analysis_data
+    summary: >-
+      Alternate process-budget defaults (e.g. different domain resolution); not used as the default
+      --config for analysis CLIs.
+    consumers:
+      - notebooks/aereals.ipynb

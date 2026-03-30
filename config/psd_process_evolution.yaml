@@ -1,3 +1,10 @@
+# purpose: analysis_data — shared process-budget / meteogram / spectral-waterfall defaults.
+# Primary entrypoints: src/utilities/process_budget_data.py, scripts/analysis/growth/run_spectral_waterfall.py,
+#   scripts/analysis/forcing/run_cloud_field_overview.py, scripts/analysis/forcing/run_cloud_phase_budget_table.py,
+#   scripts/processing_chain/run_compartment_closure.py, scripts/analysis/growth/run_ridge_growth_quicklook.py,
+#   scripts/analysis/growth/run_growth_stats_bundle.py (see config/_index.yaml for full list).
+# Index: config/_index.yaml (all configs × scripts).
+#
 # PSD + size-resolved process evolution: meteogram / process-budget defaults (ensemble, paths,
 # zarr, selection, plotting, waterfall-style figure keys under plotting.spectral_waterfall_*).
 # Drives `run_spectral_waterfall.py`, compartment closure, cloud-field overview, and

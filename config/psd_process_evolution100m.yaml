@@ -1,3 +1,7 @@
+# purpose: analysis_data — alternate process-budget defaults (e.g. 200×160 domain); not CLI default.
+# Primary entrypoints: notebooks/aereals.ipynb (or pass explicit --config to analysis scripts)
+# Index: config/_index.yaml (all configs × scripts).
+#
 # PSD + size-resolved process evolution: meteogram / process-budget defaults (ensemble, paths,
 # zarr, selection, plotting, waterfall-style figure keys under plotting.spectral_waterfall_*).
 # Drives `run_spectral_waterfall.py`, compartment closure, cloud-field overview, and

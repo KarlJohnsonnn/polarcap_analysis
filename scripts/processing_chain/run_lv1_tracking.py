@@ -47,11 +47,7 @@ def parse_args():
              "metadata (lflare): flare_idx indexes the flare-only list, ref_idx the ref-only list.")
     p.add_argument("--ref-idx", type=int, default=-1, help="Index of the reference experiment in the ref-only list. -1 (default) = auto-select the reference that matches the chosen flare in all non-emission parameters.")
     p.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD, help="Tobac detection threshold in 1/L (default: 1.0 = 1 per liter)")
-    p.add_argument(
-        "--out",
-        default=None,
-        help="Output root; <out>/<cs_run>/lv1_* (default: $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else repo data/processed)",
-    )
+    p.add_argument("--out", type=Path, default=None, help="Output root; <out>/<cs_run>/lv1_* (default: $POLARCAP_OUTPUT_ROOT, else matching RUN_ERISWILL_*x100/ensemble_output, else repo data/processed)")
     p.add_argument("--skip-tracking", action="store_true", help="Skip LV1a, only run LV1b path extraction")
     p.add_argument("--skip-paths", action="store_true", help="Skip LV1b, only run LV1a tracking")
     p.add_argument("--overwrite", action="store_true", help="Overwrite existing outputs")

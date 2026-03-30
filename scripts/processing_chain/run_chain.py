@@ -116,6 +116,8 @@ Examples:
 
   # Dry-run (print commands only):
   %(prog)s --cs-run cs-eriswil__20260304_110254 --dry-run
+
+Config index (which YAML belongs to which script): config/_index.yaml
 """
     p = argparse.ArgumentParser(
         description="Run full LV0→LV3 processing chain (LV1a/LV1b tracking, LV2 meteogram Zarr, LV3 process rates).",
@@ -123,7 +125,13 @@ Examples:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--cs-run", required=True, help="Run ID (e.g. cs-eriswil__YYYYMMDD_HHMMSS)")
-    p.add_argument("--config", type=Path, default=None, help="YAML/JSON config: model_data_root, output_root, domain, run_lv*, overwrite, debug")
+    p.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="YAML/JSON config: model_data_root, output_root, domain, run_lv*, overwrite, debug. "
+        "See config/_index.yaml for which file maps to which script.",
+    )
     from utilities.processing_paths import get_runs_root
 
     p.add_argument("--root", default=get_runs_root(), help="Model data root for LV1/LV2 (default: $CS_RUNS_DIR)")

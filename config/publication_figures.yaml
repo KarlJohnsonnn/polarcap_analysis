@@ -1,3 +1,7 @@
+# purpose: orchestration — batch publication runner; job keys → argv presets.
+# Primary entrypoints: scripts/processing_chain/run_publication_figures.py
+# Index: config/_index.yaml (all configs × scripts).
+#
 # Publication runner presets (`config/publication_figures.yaml` → run_publication_figures.py).
 #
 # Use this file to keep promoted figures visually consistent without repeating
@@ -15,28 +19,49 @@
 #   `spectral_waterfall_N` and `spectral_waterfall_Q` separate
 
 ensemble:
-  cs_runs: [cs-eriswil__20260304_110254, cs-eriswil__20260314_103039, cs-eriswil__20260313_111441]  # Picks the run to load and names every PNG / MP4 / CSV output folder.
-  cs_run: cs-eriswil__20260313_111441
+  cs_runs: [cs-eriswil__20260304_110254, cs-eriswil__20260314_103039, cs-eriswil__20260313_111441, cs-eriswil__20260328_205320]  # Picks the run to load and names every PNG / MP4 / CSV output folder.
+  cs_run: cs-eriswil__20260304_110254
   domain: 50x42
   
 paths:
-  server_root: "" # "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/"
+  server_root: "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/" # "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/"
   local_meteogram_root: "/Users/schimmel/data/cosmo-specs/meteograms"  # Override where local Meteogram Zarr files are discovered.
   local_ensemble_config_root: null  # Override where local `<cs_run>.json` ensemble configs are discovered.
 
 default_args:
   analysis_registry: []  # Refresh merged registry CSVs used by paper claims, tables, and audits.
   # Render the promoted cloud-field overview figure with script defaults.
+  station_column_overview: 
+    - "--extpar-low $CS_RUNS_DIR/extPar_Eriswil_50x40.nc"
+    - "--extpar-high $CS_RUNS_DIR/extPar_Eriswil_200x160.nc"
+    - "--plot-start 2023-01-25T12:25:00"
+    - "--plot-end 2023-01-25T13:05:00"
+    - "--output output/gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_<exp>_<range>.png"
+    - "--dpi 300"
   cloud_field_overview: 
-    - "--station-ids 0 1 2 3 4"
+    # - "--station-ids 0 1 2 3 4"
     - "--plot-start 2023-01-25T12:29:50"
     - "--plot-end 2023-01-25T13:05:00"
-    - "--extpar-low /Users/schimmel/data/cosmo-specs/meteograms/extPar_Eriswil_50x40.nc"
-    - "--extpar-high /Users/schimmel/data/cosmo-specs/meteograms/extPar_Eriswil_200x160.nc"
+    - "--extpar-low /work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/extPar_Eriswil_50x40.nc"
+    - "--extpar-high /work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/extPar_Eriswil_200x160.nc"
     - "--output output/gfx/png/01/"
     - "--dpi 300"
   cloud_phase_budget_table: []  # Export the companion phase-budget tables that support the overview figure.
-  plume_lagrangian: []  # Build the plume-lagrangian evolution figure with its default styling.
+  # 5×6 station column overview (maps + QW/QFW/T/RH/TKE/W); set --zarr to your LV2 meteogram store.
+  station_column_overview:
+    - "--zarr /work/bb1178/schimmel/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output/cs-eriswil__20260328_205320/lv2_meteogram/Meteogram_cs-eriswil__20260328_205320_nVar136_nMet3_nExp15.zarr"
+    - "--exp-idx 0"
+    - "--plot-start 2023-01-25T12:00:00"
+    - "--plot-end 2023-01-25T13:00:00"
+    - "--output output/gfx/png/01/station_column_overview_cs-eriswil__20260328_205320.png"
+    - "--dpi 300"
+  # Build the plume-lagrangian evolution figure with its default styling.
+  plume_lagrangian: 
+    - "--kind extreme"   
+    - "--holimo-file /work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-data/observations/holimo_data/CL_20230125_1000_1140_SM058_SM060_ts1.nc"
+    - "--processed-root /work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-data/processed"
+    - "--output /work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-data/output/gfx/png/03/figure12_ensemble_mean_plume_path_extreme.png"
+    - "--dpi 300"
   ridge_metrics: []  # Export plume-ridge metrics and uncertainty time series.
   psd_waterfall: []  # Render the PSD waterfall figure suite in its default publication form.
   psd_stats: []  # Refresh PSD-derived summary CSVs for downstream synthesis.

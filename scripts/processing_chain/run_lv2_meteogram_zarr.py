@@ -6,9 +6,9 @@ Reuses meteogram_io.build_meteogram_zarr. Writes to processed/<cs_run>/lv2_meteo
 with provenance attrs (git commit, stage, processing_level, cs_run, input_files).
 
 Usage:
-  python run_meteogram_zarr.py -r cs-eriswil__20250710_105311
-  python run_meteogram_zarr.py -r cs-eriswil__20250710_105311 --debug
-  POLARCAP_OUTPUT_ROOT=/work/.../RUN_ERISWILL_200x160x100/ensemble_output python run_meteogram_zarr.py -r cs-eriswil__20250710_105311
+  python run_lv2_meteogram_zarr.py -r cs-eriswil__20260328_205320
+  python run_lv2_meteogram_zarr.py -r cs-eriswil__20260328_205320 --debug
+  POLARCAP_OUTPUT_ROOT=/work/.../RUN_ERISWILL_200x160x100/ensemble_output python run_lv2_meteogram_zarr.py -r cs-eriswil__20260328_205320
 """
 
 from __future__ import annotations

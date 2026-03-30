@@ -1,7 +1,10 @@
-# PSD + size-resolved process evolution: meteogram / process-budget defaults (ensemble, paths,
-# zarr, selection, plotting, waterfall-style figure keys under plotting.spectral_waterfall_*).
-# Drives `run_spectral_waterfall.py`, compartment closure, cloud-field overview, and
-# `load_process_budget_data`. CLI flags override for one-off runs.
+# purpose: plotting — altitude–time PSD waterfall figures (paths, styling, layout).
+# Primary entrypoints: src/utilities/psd_waterfall.py, scripts/analysis/growth/run_psd_waterfall.py
+# Index: config/_index.yaml (all configs × scripts).
+#
+# Altitude–time PSD waterfall defaults: `waterfall` block (paths, holimo window), plus `plotting`
+# (panels, varsets, runs). Upper sections may align with process-budget YAML where the same
+# ensemble/paths are needed for discovering inputs.
 
 ensemble:
   cs_runs: [cs-eriswil__20260304_110254, cs-eriswil__20260318_153631]  # Picks the run to load and names every PNG / MP4 / CSV output folder.
