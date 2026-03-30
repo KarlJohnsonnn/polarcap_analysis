@@ -121,6 +121,8 @@ def main() -> None:
     )
     print(context["diag"].to_string(index=False))
     print(f"model diameter smoothing bins -> {context['smooth_model_diameter_bins']}")
+    for key, val in context.items():
+        print(f"{key}: ")
     fig, output_path = render_plume_lagrangian_figure(context, output_path=args.output)
     save_plume_lagrangian_figure(fig, output_path, dpi=args.dpi)
 

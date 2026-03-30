@@ -13,7 +13,7 @@ Registry-style CSV outputs go to `output/tables/registry/` (mirrored to `data/re
 
 Current promoted products:
 
-- `registry/build_analysis_registry.py` -> `output/tables/registry/analysis_registry.csv`, `output/tables/registry/paper_core_subset.csv`
+- `registry/build_analysis_registry.py` -> `output/tables/registry/analysis_registry.csv`
 - `forcing/run_cloud_field_overview.py` -> `output/gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_<exp>_<range>.png`
 - `forcing/run_cloud_phase_budget_table.py` -> `output/tables/phase_budget/cloud_phase_budget_summary_<exp>_<range>.csv`, `output/tables/phase_budget/cloud_phase_budget_summary_<exp>_<range>.tex`
 - `growth/run_plume_lagrangian_evolution.py` -> `output/gfx/png/03/figure12_ensemble_mean_plume_path_foo.png`

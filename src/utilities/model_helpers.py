@@ -257,6 +257,52 @@ COORDINATES_OF_ERISWIL = {
     'eriswil': (47.070522, 7.872991),
 }
 
+
+def pressure_as_hpa(p: xr.DataArray) -> xr.DataArray:
+    """Convert meteogram pressure to hPa for saturation formulas.
+
+    COSMO ``PML`` in LV2 meteograms is usually hPa. If ``units`` indicates Pa,
+    or values are plausibly in Pa (column max ≫ 2000), scale by 0.01.
+    """
+    units = str(p.attrs.get("units", "")).lower()
+    if any(x in units for x in ("hpa", "hectopascal", "mbar", "millibar")):
+        return p
+    if "pa" in units and "hpa" not in units:
+        return p * 1.0e-2
+    pmax = float(np.nanmax(np.asarray(p.values)))
+    if pmax > 2000.0:
+        return p * 1.0e-2
+    return p
+
+
+def qs_mixing_ratio_liquid_kgkg(T_k: xr.DataArray, p_hpa: xr.DataArray) -> xr.DataArray:
+    """Saturation mixing ratio over liquid water (Tetens); *T_k* in K, *p_hpa* in hPa."""
+
+    def _core(t: np.ndarray, pr: np.ndarray) -> np.ndarray:
+        t = np.asarray(t, dtype=float)
+        pr = np.asarray(pr, dtype=float)
+        Tc = t - 273.15
+        es = 6.112 * np.exp((17.67 * Tc) / (Tc + 243.5))
+        es = np.clip(es, 1e-9, None)
+        return 0.62198 * es / np.maximum(pr - es, 1e-9)
+
+    return xr.apply_ufunc(_core, T_k, p_hpa, dask="allowed")
+
+
+def relative_humidity_wrt_water_percent(
+    qv_kgkg: xr.DataArray,
+    T_k: xr.DataArray,
+    p_meteogram: xr.DataArray,
+) -> xr.DataArray:
+    """RH w.r.t. liquid water [\%] from specific humidity, temperature, and pressure."""
+    p_hpa = pressure_as_hpa(p_meteogram)
+    qs = qs_mixing_ratio_liquid_kgkg(T_k, p_hpa)
+    rh = 100.0 * qv_kgkg / xr.where(qs > 0, qs, np.nan)
+    out = xr.where(rh < 0.0, 0.0, xr.where(rh > 100.0, 100.0, rh))
+    out.attrs.update({"long_name": "relative humidity w.r.t. liquid", "units": "%"})
+    return out
+
+
 def get_closest_station_to_coordinates(station_lat, station_lon, target_lat, target_lon, verbose=False):
     distances = [ haversine_distance(target_lat, target_lon, lat, lon) for lat, lon in zip(station_lat, station_lon) ]
     closest_idx = int(np.argmin(distances))

@@ -80,6 +80,12 @@ PUBLICATION_RCPARAMS: dict[str, Any] = {
     "savefig.format": "pdf",
     "savefig.bbox": "tight",
     "savefig.pad_inches": 0.01,
+    "savefig.facecolor": "white",
+    "savefig.edgecolor": "white",
+    "figure.facecolor": "white",
+    "figure.edgecolor": "white",
+    # Crisp discrete fields (maps, heatmaps); avoids soft pcolormesh in raster exports.
+    "image.interpolation": "nearest",
     "font.family": "sans-serif",
     "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
     "font.size": 7,
