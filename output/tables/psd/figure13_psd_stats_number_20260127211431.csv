@@ -1,0 +1,5 @@
+variant,basis,run_id,run_label,time_frame_min,t_lo_min,t_hi_min,t_mid_min,liq_mean_diam_um,liq_std_diam_um,liq_net_tendency_per_min,ice_mean_diam_um,ice_std_diam_um,ice_net_tendency_per_min,obs_match_ids,obs_ice_mean_diam_um,obs_ice_std_diam_um,alpha_ice_mean_diam
+number,number,20260127211431,"400m, inp 1e6, ccn 400 (analytic)",0.00-5.00,0.0,5.0,2.5,6.8,3.8,11.71,37.2,15.9,0.04,,,,
+number,number,20260127211431,"400m, inp 1e6, ccn 400 (analytic)",5.00-10.00,5.0,10.0,7.5,7.1,3.6,452.43,82.8,14.1,-0.02,,,,0.7282999729432558
+number,number,20260127211431,"400m, inp 1e6, ccn 400 (analytic)",10.00-20.00,10.0,20.0,15.0,6.9,3.7,-94.06,449.7,76.7,0.07,,,,2.441260211169691
+number,number,20260127211431,"400m, inp 1e6, ccn 400 (analytic)",20.00-35.00,20.0,35.0,27.5,7.9,3.6,-239.58,328.1,149.9,-0.06,,,,-0.5201181846586521

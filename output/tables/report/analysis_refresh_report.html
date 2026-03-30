@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PolarCAP Refresh Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --ink: #14213d;
+      --muted: #5c677d;
+      --line: #d9dee7;
+      --accent: #1d3557;
+      --accent2: #2a9d8f;
+      --shadow: 0 10px 25px rgba(20, 33, 61, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #eef3f8 0%, var(--bg) 100%);
+      line-height: 1.5;
+    }
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+    h1, h2, h3 { margin: 0 0 12px; }
+    p, ul { margin: 0 0 16px; }
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+    .hero p { color: var(--muted); max-width: 960px; }
+    .hero-links a {
+      display: inline-block;
+      margin-right: 12px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin: 24px 0;
+    }
+    .card {
+      background: linear-gradient(135deg, #ffffff 0%, #f7fbff 100%);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px 16px;
+      box-shadow: var(--shadow);
+    }
+    .card-value {
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .card-label {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 22px;
+    }
+    .figure-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 18px;
+    }
+    .figure-card {
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .figure-card img {
+      width: 100%;
+      display: block;
+      background: #fff;
+    }
+    .figure-card figcaption {
+      display: block;
+      padding: 14px 16px 16px;
+    }
+    .figure-card figcaption strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+    .figure-card figcaption span {
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+    .link-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      background: #fff;
+    }
+    .link-card strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+    .link-card span {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-size: 0.93rem;
+    }
+    .link-card a {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      min-width: 760px;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      background: #f8fbfd;
+      z-index: 1;
+    }
+    tbody tr:nth-child(even) {
+      background: #fbfcfe;
+    }
+    details.table-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background: #fff;
+    }
+    details.table-card summary {
+      cursor: pointer;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    details.table-card summary span {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.92rem;
+    }
+    .caption {
+      color: var(--muted);
+      margin-top: 12px;
+    }
+    .links a {
+      margin-right: 14px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0f172a;
+      color: #e5edf7;
+      border-radius: 14px;
+      padding: 16px;
+      overflow-x: auto;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    @media (max-width: 900px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <h1>PolarCAP Refresh Report</h1>
+      <p>This report visualizes the refreshed canonical outputs under <code>output/tables/</code>. The figures below are derived from the rebuilt CSV tables so they reflect the current refresh even when legacy PNG figure artifacts were not regenerated in this pass.</p>
+      <p class="hero-links">
+        <a href="../registry/processing_refresh_log.md">Processing log</a>
+        <a href="../registry/processed_sync_report.md">Processed sync report</a>
+        <a href="analysis_refresh_report.md">Markdown version</a>
+      </p>
+      <div class="cards"><div class="card"><div class="card-value">29</div><div class="card-label">Paper subset rows</div></div><div class="card"><div class="card-value">17</div><div class="card-label">Flare rows</div></div><div class="card"><div class="card-value">8</div><div class="card-label">Supported claims</div></div><div class="card"><div class="card-value">39</div><div class="card-label">Remaining stage gaps</div></div><div class="card"><div class="card-value">15</div><div class="card-label">Local LV2 rows</div></div><div class="card"><div class="card-value">15</div><div class="card-label">Local LV3 rows</div></div></div>
+    </section>
+
+    <section>
+      <h2>Context</h2>
+      <ul>
+        <li>Canonical manuscript-facing tables now live under <code>output/tables/</code>, with compatibility mirrors preserved in <code>data/registry/paper_tables/</code>.</li>
+        <li>The local processed-data view in <code>data/processed/</code> was refreshed from the approved <code>/work</code> and <code>/scratch</code> roots using symlinks where possible.</li>
+        <li>Missing remote LV3 rates for <code>cs-eriswil__20260304_110254</code> were rebuilt locally before the cloud phase-budget tables were regenerated.</li>
+        <li>The regenerated PNG figures below come from the refreshed workflow; the derived SVG summaries remain useful for quick inspection across tables.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Regenerated Figure Artifacts</h2>
+      <div class="figure-grid"><figure class="figure-card">
+  <img src="../../gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_20260304110446_ALLBB.png" alt="Cloud Overview">
+  <figcaption><strong>Cloud Overview</strong><span>Cloud-scale context for the ALLBB seeded plume. The upper panels show the topography and the three analysis sites used for the seeding, ice-growth, and downstream-precipitation diagnostics; the lower panels show time-height liquid and frozen water content together with ridge-sampled liquid and ice source-sink tendencies. The figure defines the transition from a liquid-rich source region to the downstream ice-growth and precipitation regime analyzed in the later figures.</span></figcaption>
+</figure><figure class="figure-card">
+  <img src="../../gfx/png/03/figure12_ensemble_mean_plume_path_foo.png" alt="Plume-Lagrangian Evolution">
+  <figcaption><strong>Plume-Lagrangian Evolution</strong><span>Ensemble-mean Lagrangian plume evolution in equivalent-diameter space compared with HOLIMO observations. Colors show the ensemble-mean ice number density per logarithmic diameter interval along the plume; symbols identify the three HOLIMO missions, the lower-left panel zooms the first 15 min after seeding, and the lower-right panel compares time-averaged size spectra. The comparison highlights growth from 1-10 um into 10-50 um and 100-300 um size ranges, while the observational spread remains largest in the coarse-particle tail.</span></figcaption>
+</figure><figure class="figure-card">
+  <img src="../../gfx/png/04/figure13_psd_alt_time_mass_20260121131632.png" alt="PSD Waterfall (Mass)">
+  <figcaption><strong>PSD Waterfall (Mass)</strong><span>Altitude-resolved particle size distribution evolution in successive post-seeding windows for the promoted plume-path runs. Each panel compares liquid and frozen spectra in either number or mass space, making it possible to track where excess ice first appears and how condensate shifts toward larger diameters and lower levels as the plume matures. Together, the number and mass views separate initial crystal production from subsequent growth and fallout.</span></figcaption>
+</figure><figure class="figure-card">
+  <img src="../../gfx/png/04/figure13_psd_alt_time_number_20260121131632.png" alt="PSD Waterfall (Number)">
+  <figcaption><strong>PSD Waterfall (Number)</strong><span>Altitude-resolved particle size distribution evolution in successive post-seeding windows for the promoted plume-path runs. Each panel compares liquid and frozen spectra in either number or mass space, making it possible to track where excess ice first appears and how condensate shifts toward larger diameters and lower levels as the plume matures. Together, the number and mass views separate initial crystal production from subsequent growth and fallout.</span></figcaption>
+</figure><div class="link-card">
+  <strong>Spectral Growth Interactive HTML</strong>
+  <span>Animated ridge-following spectral budget for the seeded plume. Each frame combines the liquid and frozen particle size distributions with diameter-resolved microphysical tendencies at the selected stations, either in number-concentration space (N) or mass-concentration space (Q). The animation separates the processes that first generate excess ice shortly after seeding from those that later grow, redistribute, and remove condensate across the spectrum.</span>
+  <a href="../../gfx/html/05/cs-eriswil__20260304_110254/ridge_growth_Q_stn0_interactive.html">Open interactive artifact</a>
+</div></div>
+    </section>
+
+    <section>
+      <h2>Derived Figures</h2>
+      <div class="figure-grid"><figure class="figure-card">
+  <img src="assets/coverage_summary.svg" alt="Coverage summary">
+  <figcaption><strong>Coverage summary</strong><span>Paper subset rows, matched references, and local LV1/LV2/LV3 availability.</span></figcaption>
+</figure><figure class="figure-card">
+  <img src="assets/initiation_summary.svg" alt="Initiation summary">
+  <figcaption><strong>Initiation summary</strong><span>Median excess-ice onset against peak excess ice for promoted flare runs with onset detections.</span></figcaption>
+</figure><figure class="figure-card">
+  <img src="assets/process_attribution.svg" alt="Process attribution">
+  <figcaption><strong>Process attribution</strong><span>Counts of dominant early-window ice and liquid pathways across the promoted station rows.</span></figcaption>
+</figure><figure class="figure-card">
+  <img src="assets/growth_summary.svg" alt="Growth summary">
+  <figcaption><strong>Growth summary</strong><span>Promoted LV1 ridge-growth cases in diameter-alpha space.</span></figcaption>
+</figure><figure class="figure-card">
+  <img src="assets/psd_selected.svg" alt="Selected PSD windows">
+  <figcaption><strong>Selected PSD windows</strong><span>Liquid and ice mean diameters plus alpha across the featured PSD time windows.</span></figcaption>
+</figure><figure class="figure-card">
+  <img src="assets/phase_budget_summary.svg" alt="Phase-budget context">
+  <figcaption><strong>Phase-budget context</strong><span>Compact source/sink magnitudes for the promoted `20260304110446` overview case.</span></figcaption>
+</figure></div>
+    </section>
+
+    <section class="two-col">
+      <div>
+        <h2>Claim Snapshot</h2>
+        <div class="table-wrap"><table><thead><tr><th>Claim ID</th><th>Claim</th><th>Evidence</th><th>Source table</th><th>Status</th></tr></thead><tbody><tr><td>dataset.paper_subset_size</td><td>The paper subset contains promoted flare and reference experiments with stable registry gating.</td><td>29</td><td>tab_experiment_matrix.csv</td><td>supported</td></tr><tr><td>results.first_ice_onset</td><td>First excess-ice onset occurs within minutes of seeding in the promoted flare subset.</td><td>0.8333333333333334</td><td>tab_initiation_metrics.csv</td><td>supported</td></tr><tr><td>results.peak_excess_ice</td><td>Promoted flare runs show measurable excess ice relative to matched references.</td><td>87676.171875</td><td>tab_initiation_metrics.csv</td><td>supported</td></tr><tr><td>results.early_ice_process</td><td>The pilot early-window matrix identifies a repeatable dominant frozen-number pathway.</td><td>Aggregation (ice)</td><td>tab_process_attribution.csv</td><td>supported</td></tr><tr><td>results.early_liq_process</td><td>The pilot early-window matrix identifies the main competing liquid-number pathway.</td><td>Condensation (liq)</td><td>tab_process_attribution.csv</td><td>supported</td></tr><tr><td>results.growth_alpha</td><td>The promoted growth summary supports a coherent power-law growth regime along plume trajectories.</td><td>8.792448744890355e-16</td><td>tab_growth_summary.csv</td><td>supported</td></tr><tr><td>results.ridge_size</td><td>Tracked plume ridges grow into large-particle sizes on the order of hundreds of micrometers.</td><td>186.6021012676984</td><td>tab_growth_summary.csv</td><td>supported</td></tr><tr><td>appendix.phase_budget_context</td><td>The compact cloud phase-budget summary provides a stable context table for the promoted overview case.</td><td>CONDENSATION</td><td>tab_phase_budget_summary.csv</td><td>supported</td></tr></tbody></table></div>
+      </div>
+      <div>
+        <h2>Manuscript Figure Context</h2>
+        <div class="table-wrap"><table><thead><tr><th>Artifact</th><th>Script</th><th>Output target</th><th>Caption</th></tr></thead><tbody><tr><td>fig_cloud_field_overview</td><td>scripts/analysis/forcing/run_cloud_field_overview.py</td><td>output/gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_&lt;exp&gt;_&lt;range&gt;.png</td><td>Cloud-scale context for the ALLBB seeded plume. The upper panels show the topography and the three analysis sites used for the seeding, ice-growth, and downstream-precipitation diagnostics; the lower panels show time-height liquid and frozen water content together with ridge-sampled liquid and ice source-sink tendencies. The figure defines the transition from a liquid-rich source region to the downstream ice-growth and precipitation regime analyzed in the later figures.</td></tr><tr><td>fig_plume_lagrangian</td><td>scripts/analysis/growth/run_plume_lagrangian_evolution.py</td><td>output/gfx/png/03/figure12_ensemble_mean_plume_path_foo.png</td><td>Ensemble-mean Lagrangian plume evolution in equivalent-diameter space compared with HOLIMO observations. Colors show the ensemble-mean ice number density per logarithmic diameter interval along the plume; symbols identify the three HOLIMO missions, the lower-left panel zooms the first 15 min after seeding, and the lower-right panel compares time-averaged size spectra. The comparison highlights growth from 1-10 um into 10-50 um and 100-300 um size ranges, while the observational spread remains largest in the coarse-particle tail.</td></tr><tr><td>fig_psd_waterfall</td><td>scripts/analysis/growth/run_psd_waterfall.py</td><td>output/gfx/png/04/figure13_psd_alt_time_&lt;kind&gt;_&lt;run_id&gt;.png</td><td>Altitude-resolved particle size distribution evolution in successive post-seeding windows for the promoted plume-path runs. Each panel compares liquid and frozen spectra in either number or mass space, making it possible to track where excess ice first appears and how condensate shifts toward larger diameters and lower levels as the plume matures. Together, the number and mass views separate initial crystal production from subsequent growth and fallout.</td></tr><tr><td>fig_spectral_waterfall</td><td>scripts/analysis/growth/run_spectral_waterfall.py</td><td>output/gfx/mp4/05/&lt;cs_run&gt;/... or output/gallery/*.mp4</td><td>Animated ridge-following spectral budget for the seeded plume. Each frame combines the liquid and frozen particle size distributions with diameter-resolved microphysical tendencies at the selected stations, either in number-concentration space (N) or mass-concentration space (Q). The animation separates the processes that first generate excess ice shortly after seeding from those that later grow, redistribute, and remove condensate across the spectrum.</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Paper Tables</h2>
+      <details class="table-card" open>
+  <summary>experiment_matrix <span>29 rows</span></summary>
+  <p class="caption">COSMO-SPECS experiment subset used for the manuscript synthesis. Rows list flare and reference simulations retained by the registry gate, together with the matched reference experiment and local data availability flags.</p>
+  <p class="links">
+    <a href="../paper/tab_experiment_matrix.csv">CSV</a>
+    <a href="../paper/tab_experiment_matrix.tex">TeX</a>
+  </p>
+  <div class="table-wrap"><table><thead><tr><th>CS run</th><th>Exp.</th><th>Expname</th><th>Ref.</th><th>Flare emission</th><th>ishape</th><th>ikeis</th><th>Domain</th><th>Matched ref.</th><th>Pair method</th><th>LV1</th><th>LV2</th><th>LV3</th><th>In paper</th></tr></thead><tbody><tr><td>cs-eriswil__20260120_204218</td><td>0</td><td>20260120204219</td><td>No</td><td>1.0e+06</td><td>4</td><td>1</td><td>50x40xZ</td><td>20260120204430</td><td>single_reference</td><td>No</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260120_204218</td><td>1</td><td>20260120204430</td><td>Yes</td><td>0.0e+00</td><td>1</td><td>1</td><td>50x40xZ</td><td></td><td></td><td>No</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260120_204218</td><td>2</td><td>20260120204641</td><td>No</td><td>1.0e+06</td><td>1</td><td>1</td><td>50x40xZ</td><td>20260120204430</td><td>same_shape</td><td>No</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260121_131528</td><td>0</td><td>20260121131528</td><td>Yes</td><td>0.0e+00</td><td>1</td><td>1</td><td>50x40xZ</td><td></td><td></td><td>Yes</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260121_131528</td><td>1</td><td>20260121131550</td><td>No</td><td>1.0e+06</td><td>1</td><td>1</td><td>50x40xZ</td><td>20260121131528</td><td>same_shape</td><td>Yes</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260121_131528</td><td>2</td><td>20260121131632</td><td>No</td><td>1.0e+06</td><td>4</td><td>1</td><td>50x40xZ</td><td>20260121131528</td><td>single_reference</td><td>Yes</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260127_211338</td><td>0</td><td>20260127211338</td><td>Yes</td><td>0.0e+00</td><td>2</td><td>1</td><td>50x40xZ</td><td></td><td></td><td>Yes</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260127_211338</td><td>1</td><td>20260127211431</td><td>No</td><td>1.0e+06</td><td>2</td><td>1</td><td>50x40xZ</td><td>20260127211338</td><td>same_shape</td><td>Yes</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260127_211338</td><td>2</td><td>20260127211516</td><td>Yes</td><td>0.0e+00</td><td>3</td><td>1</td><td>50x40xZ</td><td></td><td></td><td>Yes</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260127_211338</td><td>3</td><td>20260127211551</td><td>No</td><td>1.0e+06</td><td>3</td><td>1</td><td>50x40xZ</td><td>20260127211516</td><td>same_shape</td><td>Yes</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260210_113944</td><td>0</td><td>20260210113944</td><td>No</td><td>1.0e+06</td><td>4</td><td>1</td><td>50x40xZ</td><td>20260210114519</td><td>same_shape</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260210_113944</td><td>1</td><td>20260210114136</td><td>Yes</td><td>0.0e+00</td><td>2</td><td>1</td><td>50x40xZ</td><td></td><td></td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260210_113944</td><td>2</td><td>20260210114328</td><td>No</td><td>1.0e+06</td><td>2</td><td>1</td><td>50x40xZ</td><td>20260210114136</td><td>same_shape</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260210_113944</td><td>3</td><td>20260210114519</td><td>Yes</td><td>0.0e+00</td><td>4</td><td>1</td><td>50x40xZ</td><td></td><td></td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260211_194236</td><td>1</td><td>20260211194427</td><td>Yes</td><td>0.0e+00</td><td>2</td><td>0</td><td>50x40xZ</td><td></td><td></td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260211_194236</td><td>2</td><td>20260211194619</td><td>No</td><td>1.0e+06</td><td>2</td><td>0</td><td>50x40xZ</td><td>20260211194427</td><td>same_shape</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>0</td><td>20260304110446</td><td>No</td><td>1.0e+06</td><td>4</td><td>1</td><td>50x40xZ</td><td>20260304110829</td><td>same_shape</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>1</td><td>20260304110638</td><td>No</td><td>1.0e+06</td><td>2</td><td>1</td><td>50x40xZ</td><td>20260304110829</td><td>single_reference</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>2</td><td>20260304110829</td><td>Yes</td><td>0.0e+00</td><td>4</td><td>1</td><td>50x40xZ</td><td></td><td></td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>3</td><td>20260304111020</td><td>No</td><td>1.0e+06</td><td>4</td><td>1</td><td>50x40xZ</td><td>20260304110829</td><td>same_shape</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>4</td><td>20260304111212</td><td>No</td><td>1.0e+05</td><td>4</td><td>1</td><td>50x40xZ</td><td>20260304110829</td><td>same_shape</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260313_111441</td><td>0</td><td>20260313111441</td><td>Yes</td><td>0.0e+00</td><td>2</td><td>1</td><td>50x40xZ</td><td></td><td></td><td>Yes</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260313_111441</td><td>1</td><td>20260313111445</td><td>No</td><td>1.0e+06</td><td>2</td><td>1</td><td>50x40xZ</td><td>20260313111441</td><td>same_shape</td><td>Yes</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260313_111441</td><td>2</td><td>20260313111446</td><td>Yes</td><td>0.0e+00</td><td>4</td><td>1</td><td>50x40xZ</td><td></td><td></td><td>Yes</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260313_111441</td><td>3</td><td>20260313111448</td><td>No</td><td>1.0e+06</td><td>4</td><td>1</td><td>50x40xZ</td><td>20260313111446</td><td>same_shape</td><td>Yes</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>cs-eriswil__20260314_103039</td><td>0</td><td>20260314103040</td><td>Yes</td><td>0.0e+00</td><td>2</td><td>1</td><td>50x40xZ</td><td></td><td></td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260314_103039</td><td>1</td><td>20260314103041</td><td>No</td><td>1.0e+06</td><td>2</td><td>1</td><td>50x40xZ</td><td>20260314103040</td><td>same_shape</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260314_103039</td><td>2</td><td>20260314103044</td><td>Yes</td><td>0.0e+00</td><td>4</td><td>1</td><td>50x40xZ</td><td></td><td></td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>cs-eriswil__20260314_103039</td><td>3</td><td>20260314103045</td><td>No</td><td>1.0e+06</td><td>4</td><td>1</td><td>50x40xZ</td><td>20260314103044</td><td>same_shape</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr></tbody></table></div>
+</details><details class="table-card" open>
+  <summary>initiation_metrics <span>9 rows</span></summary>
+  <p class="caption">Initiation diagnostics for the manuscript experiment subset. Ice-onset timing is summarized across stations relative to the seeding time and is reported together with peak excess ice and excess INP signals.</p>
+  <p class="links">
+    <a href="../paper/tab_initiation_metrics.csv">CSV</a>
+    <a href="../paper/tab_initiation_metrics.tex">TeX</a>
+  </p>
+  <div class="table-wrap"><table><thead><tr><th>CS run</th><th>Exp.</th><th>Expname</th><th>Matched ref.</th><th>N stn</th><th>Ice onset stn</th><th>Ice onset min</th><th>Ice onset med</th><th>Ice onset max</th><th>Peak excess ice</th><th>Peak excess INP</th></tr></thead><tbody><tr><td>cs-eriswil__20260210_113944</td><td>0</td><td>20260210113944</td><td>20260210114519</td><td>1</td><td>0</td><td></td><td></td><td></td><td>0.00</td><td></td></tr><tr><td>cs-eriswil__20260210_113944</td><td>2</td><td>20260210114328</td><td>20260210114136</td><td>1</td><td>0</td><td></td><td></td><td></td><td>0.00</td><td></td></tr><tr><td>cs-eriswil__20260211_194236</td><td>2</td><td>20260211194619</td><td>20260211194427</td><td>3</td><td>3</td><td>0.00</td><td>0.00</td><td>11.48</td><td>31.07</td><td>6.78</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>0</td><td>20260304110446</td><td>20260304110829</td><td>3</td><td>2</td><td>2.28</td><td>3.53</td><td>4.78</td><td>483.76</td><td>0.00</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>1</td><td>20260304110638</td><td>20260304110829</td><td>3</td><td>3</td><td>0.00</td><td>0.00</td><td>11.68</td><td>20.40</td><td>6.78</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>3</td><td>20260304111020</td><td>20260304110829</td><td>3</td><td>0</td><td></td><td></td><td></td><td>0.07</td><td>0.00</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>4</td><td>20260304111212</td><td>20260304110829</td><td>3</td><td>0</td><td></td><td></td><td></td><td>0.19</td><td>0.00</td></tr><tr><td>cs-eriswil__20260314_103039</td><td>1</td><td>20260314103041</td><td>20260314103040</td><td>3</td><td>3</td><td>0.00</td><td>0.83</td><td>0.83</td><td>87676.17</td><td>-0.28</td></tr><tr><td>cs-eriswil__20260314_103039</td><td>3</td><td>20260314103045</td><td>20260314103044</td><td>3</td><td>3</td><td>0.00</td><td>0.83</td><td>0.83</td><td>87593.95</td><td>-0.28</td></tr></tbody></table></div>
+</details><details class="table-card" >
+  <summary>process_attribution <span>17 rows</span></summary>
+  <p class="caption">Early-window pilot process-attribution matrix for manuscript-ready runs. The table lists the dominant and runner-up pathways for frozen-number and liquid-number tendencies in the initial post-seeding window.</p>
+  <p class="links">
+    <a href="../paper/tab_process_attribution.csv">CSV</a>
+    <a href="../paper/tab_process_attribution.tex">TeX</a>
+  </p>
+  <div class="table-wrap"><table><thead><tr><th>CS run</th><th>Expname</th><th>Station</th><th>Ice dominant</th><th>Ice frac.</th><th>Ice runner-up</th><th>Liq dominant</th><th>Liq frac.</th><th>Liq runner-up</th><th>Window min</th></tr></thead><tbody><tr><td>cs-eriswil__20260210_113944</td><td>20260210113944</td><td>S1</td><td>Aggregation (ice)</td><td>0.0%</td><td>Contact Freezing (ice)</td><td>Breakup (liq)</td><td>0.0%</td><td>Condensation (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260210_113944</td><td>20260210114328</td><td>S1</td><td>Aggregation (ice)</td><td>0.0%</td><td>Contact Freezing (ice)</td><td>Breakup (liq)</td><td>0.0%</td><td>Condensation (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260211_194236</td><td>20260211194619</td><td>S1</td><td>Deposition (ice)</td><td>100.0%</td><td>Aggregation (ice)</td><td>Riming (liq)</td><td>100.0%</td><td>Breakup (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260211_194236</td><td>20260211194619</td><td>S2</td><td>Aggregation (ice)</td><td>0.0%</td><td>Contact Freezing (ice)</td><td>Immersion Freezing (liq)</td><td>100.0%</td><td>Breakup (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260211_194236</td><td>20260211194619</td><td>S3</td><td>Deposition (ice)</td><td>100.0%</td><td>Aggregation (ice)</td><td>Drop Collision (liq)</td><td>100.0%</td><td>Immersion Freezing (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>20260304110446</td><td>S1</td><td>Immersion Freezing (ice)</td><td>100.0%</td><td>Riming (ice)</td><td>Condensation (liq)</td><td>100.0%</td><td>Riming (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>20260304110446</td><td>S2</td><td>Deposition (ice)</td><td>89.0%</td><td>Riming (ice)</td><td>Condensation (liq)</td><td>100.0%</td><td>Riming (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>20260304110446</td><td>S3</td><td>Aggregation (ice)</td><td>0.0%</td><td>Contact Freezing (ice)</td><td>Breakup (liq)</td><td>0.0%</td><td>Condensation (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>20260304110638</td><td>S1</td><td>Deposition (ice)</td><td>100.0%</td><td>Aggregation (ice)</td><td>Riming (liq)</td><td>100.0%</td><td>Condensation (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>20260304110638</td><td>S2</td><td>Immersion Freezing (ice)</td><td>100.0%</td><td>Aggregation (ice)</td><td>Condensation (liq)</td><td>100.0%</td><td>Drop Collision (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>20260304110638</td><td>S3</td><td>Deposition (ice)</td><td>97.0%</td><td>Immersion Freezing (ice)</td><td>Breakup (liq)</td><td>0.0%</td><td>Condensation (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>20260304111020</td><td>S1</td><td>Riming (ice)</td><td>100.0%</td><td>Aggregation (ice)</td><td>Condensation (liq)</td><td>78.3%</td><td>Riming (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>20260304111020</td><td>S2</td><td>Deposition (ice)</td><td>100.0%</td><td>Aggregation (ice)</td><td>Condensation (liq)</td><td>100.0%</td><td>Riming (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>20260304111020</td><td>S3</td><td>Aggregation (ice)</td><td>0.0%</td><td>Contact Freezing (ice)</td><td>Condensation (liq)</td><td>100.0%</td><td>Breakup (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>20260304111212</td><td>S1</td><td>Aggregation (ice)</td><td>0.0%</td><td>Contact Freezing (ice)</td><td>Condensation (liq)</td><td>97.7%</td><td>Riming (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>20260304111212</td><td>S2</td><td>Deposition (ice)</td><td>100.0%</td><td>Aggregation (ice)</td><td>Drop Collision (liq)</td><td>100.0%</td><td>Breakup (liq)</td><td>2.50</td></tr><tr><td>cs-eriswil__20260304_110254</td><td>20260304111212</td><td>S3</td><td>Aggregation (ice)</td><td>0.0%</td><td>Contact Freezing (ice)</td><td>Condensation (liq)</td><td>100.0%</td><td>Breakup (liq)</td><td>2.50</td></tr></tbody></table></div>
+</details><details class="table-card" open>
+  <summary>growth_summary <span>5 rows</span></summary>
+  <p class="caption">Lagrangian growth-regime summary for the manuscript subset. Ridge-growth metrics are combined with promoted PSD statistics to summarize the characteristic size evolution and power-law exponents.</p>
+  <p class="links">
+    <a href="../paper/tab_growth_summary.csv">CSV</a>
+    <a href="../paper/tab_growth_summary.tex">TeX</a>
+  </p>
+  <div class="table-wrap"><table><thead><tr><th>CS run</th><th>Exp.</th><th>Expname</th><th>Matched ref.</th><th>N cells</th><th>N times</th><th>Alpha peak med</th><th>Alpha mean med</th><th>Ridge end um</th><th>Ridge late um</th><th>End time min</th></tr></thead><tbody><tr><td>cs-eriswil__20260121_131528</td><td>1</td><td>20260121131550</td><td>20260121131528</td><td>3</td><td>208</td><td>0.00</td><td>0.01</td><td>186.6</td><td>186.6</td><td>29.5</td></tr><tr><td>cs-eriswil__20260121_131528</td><td>2</td><td>20260121131632</td><td>20260121131528</td><td>5</td><td>252</td><td>0.01</td><td>-0.05</td><td>186.6</td><td>186.6</td><td>36.8</td></tr><tr><td>cs-eriswil__20260127_211338</td><td>1</td><td>20260127211431</td><td>20260127211338</td><td>4</td><td>208</td><td>0.00</td><td>0.02</td><td>186.6</td><td>186.6</td><td>29.5</td></tr><tr><td>cs-eriswil__20260127_211338</td><td>3</td><td>20260127211551</td><td>20260127211516</td><td>3</td><td>108</td><td>-0.00</td><td>0.05</td><td>148.1</td><td>148.1</td><td>12.8</td></tr><tr><td>cs-eriswil__20260313_111441</td><td>3</td><td>20260313111448</td><td>20260313111446</td><td>3</td><td>89</td><td>0.52</td><td>0.62</td><td>373.2</td><td>373.2</td><td>13.5</td></tr></tbody></table></div>
+</details><details class="table-card" >
+  <summary>psd_stats_selected <span>5 rows</span></summary>
+  <p class="caption">Per-frame plume-path PSD diagnostics for the automatically selected featured run. Time windows report liquid and frozen mean diameters, net tendencies, and the local power-law exponent for ice mean diameter.</p>
+  <p class="links">
+    <a href="../paper/tab_psd_stats_selected.csv">CSV</a>
+    <a href="../paper/tab_psd_stats_selected.tex">TeX</a>
+  </p>
+  <div class="table-wrap"><table><thead><tr><th>Time frame</th><th>Liq mean um</th><th>Liq std um</th><th>Liq tend./min</th><th>Ice mean um</th><th>Ice std um</th><th>Ice tend./min</th><th>Alpha</th><th>HOLIMO match</th><th>Obs ice mean um</th><th>Obs ice std um</th><th>Run ID</th></tr></thead><tbody><tr><td>0.00-0.02</td><td>7.0</td><td>4.0</td><td>0.00</td><td>55.6</td><td>49.7</td><td>0.00</td><td></td><td></td><td></td><td></td><td>20260121131632</td></tr><tr><td>0.02-2.00</td><td>6.9</td><td>3.9</td><td>15.26</td><td>25.1</td><td>9.5</td><td>0.21</td><td>-0.17</td><td></td><td></td><td></td><td>20260121131632</td></tr><tr><td>2.00-5.00</td><td>6.7</td><td>3.8</td><td>755.34</td><td>43.5</td><td>15.2</td><td>-0.04</td><td>0.44</td><td></td><td></td><td></td><td>20260121131632</td></tr><tr><td>5.00-10.00</td><td>7.0</td><td>3.7</td><td>-22.91</td><td>174.7</td><td>135.2</td><td>-0.01</td><td>1.82</td><td></td><td></td><td></td><td>20260121131632</td></tr><tr><td>10.00-35.00</td><td>6.6</td><td>3.6</td><td>-8.14</td><td>440.9</td><td>88.9</td><td>-0.01</td><td>0.84</td><td></td><td></td><td></td><td>20260121131632</td></tr></tbody></table></div>
+</details><details class="table-card" >
+  <summary>phase_budget_summary <span>3 rows</span></summary>
+  <p class="caption">Compact phase-budget context table accompanying the cloud overview diagnostic. Each row lists the dominant source and sink terms for the selected phase window and station.</p>
+  <p class="links">
+    <a href="../paper/tab_phase_budget_summary.csv">CSV</a>
+    <a href="../paper/tab_phase_budget_summary.tex">TeX</a>
+  </p>
+  <div class="table-wrap"><table><thead><tr><th>Station</th><th>Phase window</th><th>Liq source</th><th>Liq source g m-2</th><th>Liq sink</th><th>Liq sink g m-2</th><th>Ice source</th><th>Ice source g m-2</th><th>Ice sink</th><th>Ice sink g m-2</th></tr></thead><tbody><tr><td>S1</td><td>Early ice</td><td>CONDENSATION</td><td>52.60</td><td>DROP_COLLISION</td><td>-0.00</td><td></td><td></td><td>DEPOSITION</td><td>-71.39</td></tr><tr><td>S2</td><td>Ice growth</td><td>RIMING</td><td>11.83</td><td>CONDENSATION</td><td>-90.39</td><td></td><td></td><td>DEPOSITION</td><td>-93.24</td></tr><tr><td>S3</td><td>Ice precip.</td><td>CONDENSATION</td><td>943.61</td><td>DROP_COLLISION</td><td>-0.00</td><td></td><td></td><td>DEPOSITION</td><td>-1.89</td></tr></tbody></table></div>
+</details><details class="table-card" >
+  <summary>phase_budget_long <span>42 rows</span></summary>
+  <p class="caption">Long-form phase-budget table for the promoted cloud-overview case. Net phase-integrated process contributions are listed per station, phase window, reservoir, and process.</p>
+  <p class="links">
+    <a href="../paper/tab_phase_budget_long.csv">CSV</a>
+    <a href="../paper/tab_phase_budget_long.tex">TeX</a>
+  </p>
+  <div class="table-wrap"><table><thead><tr><th>Station</th><th>Phase window</th><th>T start min</th><th>T end min</th><th>Reservoir</th><th>Process</th><th>Net g m-2</th></tr></thead><tbody><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>liquid</td><td>CONDENSATION</td><td>52.60</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>liquid</td><td>BREAKUP</td><td>0.00</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>liquid</td><td>DROP_COLLISION</td><td>-0.00</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>liquid</td><td>DROP_INS_COLLISION</td><td>0.00</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>liquid</td><td>HOMOGENEOUS_FREEZING</td><td>0.00</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>liquid</td><td>RIMING</td><td>0.25</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>liquid</td><td>MELTING</td><td>0.00</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>ice</td><td>IMMERSION_FREEZING</td><td>-0.69</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>ice</td><td>CONTACT_FREEZING</td><td>0.00</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>ice</td><td>RIMING</td><td>-0.25</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>ice</td><td>DEPOSITION</td><td>-71.39</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>ice</td><td>AGGREGATION</td><td>0.00</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>ice</td><td>REFREEZING</td><td>-0.24</td></tr><tr><td>S1 — Seeding loc.</td><td>Early ice</td><td>0.1</td><td>12.0</td><td>ice</td><td>MELTING</td><td>0.00</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>liquid</td><td>CONDENSATION</td><td>-90.39</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>liquid</td><td>BREAKUP</td><td>0.00</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>liquid</td><td>DROP_COLLISION</td><td>0.00</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>liquid</td><td>DROP_INS_COLLISION</td><td>0.00</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>liquid</td><td>HOMOGENEOUS_FREEZING</td><td>0.00</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>liquid</td><td>RIMING</td><td>11.83</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>liquid</td><td>MELTING</td><td>0.00</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>ice</td><td>IMMERSION_FREEZING</td><td>-0.00</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>ice</td><td>CONTACT_FREEZING</td><td>0.00</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>ice</td><td>RIMING</td><td>-11.83</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>ice</td><td>DEPOSITION</td><td>-93.24</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>ice</td><td>AGGREGATION</td><td>0.00</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>ice</td><td>REFREEZING</td><td>-11.82</td></tr><tr><td>S2 — Observation site</td><td>Ice growth</td><td>0.1</td><td>22.0</td><td>ice</td><td>MELTING</td><td>0.00</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>liquid</td><td>CONDENSATION</td><td>943.61</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>liquid</td><td>BREAKUP</td><td>0.00</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>liquid</td><td>DROP_COLLISION</td><td>-0.00</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>liquid</td><td>DROP_INS_COLLISION</td><td>0.00</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>liquid</td><td>HOMOGENEOUS_FREEZING</td><td>0.00</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>liquid</td><td>RIMING</td><td>0.43</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>liquid</td><td>MELTING</td><td>0.00</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>ice</td><td>IMMERSION_FREEZING</td><td>0.00</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>ice</td><td>CONTACT_FREEZING</td><td>0.00</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>ice</td><td>RIMING</td><td>-0.43</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>ice</td><td>DEPOSITION</td><td>-1.89</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>ice</td><td>AGGREGATION</td><td>0.00</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>ice</td><td>REFREEZING</td><td>-0.43</td></tr><tr><td>S3 — Precipitation loc.</td><td>Ice precip.</td><td>0.1</td><td>28.0</td><td>ice</td><td>MELTING</td><td>0.00</td></tr></tbody></table></div>
+</details>
+    </section>
+
+    <section class="two-col">
+      <div>
+        <h2>Remaining Gaps</h2>
+        <div class="table-wrap"><table><thead><tr><th>Run</th><th>Stage</th><th>Gap note</th><th>M files</th><th>3D files</th></tr></thead><tbody><tr><td>cs-eriswil__20260120_204218</td><td>lv1_tracking</td><td>missing_processed_but_raw_3d_present</td><td>0</td><td>3</td></tr><tr><td>cs-eriswil__20260120_204218</td><td>lv1_paths</td><td>missing_processed_but_raw_3d_present</td><td>0</td><td>3</td></tr><tr><td>cs-eriswil__20260120_204218</td><td>lv2_meteogram</td><td>no_source_found</td><td>0</td><td>3</td></tr><tr><td>cs-eriswil__20260120_204218</td><td>lv2_3d</td><td>no_source_found</td><td>0</td><td>3</td></tr><tr><td>cs-eriswil__20260120_204218</td><td>lv3_rates</td><td>missing_processed_but_lv2_inputs_may_exist</td><td>0</td><td>3</td></tr><tr><td>cs-eriswil__20260120_204218</td><td>manifests</td><td>no_source_found</td><td>0</td><td>3</td></tr><tr><td>cs-eriswil__20260121_131528</td><td>lv1_tracking</td><td>missing_processed_but_raw_3d_present</td><td>0</td><td>3</td></tr><tr><td>cs-eriswil__20260121_131528</td><td>lv2_meteogram</td><td>no_source_found</td><td>0</td><td>3</td></tr><tr><td>cs-eriswil__20260121_131528</td><td>lv2_3d</td><td>no_source_found</td><td>0</td><td>3</td></tr><tr><td>cs-eriswil__20260121_131528</td><td>lv3_rates</td><td>missing_processed_but_lv2_inputs_may_exist</td><td>0</td><td>3</td></tr><tr><td>cs-eriswil__20260121_131528</td><td>manifests</td><td>no_source_found</td><td>0</td><td>3</td></tr><tr><td>cs-eriswil__20260127_211338</td><td>lv1_tracking</td><td>missing_processed_but_raw_3d_present</td><td>0</td><td>4</td></tr></tbody></table></div>
+      </div>
+      <div>
+        <h2>Source Logs</h2>
+        <h3>Processing Refresh Log</h3>
+        <pre># Processing Refresh Log
+
+Date: 2026-03-27
+
+Environment:
+
+- Processing and rebuild commands were run in `pcpaper_env`.
+- Canonical manuscript-facing outputs now live under `output/tables/`.
+
+## Processed Root
+
+- `data/processed/` was refreshed from these source roots:
+- `/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output`
+- `/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/ensemble_output`
+- `/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output`
+- `output/tables/registry/processed_sync_report.md` now reports 18 scanned runs and 67 stage rows.
+- Current processed-root status summary: 28 `already_present`, 39 `missing`.
+- Missing remote LV3 rates for `cs-eriswil__20260304_110254` were regenerated locally into `data/processed/cs-eriswil__20260304_110254/lv3_rates/`.
+- The regenerated `20260304` LV3 stage wrote 5 local NetCDF files and occupies about `19G`.
+
+## Registry Outputs
+
+- `availability_check.csv`: 9 rows
+- `analysis_registry.csv`: 33 rows
+- `paper_core_subset.csv`: 29 rows
+- `first_ice_onset_metrics.csv`: 23 rows
+- `initiation_process_fractions.csv`: 260 rows
+- `pilot_process_attribution_matrix.csv`: 17 rows
+- `psd_stats.csv`: 60 rows
+- `ridge_metrics.csv`: 5 rows
+- `growth_summary.csv`: 5 rows
+- `claim_register.csv`: 8 rows
+- `figure_inventory.csv`: 11 rows
+
+## Paper Tables
+
+- `tab_experiment_matrix.csv`: 29 rows
+- `tab_initiation_metrics.csv`: 9 rows
+- `tab_process_attribution.csv`: 17 rows
+- `tab_growth_summary.csv`: 5 rows
+- `tab_psd_stats_selected.csv`: 5 rows
+- `tab_phase_budget_summary.csv`: 3 rows
+- `tab_phase_budget_long.csv`: 42 rows
+
+## Validation
+
+- All 7 compiled paper tables exist in both `output/tables/paper/` and `data/registry/paper_tables/`.
+- Matching canonical and legacy CSV file sizes were verified for all 7 compiled paper tables.
+- The current paper subset contains 29 included rows, 17 matched flare/reference rows, 11 rows with local LV1, 15 rows with local LV2, and 15 rows with local LV3.
+- The promoted cloud phase-budget tables for `20260304110446` and range `ALLBB` were rebuilt successfully after fixing local LV3 and ExtPar path resolution.
+
+## Remaining Gaps
+
+- `output/tables/registry/processed_sync_report.md` still lists 39 missing stage rows across runs that do not yet have complete promoted processed outputs.
+- The remaining missing stages are concentrated in older runs that still lack LV1 tracking, LV2 meteograms, LV2 3D products, or LV3 rates.
+- The paper-facing growth summary still covers 5 runs because only those runs currently have compatible local LV1 plume-path products.
+
+## Storage
+
+- `data/processed/cs-eriswil__20260304_110254/lv3_rates`: `19G`
+- `output/tables`: `381K`
+- `cwq` on `/work`: `17.98T / 25T`</pre>
+        <h3>Processed Sync Report</h3>
+        <pre># Processed Root Sync Report
+
+- Canonical target: `/home/b/b382237/code/polarcap/python/polarcap_analysis/data/processed`
+- Source roots checked: `/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output`, `/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/ensemble_output`, `/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output`
+- Runs scanned: `18`
+- Stage rows: `67`
+
+## Status Summary
+
+- `already_present`: 28
+- `missing`: 39
+
+## Missing Or Rebuild Candidates
+
+- `cs-eriswil__20260120_204218` / `lv1_tracking`: missing_processed_but_raw_3d_present (3D=3, M=0, json=1)
+- `cs-eriswil__20260120_204218` / `lv1_paths`: missing_processed_but_raw_3d_present (3D=3, M=0, json=1)
+- `cs-eriswil__20260120_204218` / `lv2_meteogram`: no_source_found (3D=3, M=0, json=1)
+- `cs-eriswil__20260120_204218` / `lv2_3d`: no_source_found (3D=3, M=0, json=1)
+- `cs-eriswil__20260120_204218` / `lv3_rates`: missing_processed_but_lv2_inputs_may_exist (3D=3, M=0, json=1)
+- `cs-eriswil__20260120_204218` / `manifests`: no_source_found (3D=3, M=0, json=1)
+- `cs-eriswil__20260121_131528` / `lv1_tracking`: missing_processed_but_raw_3d_present (3D=3, M=0, json=1)
+- `cs-eriswil__20260121_131528` / `lv2_meteogram`: no_source_found (3D=3, M=0, json=1)
+- `cs-eriswil__20260121_131528` / `lv2_3d`: no_source_found (3D=3, M=0, json=1)
+- `cs-eriswil__20260121_131528` / `lv3_rates`: missing_processed_but_lv2_inputs_may_exist (3D=3, M=0, json=1)
+- `cs-eriswil__20260121_131528` / `manifests`: no_source_found (3D=3, M=0, json=1)
+- `cs-eriswil__20260127_211338` / `lv1_tracking`: missing_processed_but_raw_3d_present (3D=4, M=0, json=1)
+- `cs-eriswil__20260127_211338` / `lv2_meteogram`: no_source_found (3D=4, M=0, json=1)
+- `cs-eriswil__20260127_211338` / `lv2_3d`: no_source_found (3D=4, M=0, json=1)
+- `cs-eriswil__20260127_211338` / `lv3_rates`: missing_processed_but_lv2_inputs_may_exist (3D=4, M=0, json=1)
+- `cs-eriswil__20260127_211338` / `manifests`: no_source_found (3D=4, M=0, json=1)
+- `cs-eriswil__20260210_113944` / `lv1_tracking`: no_source_found (3D=0, M=12, json=1)
+- `cs-eriswil__20260210_113944` / `lv1_paths`: no_source_found (3D=0, M=12, json=1)
+- `cs-eriswil__20260210_113944` / `lv2_3d`: no_source_found (3D=0, M=12, json=1)
+- `cs-eriswil__20260210_113944` / `manifests`: no_source_found (3D=0, M=12, json=1)
+- `cs-eriswil__20260211_194236` / `lv1_tracking`: missing_processed_but_raw_3d_present (3D=4, M=12, json=1)
+- `cs-eriswil__20260211_194236` / `lv1_paths`: missing_processed_but_raw_3d_present (3D=4, M=12, json=1)
+- `cs-eriswil__20260211_194236` / `lv2_3d`: no_source_found (3D=4, M=12, json=1)
+- `cs-eriswil__20260211_194236` / `manifests`: no_source_found (3D=4, M=12, json=1)
+- `cs-eriswil__20260304_110254` / `lv1_tracking`: no_source_found (3D=0, M=15, json=1)
+- `cs-eriswil__20260304_110254` / `lv1_paths`: no_source_found (3D=0, M=15, json=1)
+- `cs-eriswil__20260304_110254` / `lv2_3d`: no_source_found (3D=0, M=15, json=1)
+- `cs-eriswil__20260313_111441` / `lv2_meteogram`: no_source_found (3D=4, M=0, json=1)
+- `cs-eriswil__20260313_111441` / `lv2_3d`: no_source_found (3D=4, M=0, json=1)
+- `cs-eriswil__20260313_111441` / `lv3_rates`: missing_processed_but_lv2_inputs_may_exist (3D=4, M=0, json=1)
+- `cs-eriswil__20260313_140150` / `lv1_tracking`: no_source_found (3D=0, M=0, json=0)
+- `cs-eriswil__20260313_140150` / `lv1_paths`: no_source_found (3D=0, M=0, json=0)
+- `cs-eriswil__20260313_140150` / `lv2_meteogram`: no_source_found (3D=0, M=0, json=0)
+- `cs-eriswil__20260313_140150` / `lv2_3d`: no_source_found (3D=0, M=0, json=0)
+- `cs-eriswil__20260313_140150` / `lv3_rates`: no_source_found (3D=0, M=0, json=0)
+- `cs-eriswil__20260313_140150` / `manifests`: no_source_found (3D=0, M=0, json=0)
+- `cs-eriswil__20260314_103039` / `lv1_tracking`: no_source_found (3D=0, M=12, json=1)
+- `cs-eriswil__20260314_103039` / `lv1_paths`: no_source_found (3D=0, M=12, json=1)
+- `cs-eriswil__20260314_103039` / `lv2_3d`: no_source_found (3D=0, M=12, json=1)</pre>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

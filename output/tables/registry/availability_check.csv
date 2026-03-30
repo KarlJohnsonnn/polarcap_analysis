@@ -1,0 +1,10 @@
+run_id,resolved_root,local_json,remote_run_dir,remote_json,meteogram_count,three_d_count,y_count,mp_par,lv1_ready,lv2_ready
+cs-eriswil__20260120_204218,/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output,OK,OK,OK,0,3,5,OK,YES,NO
+cs-eriswil__20260121_131528,/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output,OK,OK,OK,0,3,5,OK,YES,NO
+cs-eriswil__20260127_211338,/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output,OK,OK,OK,0,4,5,OK,YES,NO
+cs-eriswil__20260210_113944,/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output,OK,OK,OK,12,0,5,OK,NO,YES
+cs-eriswil__20260211_194236,/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output,OK,OK,OK,12,4,5,OK,YES,YES
+cs-eriswil__20260304_110254,/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output,OK,OK,OK,15,0,0,MISSING,NO,YES
+cs-eriswil__20260313_111441,/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output,OK,OK,OK,0,4,5,OK,YES,NO
+cs-eriswil__20260313_140150,/scratch/b/b382237/schimmel/cosmo-specs-runs/ensemble_output,OK,OK,MISSING,0,0,0,MISSING,NO,NO
+cs-eriswil__20260314_103039,/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output,OK,OK,OK,12,0,5,OK,NO,YES

@@ -1,0 +1,5 @@
+variant,basis,run_id,run_label,time_frame_min,t_lo_min,t_hi_min,t_mid_min,liq_mean_diam_um,liq_std_diam_um,liq_net_tendency_per_min,ice_mean_diam_um,ice_std_diam_um,ice_net_tendency_per_min,obs_match_ids,obs_ice_mean_diam_um,obs_ice_std_diam_um,alpha_ice_mean_diam
+mass,mass,20260127211551,"400m, inp 1e6, ccn 400 (planar)",0.00-5.00,0.0,5.0,2.5,12.2,5.3,-0.02,56.7,15.3,0.0,,,,
+mass,mass,20260127211551,"400m, inp 1e6, ccn 400 (planar)",5.00-10.00,5.0,10.0,7.5,11.8,5.2,0.23,98.0,16.5,0.0,,,,0.49807677702226444
+mass,mass,20260127211551,"400m, inp 1e6, ccn 400 (planar)",10.00-20.00,10.0,20.0,15.0,15.2,16.3,-0.16,354.2,87.3,-0.0,,,,1.8537105577493431
+mass,mass,20260127211551,"400m, inp 1e6, ccn 400 (planar)",20.00-35.00,20.0,35.0,27.5,,,0.0,,,0.0,,,,
