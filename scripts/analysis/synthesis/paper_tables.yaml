@@ -3,8 +3,8 @@ tables:
     builder: experiment_matrix
     section: dataset
     source_csvs:
-      - output/tables/registry/paper_core_subset.csv
-    selection_rule: use all rows in paper_core_subset.csv sorted by cs_run and exp_id
+      - output/tables/registry/analysis_registry.csv
+    selection_rule: use all rows in analysis_registry.csv where include_in_paper is TRUE, sorted by cs_run and exp_id
     latex_label: tab:experiment_matrix
     caption: >-
       COSMO-SPECS experiment subset used for the manuscript synthesis. Rows list
@@ -38,9 +38,10 @@ tables:
     section: results
     source_csvs:
       - output/tables/registry/first_ice_onset_metrics.csv
-      - output/tables/registry/paper_core_subset.csv
+      - output/tables/registry/analysis_registry.csv
     selection_rule: >-
-      keep flare experiments that appear in paper_core_subset.csv, then
+      keep flare experiments whose analysis_registry.csv rows have
+      include_in_paper TRUE, then
       aggregate onset metrics across stations per experiment
     latex_label: tab:initiation_metrics
     caption: >-
@@ -72,11 +73,11 @@ tables:
     section: results
     source_csvs:
       - output/tables/registry/pilot_process_attribution_matrix.csv
-      - output/tables/registry/paper_core_subset.csv
+      - output/tables/registry/analysis_registry.csv
     selection_rule: >-
-      keep pilot process-attribution rows that belong to paper_core_subset.csv;
-      preserve one row per experiment and station for the early-window pilot
-      matrix
+      keep pilot process-attribution rows whose experiments are marked
+      include_in_paper in analysis_registry.csv; preserve one row per
+      experiment and station for the early-window pilot matrix
     latex_label: tab:process_attribution
     caption: >-
       Early-window pilot process-attribution matrix for manuscript-ready runs.
@@ -106,10 +107,11 @@ tables:
     section: results
     source_csvs:
       - output/tables/registry/growth_summary.csv
-      - output/tables/registry/paper_core_subset.csv
+      - output/tables/registry/analysis_registry.csv
     selection_rule: >-
-      keep growth-summary rows matching paper_core_subset.csv and preserve one
-      row per experiment
+      keep growth-summary rows whose experiments are marked
+      include_in_paper in analysis_registry.csv and preserve one row per
+      experiment
     latex_label: tab:growth_summary
     caption: >-
       Lagrangian growth-regime summary for the manuscript subset. Ridge-growth

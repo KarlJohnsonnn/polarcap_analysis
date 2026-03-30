@@ -45,7 +45,8 @@ def _read_registry_csv(filename: str, **kwargs) -> pd.DataFrame:
 
 
 def _paper_subset(only_flares: bool) -> pd.DataFrame:
-    subset = _read_registry_csv("paper_core_subset.csv", dtype=str)
+    subset = _read_registry_csv("analysis_registry.csv", dtype=str)
+    subset = subset[_true_mask(subset["include_in_paper"])].copy()
     subset["exp_id"] = subset["exp_id"].astype(str)
     if only_flares:
         subset = subset[subset["is_reference"].astype(str).str.upper() == "FALSE"].copy()
