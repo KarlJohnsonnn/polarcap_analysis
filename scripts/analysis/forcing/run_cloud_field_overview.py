@@ -24,11 +24,13 @@ from utilities.style_profiles import apply_publication_style  # noqa: E402
 
 DEFAULT_CONFIG = REPO_ROOT / "config" / "psd_process_evolution.yaml"
 # Manuscript-facing caption; keep this wording aligned with gallery and registry copies.
-FIGURE_CAPTION = """Cloud-scale context for the ALLBB seeded plume. The panels show time-height liquid and
-frozen water content together with ridge-sampled liquid and ice source--sink tendencies for the three analysis
-sites used for the seeding, ice-growth, and downstream-precipitation diagnostics. The figure defines the
-transition from a liquid-rich source region to the downstream ice-growth and precipitation regime analyzed in
-the later figures."""
+FIGURE_CAPTION = """Cloud-scale context for the ALLBB seeded plume. Rows S1-S3 follow the three analysis
+sites from the near-source liquid region to the downwind ice-growth and precipitation regime. For each site,
+the first two panels show time-height liquid water content (QW) and frozen-plus-rimed water content (QFW);
+dashed lines mark the station-specific analysis window, and the black curve in the QFW panel marks the
+diagnosed ice-plume ridge. The right-hand panels show signed liquid and ice process tendencies averaged along
+that ridge, highlighting the transition from a liquid-dominated source region near seeding to downstream
+ice-growth over the observational and precipitation sites analyzed in the later figures."""
 
 
 def main() -> None:
@@ -89,6 +91,14 @@ def main() -> None:
         default=300,
         help="PNG output DPI.",
     )
+    parser.add_argument(
+        "--flare-ensemble-mean",
+        action="store_true",
+        help=(
+            "Average all seeded (non-reference) flare members: meteogram fields and Q process rates, "
+            "with QFW ridges and symlog scales from the mean fields."
+        ),
+    )
     args = parser.parse_args()
 
     apply_publication_style()
@@ -101,13 +111,19 @@ def main() -> None:
         plot_end=args.plot_end,
         extpar_low=args.extpar_low,
         extpar_high=args.extpar_high,
+        flare_ensemble_mean=args.flare_ensemble_mean,
     )
+    flare_tail = ""
+    if context["flare_ensemble_mean"]:
+        flare_tail = (
+            f" flare_mean_n={context['flare_ensemble_n']} idx={context['flare_ensemble_indices']}"
+        )
     print(
         "Cloud overview:",
         f"exp={context['exp_label']}",
         f"range={context['active_range_key']}",
         f"stations={context['n_stations']}",
-        f"plot={context['plot_start']}..{context['plot_end']}",
+        f"plot={context['plot_start']}..{context['plot_end']}{flare_tail}",
     )
     fig = render_cloud_field_overview(context, show_maps=False)
     output_path = args.output or context["output_path"]

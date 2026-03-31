@@ -1,0 +1,25 @@
+% Ensemble members for LV2 zarr Meteogram_cs-eriswil__20260304_110254_nVar136_nMet3_nExp5.zarr
+% Requires: \usepackage{booktabs}
+% Source: output/tables/registry/analysis_registry.csv (cs_run = cs-eriswil__20260304_110254).
+% Zarr axis is expname sorted lexicographically; for these suffixes order matches exp_id 0..4.
+% Model fields: flare_emission, ishape, ikeis from run JSON INPUT_ORG.flare_sbm / sbm_par (see processing_chain README).
+% Cloud-field overview (run_cloud_field_overview.py, default config/psd_process_evolution.yaml): selection.plot_experiment_ids = [0]
+%   → maps to zarr index 0 below unless --exp-idx / config overrides.
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{COSMO-SPECS ensemble members for run \texttt{cs-eriswil\_\_20260304\_110254} (domain \texttt{50x40xZ} per registry). Columns \texttt{ishape} and \texttt{ikeis} are SBM indices; flare emission is the flare source strength (0 for reference). The station-column overview averages all listed members; with default YAML the cloud-field overview uses index~0 only.}
+  \label{tab:ensemble_cs_eriswil_20260304_110254}
+  \begin{tabular}{@{}r l c r c c l l@{}}
+    \toprule
+    idx & expname & ref. & flare em.\ & \texttt{ishape} & \texttt{ikeis} & matched ref.\ & pair \\
+    \midrule
+    0 & 20260304110446 & no & $10^{6}$ & 4 & 1 & 20260304110829 & same shape \\
+    1 & 20260304110638 & no & $10^{6}$ & 2 & 1 & 20260304110829 & single ref. \\
+    2 & 20260304110829 & yes & 0 & 4 & 1 & --- & --- \\
+    3 & 20260304111020 & no & $10^{6}$ & 4 & 1 & 20260304110829 & same shape \\
+    4 & 20260304111212 & no & $10^{5}$ & 4 & 1 & 20260304110829 & same shape \\
+    \bottomrule
+  \end{tabular}
+\end{table}

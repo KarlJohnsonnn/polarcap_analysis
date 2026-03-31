@@ -2,6 +2,7 @@
 Process budget data loading: discover dataset, load YAML config, build rates.
 All loaded state is returned in a single cfg dict with lowercase keys.
 """
+import copy
 import json
 import yaml
 from pathlib import Path
@@ -368,15 +369,22 @@ def build_process_budget_cfg_from_dataset(
 def load_process_budget_data(
     repo_root: Path,
     config_path: Optional[Union[str, Path]] = None,
+    *,
+    config_dict: Optional[dict] = None,
 ) -> dict:
     """
-    Load dataset and build process rates. All state is returned in a single cfg dict with lowercase keys.
+    Load dataset and build process rates. All loaded state is returned in a single cfg dict with lowercase keys.
     Keys include: ds, rates_by_exp, size_ranges, plot_range_keys, active_range_key, plot_exp_ids,
     plot_stn_ids, exp_idx, stn_idx, seed_start, time_coarsen, rate_floor, station_labels,
     experiment_meta, diameter_um, time_window, height_sel_m.
+
+    If ``config_dict`` is set, it is used as the YAML-equivalent config (deep-copied); ``config_path`` is
+    ignored for the initial merge. The dataset is still opened from paths inside that dict.
     """
-    cfg = {}
-    if config_path:
+    cfg: dict = {}
+    if config_dict is not None:
+        cfg = copy.deepcopy(config_dict)
+    elif config_path:
         cp = Path(config_path)
         if cp.is_file():
             with open(cp, "r", encoding="utf-8") as f:

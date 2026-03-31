@@ -172,6 +172,9 @@ def main():
         n_nodes, n_cpu, mem_gb, scale_workers, walltime = calculate_optimal_scaling(
             max_time, len(file_dict), len(station_coords), debug_mode,
         )
+        if walltime < "08:00:00":
+            print(f"Bumping walltime from {walltime} to 08:00:00 for meteogram Zarr builds.")
+            walltime = "08:00:00"
         cluster, client = allocate_resources(
             n_cpu=n_cpu, n_jobs=n_nodes, m=int(mem_gb),
             walltime=walltime, part="compute",

@@ -11,6 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import yaml
 import matplotlib.colors as mcolors
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
@@ -43,11 +44,11 @@ DEFAULT_N_QLEVELS = 5
 DEFAULT_OUTPUT_DIR = Path("output") / "gfx" / "png" / "01"
 
 DEFAULT_WINDOW_SPECS_MIN: list[tuple[str, str, float, float, str]] = [
-    ("seeding", "Early ice", 0.1, 12.0, "#4C78A8"),
-    ("obs_site", "Ice growth", .1, 22.0, "#F58518"),
-    ("precip_site", "Ice precip.", .1, 28.0, "#54A24B"),
-    ("precip_site2", "Ice precip.", .1, 28.0, "#54A24B"),
-    ("precip_site3", "Ice precip.", .1, 28.0, "#54A24B"),
+    ("seeding", "Early ice", 0.1, 11.0, "#4C78A8"),
+    ("obs_site", "Ice growth", 4.0, 21.0, "#F58518"),
+    ("precip_site", "Ice precip.", 12, 28.0, "#54A24B"),
+    ("precip_site2", "Ice precip.", 12, 28.0, "#54A24B"),
+    ("precip_site3", "Ice precip.", 12., 28.0, "#54A24B"),
 ]
 
 
@@ -708,6 +709,51 @@ def default_cloud_field_overview_output(
     return repo_root / DEFAULT_OUTPUT_DIR / stem
 
 
+def _ensemble_cs_run(cfg: dict[str, Any]) -> str:
+    ens = cfg.get("ensemble")
+    if isinstance(ens, dict) and ens.get("cs_run"):
+        return str(ens["cs_run"])
+    return "cs-run"
+
+
+def _flare_isel_indices(cfg: dict[str, Any]) -> list[int]:
+    meta = cfg.get("experiment_meta") or []
+    return [i for i, m in enumerate(meta) if not m.get("is_reference", True)]
+
+
+def _mean_rates_Q_for_range(
+    cfg: dict[str, Any],
+    flare_ids: list[int],
+    active_range: str,
+) -> tuple[dict[str, xr.DataArray], dict[str, xr.DataArray]]:
+    selections = [select_rates_for_range(cfg["rates_by_exp"][i], active_range) for i in flare_ids]
+    liq0 = selections[0]["rates_Q_liq"]
+    ice0 = selections[0]["rates_Q_ice"]
+    rates_q_liq = {
+        k: xr.concat([sel["rates_Q_liq"][k] for sel in selections], dim="member").mean("member", skipna=True)
+        for k in liq0
+    }
+    rates_q_ice = {
+        k: xr.concat([sel["rates_Q_ice"][k] for sel in selections], dim="member").mean("member", skipna=True)
+        for k in ice0
+    }
+    return rates_q_liq, rates_q_ice
+
+
+def _widen_budget_config_for_flares(
+    config_path: Path | str,
+    flare_ids: list[int],
+) -> dict[str, Any]:
+    cp = Path(config_path)
+    with open(cp, encoding="utf-8") as f:
+        raw = yaml.safe_load(f) or {}
+    sel = dict(raw.get("selection") or {})
+    prev = [int(x) for x in sel.get("plot_experiment_ids", [])]
+    sel["plot_experiment_ids"] = sorted(set(prev) | {int(i) for i in flare_ids})
+    raw["selection"] = sel
+    return raw
+
+
 def load_cloud_field_overview_context(
     repo_root: Path,
     config_path: str | Path | None,
@@ -718,10 +764,10 @@ def load_cloud_field_overview_context(
     plot_end: str | np.datetime64 | None = None,
     extpar_low: str | Path | None = None,
     extpar_high: str | Path | None = None,
+    flare_ensemble_mean: bool = False,
 ) -> dict[str, Any]:
     cfg = load_process_budget_data(repo_root, config_path=config_path)
     overview_cfg = _overview_cfg(cfg)
-    exp_id = _resolve_exp_id(cfg, exp_idx)
     seed_start = np.datetime64(cfg["seed_start"])
     plot_start_dt, plot_end_dt = _resolve_plot_bounds(seed_start, plot_start, plot_end)
     zlim_th_w = _as_tuple(overview_cfg.get("zlim_th_w"), DEFAULT_ZLIM_TH_W)
@@ -741,18 +787,58 @@ def load_cloud_field_overview_context(
     window_specs = overview_cfg.get("window_specs_min", DEFAULT_WINDOW_SPECS_MIN)
     active_range = active_range_key or cfg.get("active_range_key", "ALLBB")
 
-    ds_exp = cfg["ds"].isel(expname=exp_id).sel(time=slice(plot_start_dt, plot_end_dt))
-    if ds_exp.sizes.get("time", 0) == 0:
-        raise ValueError("Selected plot range does not overlap the experiment time axis.")
+    flare_ids: list[int] = []
+    flare_ensemble_n = 0
+    if flare_ensemble_mean:
+        flare_ids = _flare_isel_indices(cfg)
+        if not flare_ids:
+            raise ValueError(
+                "flare_ensemble_mean requested but no non-reference (seeded flare) experiments "
+                "were found in ensemble metadata."
+            )
+        missing = [i for i in flare_ids if i not in cfg["rates_by_exp"]]
+        if missing:
+            if not config_path or not Path(config_path).is_file():
+                raise ValueError(
+                    f"Need process rates for flare indices {missing}. Either pass --config pointing to a "
+                    "YAML file so plot_experiment_ids can include all flare members, or add those indices to "
+                    "selection.plot_experiment_ids yourself."
+                )
+            cfg = load_process_budget_data(
+                repo_root,
+                config_dict=_widen_budget_config_for_flares(config_path, flare_ids),
+            )
+            missing2 = [i for i in flare_ids if i not in cfg["rates_by_exp"]]
+            if missing2:
+                raise ValueError(
+                    f"Could not build rates for experiment indices {missing2}; "
+                    "they may be absent from the meteogram expname axis."
+                )
+        flare_ensemble_n = len(flare_ids)
+
+    if flare_ensemble_mean:
+        ds_flares = cfg["ds"].isel(expname=flare_ids).sel(time=slice(plot_start_dt, plot_end_dt))
+        if ds_flares.sizes.get("time", 0) == 0:
+            raise ValueError("Selected plot range does not overlap the experiment time axis.")
+        ds_exp = ds_flares.mean(dim="expname", skipna=True)
+        cs_run = _ensemble_cs_run(cfg)
+        exp_label = f"{cs_run}_flare_mean_n{flare_ensemble_n}"
+        exp_id = flare_ids[0]
+        rates_q_liq, rates_q_ice = _mean_rates_Q_for_range(cfg, flare_ids, active_range)
+    else:
+        exp_id = _resolve_exp_id(cfg, exp_idx)
+        ds_exp = cfg["ds"].isel(expname=exp_id).sel(time=slice(plot_start_dt, plot_end_dt))
+        if ds_exp.sizes.get("time", 0) == 0:
+            raise ValueError("Selected plot range does not overlap the experiment time axis.")
+        exp_raw = cfg["ds"].expname.values[exp_id]
+        exp_label = exp_raw.decode() if isinstance(exp_raw, bytes) else str(exp_raw)
+        rates = cfg["rates_by_exp"][exp_id]
+        selected_rates = select_rates_for_range(rates, active_range)
+        rates_q_liq = selected_rates["rates_Q_liq"]
+        rates_q_ice = selected_rates["rates_Q_ice"]
 
     rho = ds_exp["RHO"] if "RHO" in ds_exp.data_vars else None
-    exp_raw = cfg["ds"].expname.values[exp_id]
-    exp_label = exp_raw.decode() if isinstance(exp_raw, bytes) else str(exp_raw)
     station_labels = {int(k): v for k, v in cfg["station_labels"].items()}
-    rates = cfg["rates_by_exp"][exp_id]
-    selected_rates = select_rates_for_range(rates, active_range)
-    rates_q_liq = selected_rates["rates_Q_liq"]
-    rates_q_ice = selected_rates["rates_Q_ice"]
     active_vars = default_active_vars(zlim_th_w=zlim_th_w, zlim_th_i=zlim_th_i, n_qlevels=n_qlevels)
     bulk = build_bulk_mass_dataset(ds_exp, rho, active_vars)
     time_windows = build_phase_windows(seed_start, ds_exp.time.values, window_specs)
@@ -786,6 +872,9 @@ def load_cloud_field_overview_context(
         "repo_root": repo_root,
         "exp_id": exp_id,
         "exp_label": exp_label,
+        "flare_ensemble_mean": flare_ensemble_mean,
+        "flare_ensemble_n": flare_ensemble_n,
+        "flare_ensemble_indices": list(flare_ids) if flare_ensemble_mean else [],
         "seed_start": seed_start,
         "active_range_key": active_range,
         "plot_start": plot_start_dt,
@@ -992,6 +1081,8 @@ def render_cloud_field_overview(context: dict[str, Any], *, show_maps: bool = Tr
             cax=cax_qw,
             orientation="horizontal",
             label=r"Liquid and ice water content / (g m$^{-3}$)",
+            shrink=0.8,
+            pad=0.025,
         )
         cax_qw.xaxis.set_major_formatter(FuncFormatter(_log_cbar_fmt))
         cax_qw.xaxis.set_ticks_position("top")
@@ -1014,6 +1105,8 @@ def render_cloud_field_overview(context: dict[str, Any], *, show_maps: bool = Tr
             cax=cax_proc,
             orientation="horizontal",
             ticks=np.arange(len(legend_order)) + 0.5,
+            shrink=0.7,
+            pad=0.025,
         )
         cbar_proc.ax.set_xticklabels([proc.replace("_", "\n") for proc in legend_order], fontsize=5.5)
         cbar_proc.ax.xaxis.set_ticks_position("top")
@@ -1034,17 +1127,20 @@ def render_cloud_field_overview(context: dict[str, Any], *, show_maps: bool = Tr
             ]
         )
 
+    exp_disp = context["exp_label"]
+    if context.get("flare_ensemble_mean"):
+        exp_disp = f"{exp_disp} (mean of {context['flare_ensemble_n']} flare members)"
     if show_maps:
         suptitle = (
-            f"Cloud field overview — Exp {context['exp_label']}: orography, QW/QWF, liquid/ice ridge-sampled "
+            f"Cloud field overview — {exp_disp}: orography, QW/QWF, liquid/ice ridge-sampled "
             f"process tendencies ({context['active_range_key']})"
         )
     else:
         suptitle = (
-            f"Cloud field overview — Exp {context['exp_label']}: QW/QWF, liquid/ice ridge-sampled process "
+            f"Cloud field overview — {exp_disp}: QW/QWF, liquid/ice ridge-sampled process "
             f"tendencies ({context['active_range_key']})"
         )
-    fig.suptitle(suptitle, y=1.01)
+    # fig.suptitle(suptitle, y=1.01)
     return fig
 
 

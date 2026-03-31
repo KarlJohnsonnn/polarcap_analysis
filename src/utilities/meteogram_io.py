@@ -12,7 +12,6 @@ Replaces the slow ``00-prepM.py`` workflow with:
 from __future__ import annotations
 
 import glob
-import json
 import os
 import shutil
 import subprocess
@@ -29,26 +28,6 @@ from utilities.init_common import get_station_coords_from_cfg
 # ---------------------------------------------------------------------------
 
 _ENGINE_CACHE: Optional[str] = None
-_DEBUG_LOG_PATH = "/home/b/b382237/code/polarcap/python/polarcap_analysis/.cursor/debug-00bfbe.log"
-
-
-def _debug_log(hypothesis_id: str, location: str, message: str, data: Dict[str, Any]) -> None:
-    try:
-        import time
-
-        payload = {
-            "sessionId": "00bfbe",
-            "runId": os.environ.get("SLURM_JOB_ID", "local"),
-            "hypothesisId": hypothesis_id,
-            "location": location,
-            "message": message,
-            "data": data,
-            "timestamp": int(time.time() * 1000),
-        }
-        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(json.dumps(payload) + "\n")
-    except Exception:
-        pass
 
 
 def _detect_nc_engine(path: str) -> str:
@@ -247,21 +226,6 @@ def _open_experiment(
     target_times: Optional[np.ndarray] = None
     datasets: List[xr.Dataset] = []
 
-    # region agent log
-    _debug_log(
-        "H1",
-        "meteogram_io.py:_open_experiment:start",
-        "open_experiment_options",
-        {
-            "n_files": len(sorted_files),
-            "engine": engine,
-            "open_fast": open_fast,
-            "max_time": int(max_time),
-            "chunk_keys": sorted(str(k) for k in chunks.keys()),
-        },
-    )
-    # endregion
-
     for path in sorted_files:
         t0 = perf_counter()
         ds = xr.open_dataset(path, **open_kw)
@@ -274,81 +238,7 @@ def _open_experiment(
         t0 = perf_counter()
         if target_times is None:
             target_times = _build_target_time_values(ds.time.values, max_time)
-            # region agent log
-            _debug_log(
-                "H2",
-                "meteogram_io.py:_open_experiment:target_time",
-                "target_time_seeded",
-                {
-                    "path": os.path.basename(path),
-                    "seed_time_size": int(ds.sizes.get("time", -1)),
-                    "target_time_size": int(target_times.size),
-                    "has_time_coord": "time" in ds.coords,
-                    "has_time_xindex": "time" in ds.xindexes,
-                    "xindexes": [str(k) for k in ds.xindexes.keys()],
-                },
-            )
-            # endregion
-        if "time" in ds.sizes and (
-            ds.sizes["time"] != target_times.size or "time" not in ds.xindexes
-        ):
-            # region agent log
-            _debug_log(
-                "H3",
-                "meteogram_io.py:_open_experiment:before_align",
-                "align_candidate",
-                {
-                    "path": os.path.basename(path),
-                    "sizes": {str(k): int(v) for k, v in ds.sizes.items()},
-                    "target_time_size": int(target_times.size),
-                    "has_time_coord": "time" in ds.coords,
-                    "time_coord_dims": list(ds.coords["time"].dims) if "time" in ds.coords else [],
-                    "time_coord_size": int(ds.coords["time"].size) if "time" in ds.coords else None,
-                    "has_time_xindex": "time" in ds.xindexes,
-                    "xindexes": [str(k) for k in ds.xindexes.keys()],
-                },
-            )
-            # endregion
-        try:
-            ds = _align_station_time(ds, target_times)
-            if "time" in ds.sizes and ds.sizes["time"] == target_times.size:
-                # region agent log
-                _debug_log(
-                    "H5",
-                    "meteogram_io.py:_open_experiment:after_align",
-                    "align_succeeded",
-                    {
-                        "path": os.path.basename(path),
-                        "time_size": int(ds.sizes["time"]),
-                        "target_time_size": int(target_times.size),
-                        "has_time_xindex": "time" in ds.xindexes,
-                        "xindexes": [str(k) for k in ds.xindexes.keys()],
-                    },
-                )
-                # endregion
-        except Exception as exc:
-            # region agent log
-            _debug_log(
-                "H4",
-                "meteogram_io.py:_open_experiment:align_exception",
-                "align_failed",
-                {
-                    "path": os.path.basename(path),
-                    "engine": engine,
-                    "open_fast": open_fast,
-                    "sizes": {str(k): int(v) for k, v in ds.sizes.items()},
-                    "target_time_size": int(target_times.size),
-                    "has_time_coord": "time" in ds.coords,
-                    "time_coord_dims": list(ds.coords["time"].dims) if "time" in ds.coords else [],
-                    "time_coord_size": int(ds.coords["time"].size) if "time" in ds.coords else None,
-                    "has_time_xindex": "time" in ds.xindexes,
-                    "xindexes": [str(k) for k in ds.xindexes.keys()],
-                    "exception_type": type(exc).__name__,
-                    "exception_message": str(exc),
-                },
-            )
-            # endregion
-            raise
+        ds = _align_station_time(ds, target_times)
         t_align += perf_counter() - t0
 
         t0 = perf_counter()
