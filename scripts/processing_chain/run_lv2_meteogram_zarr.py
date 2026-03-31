@@ -50,6 +50,27 @@ def parse_args():
     p.add_argument("-d", "--debug", action="store_true", help="Small subset, no SLURM")
     p.add_argument("-s", "--slurm", action="store_true", help="Use SLURM/Dask cluster")
     p.add_argument("--overwrite", action="store_true", help="Overwrite existing Zarr")
+    p.add_argument(
+        "--experiments",
+        default=None,
+        help="Comma-separated experiment suffixes to process after the full max_time scan (useful for fast debugging of specific runs)",
+    )
+    p.add_argument(
+        "--profile-io",
+        action="store_true",
+        help="Print per-experiment NetCDF timing (open / select / align / heights / concat)",
+    )
+    p.add_argument(
+        "--open-fast",
+        action="store_true",
+        help="Use xr.open_dataset(create_default_indexes=False, cache=False) for meteogram files",
+    )
+    p.add_argument(
+        "--nc-engine",
+        choices=("auto", "h5netcdf", "netcdf4"),
+        default="auto",
+        help="NetCDF backend for meteogram opens (default: auto from file magic)",
+    )
     return p.parse_args()
 
 
@@ -84,11 +105,39 @@ def main():
     if not os.path.isfile(meta_file):
         print(f"Run metadata not found: {meta_file}", file=sys.stderr)
         sys.exit(1)
-    file_dict = discover_meteogram_files(data_dir, dbg=debug_mode)
-    if not file_dict:
+    file_dict_all = discover_meteogram_files(data_dir, dbg=False)
+    if not file_dict_all:
         print(f"No meteogram files in {data_dir}; check --root and --cs-run", file=sys.stderr)
         sys.exit(1)
-    max_time = get_max_timesteps(file_dict)
+    max_time = get_max_timesteps(file_dict_all)
+
+    selected_expnames = None
+    if args.experiments:
+        selected_expnames = [exp.strip() for exp in args.experiments.split(",") if exp.strip()]
+        if not selected_expnames:
+            print("--experiments was provided but no valid experiment suffixes were parsed.", file=sys.stderr)
+            sys.exit(1)
+        missing = [exp for exp in selected_expnames if exp not in file_dict_all]
+        if missing:
+            print(
+                "Requested experiments not found:\n"
+                + "\n".join(f"  - {exp}" for exp in missing),
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        file_dict = {exp: file_dict_all[exp] for exp in selected_expnames}
+        print(
+            f"Restricting processing to {len(file_dict)}/{len(file_dict_all)} experiments "
+            f"after full max_time scan: {', '.join(selected_expnames)}"
+        )
+    elif debug_mode:
+        max_exp = min(2, len(file_dict_all))
+        file_dict = dict(list(file_dict_all.items())[:max_exp])
+        for k, v in file_dict.items():
+            print(f"DBG discover: {k}  ({len(v)} stations)")
+    else:
+        file_dict = file_dict_all
+
     sample_file = next(iter(file_dict.values()))[0]
     variables = get_variable_names(sample_file)
     station_coords = get_station_coords_from_cfg(meta_file)
@@ -140,6 +189,9 @@ def main():
         meta_file=meta_file,
         debug_mode=debug_mode,
         global_attrs=global_attrs,
+        profile_io=args.profile_io,
+        open_fast=args.open_fast,
+        nc_engine=args.nc_engine,
     )
     print(f"\nDone in {time_now() - t0:.1f} s  →  {zarr_path}")
 

@@ -40,6 +40,7 @@ docs/*
 **/*.zarr
 **/*.csv
 **/*.pdf
+**/*.mp4
 
 # log files
 **/*.log
@@ -85,7 +86,6 @@ article_draft/PolarCAP
 !output/gallery/*.png
 # Animation / preview stills (regenerate locally); do not commit
 output/gallery/*_frame_*.png
-!output/gallery/*.mp4
 !output/gallery/*.yaml
 !output/gallery/README.md
 !output/tables/

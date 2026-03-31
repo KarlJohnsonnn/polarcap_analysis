@@ -24,11 +24,11 @@ from utilities.style_profiles import apply_publication_style  # noqa: E402
 
 DEFAULT_CONFIG = REPO_ROOT / "config" / "psd_process_evolution.yaml"
 # Manuscript-facing caption; keep this wording aligned with gallery and registry copies.
-FIGURE_CAPTION = """Cloud-scale context for the ALLBB seeded plume. The upper panels show the
-topography and the three analysis sites used for the seeding, ice-growth, and downstream-precipitation
-diagnostics; the lower panels show time-height liquid and frozen water content together with ridge-sampled
-liquid and ice source-sink tendencies. The figure defines the transition from a liquid-rich source region to
-the downstream ice-growth and precipitation regime analyzed in the later figures."""
+FIGURE_CAPTION = """Cloud-scale context for the ALLBB seeded plume. The panels show time-height liquid and
+frozen water content together with ridge-sampled liquid and ice source--sink tendencies for the three analysis
+sites used for the seeding, ice-growth, and downstream-precipitation diagnostics. The figure defines the
+transition from a liquid-rich source region to the downstream ice-growth and precipitation regime analyzed in
+the later figures."""
 
 
 def main() -> None:
@@ -109,7 +109,7 @@ def main() -> None:
         f"stations={context['n_stations']}",
         f"plot={context['plot_start']}..{context['plot_end']}",
     )
-    fig = render_cloud_field_overview(context)
+    fig = render_cloud_field_overview(context, show_maps=False)
     output_path = args.output or context["output_path"]
     save_cloud_field_overview(fig, output_path, dpi=args.dpi)
 

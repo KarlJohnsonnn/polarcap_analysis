@@ -1,0 +1,140 @@
+% Auto-generated from analysis_registry.csv. Edit scripts/analysis/registry/analysis_registry_csv_to_latex.py, not this file by hand.
+%
+% --- Required preamble (before \begin{document}) ---
+% You cannot load these from inside \input{}; add them to the main .tex file.
+%   \usepackage{booktabs}
+%   \usepackage{longtable}
+%   \usepackage{amssymb}
+% Without longtable you get: "Environment longtable undefined", "\caption outside float",
+% "Misplaced alignment tab character", and undefined booktabs rules (\toprule, \midrule).
+%
+% Optional (wide table): \usepackage{pdflscape} and \begin{landscape}...\end{landscape}
+%
+% This snippet wraps the longtable in a group: smaller font, reduced \tabcolsep, \arraystretch.
+%
+
+{
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{0.88}
+\begin{longtable}{@{}l c l c r c c l c c c c c c c c c c l l l c c c c c c@{}}
+  \caption{Analysis registry of cloud simulations: experiment index, flare emission, domain configuration, remote-registry status, output counts, processing flags, reference pairing, and per-analysis inclusion gates. Checkmarks (\checkmark) denote true; em dash (---) denotes false or missing/not applicable.}
+  \label{tab:analysis_registry} \\
+  \toprule
+  Cloud run &
+  $i_{\mathrm{exp}}$ &
+  Exp.\ ID &
+  Ref. &
+  $E_{\mathrm{flare}}$ &
+  $i_{\mathrm{shape}}$ &
+  $i_{\mathrm{keis}}$ &
+  Domain &
+  Run &
+  JSON &
+  $n_{\mathrm{met}}$ &
+  $n_{3\mathrm{D}}$ &
+  \multicolumn{1}{c}{L1} &
+  \multicolumn{1}{c}{L2} &
+  \multicolumn{1}{c}{loc.\ L1} &
+  \multicolumn{1}{c}{loc.\ L2} &
+  \multicolumn{1}{c}{loc.\ L3} &
+  $i_{\mathrm{exp}}^{\mathrm{ref}}$ &
+  Ref.\ ID &
+  \multicolumn{1}{l}{Pair} &
+  \multicolumn{1}{l}{Status} &
+  \multicolumn{1}{c}{Paired} &
+  \multicolumn{1}{c}{Fl.\ ref.} &
+  \multicolumn{1}{c}{use L1} &
+  \multicolumn{1}{c}{use L2} &
+  \multicolumn{1}{c}{Plume} &
+  \multicolumn{1}{c}{Budget} &
+  \multicolumn{1}{c}{Paper} \\
+  \midrule
+  \endfirsthead
+  \multicolumn{28}{c}{\tablename~\thetable{} --- \textit{continued from previous page}} \\
+  \toprule
+  Cloud run &
+  $i_{\mathrm{exp}}$ &
+  Exp.\ ID &
+  Ref. &
+  $E_{\mathrm{flare}}$ &
+  $i_{\mathrm{shape}}$ &
+  $i_{\mathrm{keis}}$ &
+  Domain &
+  Run &
+  JSON &
+  $n_{\mathrm{met}}$ &
+  $n_{3\mathrm{D}}$ &
+  \multicolumn{1}{c}{L1} &
+  \multicolumn{1}{c}{L2} &
+  \multicolumn{1}{c}{loc.\ L1} &
+  \multicolumn{1}{c}{loc.\ L2} &
+  \multicolumn{1}{c}{loc.\ L3} &
+  $i_{\mathrm{exp}}^{\mathrm{ref}}$ &
+  Ref.\ ID &
+  \multicolumn{1}{l}{Pair} &
+  \multicolumn{1}{l}{Status} &
+  \multicolumn{1}{c}{Paired} &
+  \multicolumn{1}{c}{Fl.\ ref.} &
+  \multicolumn{1}{c}{use L1} &
+  \multicolumn{1}{c}{use L2} &
+  \multicolumn{1}{c}{Plume} &
+  \multicolumn{1}{c}{Budget} &
+  \multicolumn{1}{c}{Paper} \\
+  \midrule
+  \endhead
+  \midrule
+  \multicolumn{28}{r}{\textit{Continued on next page}} \\
+  \endfoot
+  \bottomrule
+  \endlastfoot
+\texttt{cs-eriswil\_\_20260120\_204218} & 0 & 20260120204219 & --- & 1000000 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 3 & YES & NO & --- & --- & --- & 1 & 20260120204430 & single\_reference & MATCHED & \checkmark & --- & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260120\_204218} & 1 & 20260120204430 & \checkmark & 0 & 1 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 3 & YES & NO & --- & --- & --- & --- & --- & --- & --- & --- & \checkmark & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260120\_204218} & 2 & 20260120204641 & --- & 1000000 & 1 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 3 & YES & NO & --- & --- & --- & 1 & 20260120204430 & same\_shape & MATCHED & \checkmark & --- & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260121\_131528} & 0 & 20260121131528 & \checkmark & 0 & 1 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 3 & YES & NO & \checkmark & --- & --- & --- & --- & --- & --- & --- & \checkmark & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260121\_131528} & 1 & 20260121131550 & --- & 1000000 & 1 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 3 & YES & NO & \checkmark & --- & --- & 0 & 20260121131528 & same\_shape & MATCHED & \checkmark & --- & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260121\_131528} & 2 & 20260121131632 & --- & 1000000 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 3 & YES & NO & \checkmark & --- & --- & 0 & 20260121131528 & single\_reference & MATCHED & \checkmark & --- & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260127\_211338} & 0 & 20260127211338 & \checkmark & 0 & 2 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 4 & YES & NO & \checkmark & --- & --- & --- & --- & --- & --- & --- & \checkmark & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260127\_211338} & 1 & 20260127211431 & --- & 1000000 & 2 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 4 & YES & NO & \checkmark & --- & --- & 0 & 20260127211338 & same\_shape & MATCHED & \checkmark & --- & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260127\_211338} & 2 & 20260127211516 & \checkmark & 0 & 3 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 4 & YES & NO & \checkmark & --- & --- & --- & --- & --- & --- & --- & \checkmark & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260127\_211338} & 3 & 20260127211551 & --- & 1000000 & 3 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 4 & YES & NO & \checkmark & --- & --- & 2 & 20260127211516 & same\_shape & MATCHED & \checkmark & --- & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260210\_113944} & 0 & 20260210113944 & --- & 1000000 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 12 & 0 & NO & YES & --- & \checkmark & \checkmark & 3 & 20260210114519 & same\_shape & MATCHED & \checkmark & --- & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260210\_113944} & 1 & 20260210114136 & \checkmark & 0 & 2 & 1 & 50$\times$40$\times$Z & OK & OK & 12 & 0 & NO & YES & --- & \checkmark & \checkmark & --- & --- & --- & --- & --- & \checkmark & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260210\_113944} & 2 & 20260210114328 & --- & 1000000 & 2 & 1 & 50$\times$40$\times$Z & OK & OK & 12 & 0 & NO & YES & --- & \checkmark & \checkmark & 1 & 20260210114136 & same\_shape & MATCHED & \checkmark & --- & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260210\_113944} & 3 & 20260210114519 & \checkmark & 0 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 12 & 0 & NO & YES & --- & \checkmark & \checkmark & --- & --- & --- & --- & --- & \checkmark & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260211\_194236} & 0 & 20260211194236 & --- & 1000000 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 12 & 4 & YES & YES & --- & \checkmark & \checkmark & --- & --- & none & UNMATCHED & --- & --- & \checkmark & \checkmark & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260211\_194236} & 1 & 20260211194427 & \checkmark & 0 & 2 & 0 & 50$\times$40$\times$Z & OK & OK & 12 & 4 & YES & YES & --- & \checkmark & \checkmark & --- & --- & --- & --- & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260211\_194236} & 2 & 20260211194619 & --- & 1000000 & 2 & 0 & 50$\times$40$\times$Z & OK & OK & 12 & 4 & YES & YES & --- & \checkmark & \checkmark & 1 & 20260211194427 & same\_shape & MATCHED & \checkmark & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260211\_194236} & 3 & 20260211194810 & \checkmark & 0 & 4 & 0 & 50$\times$40$\times$Z & OK & OK & 12 & 4 & YES & YES & --- & \checkmark & \checkmark & --- & --- & --- & --- & --- & --- & \checkmark & \checkmark & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260304\_110254} & 0 & 20260304110446 & --- & 1000000 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 15 & 0 & NO & YES & --- & \checkmark & \checkmark & 2 & 20260304110829 & same\_shape & MATCHED & \checkmark & --- & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260304\_110254} & 1 & 20260304110638 & --- & 1000000 & 2 & 1 & 50$\times$40$\times$Z & OK & OK & 15 & 0 & NO & YES & --- & \checkmark & \checkmark & 2 & 20260304110829 & single\_reference & MATCHED & \checkmark & --- & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260304\_110254} & 2 & 20260304110829 & \checkmark & 0 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 15 & 0 & NO & YES & --- & \checkmark & \checkmark & --- & --- & --- & --- & --- & \checkmark & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260304\_110254} & 3 & 20260304111020 & --- & 1000000 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 15 & 0 & NO & YES & --- & \checkmark & \checkmark & 2 & 20260304110829 & same\_shape & MATCHED & \checkmark & --- & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260304\_110254} & 4 & 20260304111212 & --- & 100000 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 15 & 0 & NO & YES & --- & \checkmark & \checkmark & 2 & 20260304110829 & same\_shape & MATCHED & \checkmark & --- & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260313\_111441} & 0 & 20260313111441 & \checkmark & 0 & 2 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 4 & YES & NO & \checkmark & --- & --- & --- & --- & --- & --- & --- & \checkmark & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260313\_111441} & 1 & 20260313111445 & --- & 1000000 & 2 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 4 & YES & NO & \checkmark & --- & --- & 0 & 20260313111441 & same\_shape & MATCHED & \checkmark & --- & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260313\_111441} & 2 & 20260313111446 & \checkmark & 0 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 4 & YES & NO & \checkmark & --- & --- & --- & --- & --- & --- & --- & \checkmark & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260313\_111441} & 3 & 20260313111448 & --- & 1000000 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 0 & 4 & YES & NO & \checkmark & --- & --- & 2 & 20260313111446 & same\_shape & MATCHED & \checkmark & --- & \checkmark & --- & \checkmark & --- & \checkmark \\
+\texttt{cs-eriswil\_\_20260313\_140150} & 0 & 20260313140150 & \checkmark & 0 & 2 & 1 & 50$\times$40$\times$Z & OK & MISSING & 0 & 0 & NO & NO & --- & --- & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260313\_140150} & 1 & 20260313140154 & --- & 1000000 & 2 & 1 & 50$\times$40$\times$Z & OK & MISSING & 0 & 0 & NO & NO & --- & --- & --- & 0 & 20260313140150 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260314\_103039} & 0 & 20260314103040 & \checkmark & 0 & 2 & 1 & 50$\times$40$\times$Z & OK & OK & 12 & 0 & NO & YES & --- & \checkmark & \checkmark & --- & --- & --- & --- & --- & \checkmark & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260314\_103039} & 1 & 20260314103041 & --- & 1000000 & 2 & 1 & 50$\times$40$\times$Z & OK & OK & 12 & 0 & NO & YES & --- & \checkmark & \checkmark & 0 & 20260314103040 & same\_shape & MATCHED & \checkmark & --- & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260314\_103039} & 2 & 20260314103044 & \checkmark & 0 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 12 & 0 & NO & YES & --- & \checkmark & \checkmark & --- & --- & --- & --- & --- & \checkmark & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260314\_103039} & 3 & 20260314103045 & --- & 1000000 & 4 & 1 & 50$\times$40$\times$Z & OK & OK & 12 & 0 & NO & YES & --- & \checkmark & \checkmark & 2 & 20260314103044 & same\_shape & MATCHED & \checkmark & --- & --- & \checkmark & --- & \checkmark & \checkmark \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 0 & 20260328205320 & \checkmark & 0 & 1 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 1 & 20260328205322 & --- & 1000000 & 1 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & 0 & 20260328205320 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 2 & 20260328205324 & --- & 1000000 & 1 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & 0 & 20260328205320 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 3 & 20260328205326 & --- & 10000000 & 1 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & 0 & 20260328205320 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 4 & 20260328205328 & --- & 10000000 & 1 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & 0 & 20260328205320 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 5 & 20260328205330 & \checkmark & 0 & 2 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 6 & 20260328205332 & --- & 1000000 & 2 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & 5 & 20260328205330 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 7 & 20260328205334 & --- & 1000000 & 2 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & 5 & 20260328205330 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 8 & 20260328205335 & --- & 10000000 & 2 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & 5 & 20260328205330 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 9 & 20260328205337 & --- & 10000000 & 2 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & 5 & 20260328205330 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 10 & 20260328205339 & \checkmark & 0 & 4 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 11 & 20260328205341 & --- & 1000000 & 4 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & 10 & 20260328205339 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 12 & 20260328205343 & --- & 1000000 & 4 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & 10 & 20260328205339 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 13 & 20260328205345 & --- & 10000000 & 4 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & 10 & 20260328205339 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\texttt{cs-eriswil\_\_20260328\_205320} & 14 & 20260328205347 & --- & 10000000 & 4 & 1 & 50$\times$40$\times$Z & --- & --- & --- & --- & --- & --- & \checkmark & --- & --- & 10 & 20260328205339 & same\_shape & MATCHED & \checkmark & --- & --- & --- & --- & --- & --- \\
+\end{longtable}
+}

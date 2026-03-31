@@ -31,7 +31,8 @@ paths:
 default_args:
   analysis_registry: []  # Refresh merged registry CSVs used by paper claims, tables, and audits.
   # Render the promoted cloud-field overview figure with script defaults.
-  station_column_overview: 
+  station_column_overview: # Export the companion phase-budget tables that support the overview figure.
+  # 5×6 station column overview (maps + QW/QFW/T/RH/TKE/W); set --zarr to your LV2 meteogram store
     - "--extpar-low $CS_RUNS_DIR/extPar_Eriswil_50x40.nc"
     - "--extpar-high $CS_RUNS_DIR/extPar_Eriswil_200x160.nc"
     - "--plot-start 2023-01-25T12:25:00"
@@ -46,15 +47,7 @@ default_args:
     - "--extpar-high /work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/extPar_Eriswil_200x160.nc"
     - "--output output/gfx/png/01/"
     - "--dpi 300"
-  cloud_phase_budget_table: []  # Export the companion phase-budget tables that support the overview figure.
-  # 5×6 station column overview (maps + QW/QFW/T/RH/TKE/W); set --zarr to your LV2 meteogram store.
-  station_column_overview:
-    - "--zarr /work/bb1178/schimmel/cosmo-specs-runs/RUN_ERISWILL_50x40x100/ensemble_output/cs-eriswil__20260328_205320/lv2_meteogram/Meteogram_cs-eriswil__20260328_205320_nVar136_nMet3_nExp15.zarr"
-    - "--exp-idx 0"
-    - "--plot-start 2023-01-25T12:00:00"
-    - "--plot-end 2023-01-25T13:00:00"
-    - "--output output/gfx/png/01/station_column_overview_cs-eriswil__20260328_205320.png"
-    - "--dpi 300"
+  cloud_phase_budget_table: []  
   # Build the plume-lagrangian evolution figure with its default styling.
   plume_lagrangian: 
     - "--kind extreme"   

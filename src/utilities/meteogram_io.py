@@ -1,7 +1,7 @@
 """Fast meteogram NetCDF-to-Zarr pipeline.
 
 Replaces the slow ``00-prepM.py`` workflow with:
-* parallel ``ncdump`` header reads (ThreadPoolExecutor)
+* ``ncdump -h`` header reads for time-dimension size
 * auto-detected engine: h5netcdf for NetCDF-4 (GIL-free), netcdf4 for classic
 * per-file open + immediate variable selection (no ``open_mfdataset``)
 * single-level parallelism — no nested thread pools
@@ -16,7 +16,7 @@ import json
 import os
 import shutil
 import subprocess
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from time import perf_counter
 from typing import Dict, List, Optional, Sequence, Tuple, Any
 
 import numpy as np
@@ -29,23 +29,15 @@ from utilities.init_common import get_station_coords_from_cfg
 # ---------------------------------------------------------------------------
 
 _ENGINE_CACHE: Optional[str] = None
-_DEBUG_LOG_PATH = "/home/b/b382237/code/polarcap/python/polarcap_analysis/.cursor/debug-f85260.log"
+_DEBUG_LOG_PATH = "/home/b/b382237/code/polarcap/python/polarcap_analysis/.cursor/debug-00bfbe.log"
 
 
-def _debug_maxrss_mb() -> float | None:
-    try:
-        import resource
-        return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0, 1)
-    except Exception:
-        return None
-
-
-def _agent_debug_log(hypothesis_id: str, location: str, message: str, data: Dict[str, Any]) -> None:
+def _debug_log(hypothesis_id: str, location: str, message: str, data: Dict[str, Any]) -> None:
     try:
         import time
 
         payload = {
-            "sessionId": "f85260",
+            "sessionId": "00bfbe",
             "runId": os.environ.get("SLURM_JOB_ID", "local"),
             "hypothesisId": hypothesis_id,
             "location": location,
@@ -79,6 +71,16 @@ def _detect_nc_engine(path: str) -> str:
 
     print(f"Auto-detected NetCDF engine: {_ENGINE_CACHE}")
     return _ENGINE_CACHE
+
+
+def _resolve_nc_engine(path: str, nc_engine: Optional[str]) -> str:
+    """Return xarray backend: explicit ``h5netcdf`` / ``netcdf4``, or auto-detect."""
+    if nc_engine is None or str(nc_engine).lower() == "auto":
+        return _detect_nc_engine(path)
+    eng = str(nc_engine).lower()
+    if eng not in ("h5netcdf", "netcdf4"):
+        raise ValueError(f"nc_engine must be 'auto', 'h5netcdf', or 'netcdf4', got {nc_engine!r}")
+    return eng
 
 
 # ---------------------------------------------------------------------------
@@ -144,10 +146,10 @@ def _ncdump_time_size(path: str) -> int:
 def get_max_timesteps(file_dict: Dict[str, List[str]], *, max_workers: int = 32) -> int:
     """Return the maximum time-dimension length across all files.
 
-    Runs ``ncdump -h`` in parallel via a thread pool (I/O-bound subprocess).
+    Runs ``ncdump -h`` once per file (subprocess I/O).
     """
     all_files = [f for files in file_dict.values() for f in files]
-    print(f"Checking time steps in {len(all_files)} files (parallel ncdump)...")
+    print(f"Checking time steps in {len(all_files)} files (ncdump)...")
     sizes = [_ncdump_time_size(f) for f in all_files]
     max_t = max(sizes) if sizes else 0
     print(f"Max time steps: {max_t}")
@@ -158,36 +160,39 @@ def get_variable_names(sample_file: str) -> List[str]:
     """Read variable names from one NetCDF file (header only)."""
     engine = _detect_nc_engine(sample_file)
     with xr.open_dataset(sample_file, engine=engine) as ds:
-        return list(ds.data_vars)
+        return [str(name) for name in ds.data_vars.keys()]
 
 
 # ---------------------------------------------------------------------------
-# Per-station preprocessing (kept lazy)
+# Time alignment (experiment-level target) + per-station height preprocessing
 # ---------------------------------------------------------------------------
 
-def _preprocess_station(
-    ds: xr.Dataset,
-    max_time: int,
-    max_height_level: int = 20,
-) -> xr.Dataset:
-    """Preprocess a single-station dataset: pad time, swap height dims, trim.
+def _build_target_time_values(ds_time: np.ndarray, max_time: int) -> np.ndarray:
+    """Extend ``time`` coordinate to ``max_time`` steps using fixed Δt from the file."""
+    if max_time <= 0 or ds_time.size >= max_time:
+        return ds_time
+    if ds_time.size < 2:
+        raise ValueError("Need >= 2 time steps to infer dt")
+    missing = max_time - ds_time.size
+    dt = ds_time[1] - ds_time[0]
+    tail = np.array([ds_time[-1] + (i + 1) * dt for i in range(missing)], dtype=ds_time.dtype)
+    return np.concatenate([ds_time, tail])
 
-    All operations stay lazy (no ``.compute()`` / ``.values``).
-    """
-    # --- time padding ---
-    ds_time = ds.time.values
-    if max_time > 0 and ds_time.size < max_time:
-        missing = max_time - ds_time.size
-        if ds_time.size < 2:
-            raise ValueError("Need >= 2 time steps to infer dt")
-        dt = ds_time[1] - ds_time[0]
-        new_times = np.concatenate([
-            ds_time,
-            [ds_time[-1] + (i + 1) * dt for i in range(missing)],
-        ])
-        ds = ds.reindex(time=new_times, method="pad", fill_value=np.nan)
 
-    # --- swap HMLd / HHLd to generic height indices ---
+def _align_station_time(ds: xr.Dataset, target_times: np.ndarray) -> xr.Dataset:
+    """Reindex to shared ``target_times`` so stations can be concatenated."""
+    if "time" not in ds.sizes:
+        return ds
+    cur = ds.time.values
+    if cur.shape == target_times.shape and np.array_equal(cur, target_times):
+        return ds
+    if "time" not in ds.xindexes and "time" in ds.coords:
+        ds = ds.set_xindex("time")
+    return ds.reindex(time=target_times, method="pad", fill_value=np.nan)
+
+
+def _preprocess_station_heights(ds: xr.Dataset, max_height_level: int = 20) -> xr.Dataset:
+    """Swap HMLd/HHLd dims, trim vertical levels (lazy on dask-backed data)."""
     if "HMLd" in ds.sizes:
         n = ds.sizes["HMLd"]
         ds = ds.swap_dims({"HMLd": "height_level"})
@@ -200,7 +205,6 @@ def _preprocess_station(
         ds = ds.assign_coords(height_level2=np.arange(n))
         ds["HHLd"] = ds.HHLd
 
-    # --- trim to top *max_height_level* levels ---
     if "height_level" in ds.sizes:
         ds = ds.isel(height_level=slice(-max_height_level, None))
     if "height_level2" in ds.sizes:
@@ -219,25 +223,155 @@ def _open_experiment(
     max_time: int,
     max_height_level: int,
     chunks: Dict[str, int],
+    *,
+    profile_io: bool = False,
+    open_fast: bool = False,
+    nc_engine: Optional[str] = None,
 ) -> Tuple[xr.Dataset, np.ndarray]:
     """Load all station files for a single experiment and concat along *station*.
 
-    Uses ``xr.open_dataset`` per file with auto-detected engine instead of
-    ``open_mfdataset`` to avoid nested dask graphs and GIL contention.
+    Time grid is computed once from the first station file, then each file is
+    aligned to that target before height preprocessing and concat.
     """
     station_id_of = lambda f: str(f.split("/")[-1].split("_")[1])
     station_ids = np.array([station_id_of(f) for f in sorted_files], dtype="i4")
-    engine = _detect_nc_engine(sorted_files[0])
+    engine = _resolve_nc_engine(sorted_files[0], nc_engine)
 
-    datasets = []
+    open_kw: Dict[str, Any] = {"engine": engine, "chunks": chunks}
+    if open_fast:
+        open_kw["create_default_indexes"] = False
+        open_kw["cache"] = False
+
+    t_open = t_sel = t_align = t_heights = 0.0
+    t_exp0 = perf_counter()
+    target_times: Optional[np.ndarray] = None
+    datasets: List[xr.Dataset] = []
+
+    # region agent log
+    _debug_log(
+        "H1",
+        "meteogram_io.py:_open_experiment:start",
+        "open_experiment_options",
+        {
+            "n_files": len(sorted_files),
+            "engine": engine,
+            "open_fast": open_fast,
+            "max_time": int(max_time),
+            "chunk_keys": sorted(str(k) for k in chunks.keys()),
+        },
+    )
+    # endregion
+
     for path in sorted_files:
-        ds = xr.open_dataset(path, engine=engine, chunks=chunks)
+        t0 = perf_counter()
+        ds = xr.open_dataset(path, **open_kw)
+        t_open += perf_counter() - t0
+
+        t0 = perf_counter()
         ds = ds[variables]
-        ds = _preprocess_station(ds, max_time, max_height_level)
+        t_sel += perf_counter() - t0
+
+        t0 = perf_counter()
+        if target_times is None:
+            target_times = _build_target_time_values(ds.time.values, max_time)
+            # region agent log
+            _debug_log(
+                "H2",
+                "meteogram_io.py:_open_experiment:target_time",
+                "target_time_seeded",
+                {
+                    "path": os.path.basename(path),
+                    "seed_time_size": int(ds.sizes.get("time", -1)),
+                    "target_time_size": int(target_times.size),
+                    "has_time_coord": "time" in ds.coords,
+                    "has_time_xindex": "time" in ds.xindexes,
+                    "xindexes": [str(k) for k in ds.xindexes.keys()],
+                },
+            )
+            # endregion
+        if "time" in ds.sizes and (
+            ds.sizes["time"] != target_times.size or "time" not in ds.xindexes
+        ):
+            # region agent log
+            _debug_log(
+                "H3",
+                "meteogram_io.py:_open_experiment:before_align",
+                "align_candidate",
+                {
+                    "path": os.path.basename(path),
+                    "sizes": {str(k): int(v) for k, v in ds.sizes.items()},
+                    "target_time_size": int(target_times.size),
+                    "has_time_coord": "time" in ds.coords,
+                    "time_coord_dims": list(ds.coords["time"].dims) if "time" in ds.coords else [],
+                    "time_coord_size": int(ds.coords["time"].size) if "time" in ds.coords else None,
+                    "has_time_xindex": "time" in ds.xindexes,
+                    "xindexes": [str(k) for k in ds.xindexes.keys()],
+                },
+            )
+            # endregion
+        try:
+            ds = _align_station_time(ds, target_times)
+            if "time" in ds.sizes and ds.sizes["time"] == target_times.size:
+                # region agent log
+                _debug_log(
+                    "H5",
+                    "meteogram_io.py:_open_experiment:after_align",
+                    "align_succeeded",
+                    {
+                        "path": os.path.basename(path),
+                        "time_size": int(ds.sizes["time"]),
+                        "target_time_size": int(target_times.size),
+                        "has_time_xindex": "time" in ds.xindexes,
+                        "xindexes": [str(k) for k in ds.xindexes.keys()],
+                    },
+                )
+                # endregion
+        except Exception as exc:
+            # region agent log
+            _debug_log(
+                "H4",
+                "meteogram_io.py:_open_experiment:align_exception",
+                "align_failed",
+                {
+                    "path": os.path.basename(path),
+                    "engine": engine,
+                    "open_fast": open_fast,
+                    "sizes": {str(k): int(v) for k, v in ds.sizes.items()},
+                    "target_time_size": int(target_times.size),
+                    "has_time_coord": "time" in ds.coords,
+                    "time_coord_dims": list(ds.coords["time"].dims) if "time" in ds.coords else [],
+                    "time_coord_size": int(ds.coords["time"].size) if "time" in ds.coords else None,
+                    "has_time_xindex": "time" in ds.xindexes,
+                    "xindexes": [str(k) for k in ds.xindexes.keys()],
+                    "exception_type": type(exc).__name__,
+                    "exception_message": str(exc),
+                },
+            )
+            # endregion
+            raise
+        t_align += perf_counter() - t0
+
+        t0 = perf_counter()
+        ds = _preprocess_station_heights(ds, max_height_level)
+        t_heights += perf_counter() - t0
+
         datasets.append(ds)
 
+    t0 = perf_counter()
     ds_exp = xr.concat(datasets, dim="station", coords="minimal", compat="override")
+    t_concat = perf_counter() - t0
+
     ds_exp = ds_exp.assign_coords(station=station_ids)
+
+    if profile_io:
+        n = max(len(sorted_files), 1)
+        t_total = perf_counter() - t_exp0
+        print(
+            f"    [io] open={t_open:.2f}s sel={t_sel:.2f}s align={t_align:.2f}s "
+            f"heights={t_heights:.2f}s concat={t_concat:.2f}s total={t_total:.2f}s "
+            f"({n} files, engine={engine}, open_fast={open_fast})"
+        )
+
     return ds_exp, station_ids
 
 
@@ -352,29 +486,32 @@ def build_meteogram_zarr(
     max_height_level: int = 20,
     station_coords: Optional[Dict[str, Tuple[float, float]]] = None,
     meta_file: Optional[str] = None,
-    target_time_chunk: int = 100,
-    target_station_chunk: int = 1,
-    target_bins_chunk: int = 30,
+    target_time_chunk: int = 1024,
+    target_station_chunk: int = -1,
+    target_bins_chunk: int = -1,
     compression_level: int = 3,
     debug_mode: bool = False,
     global_attrs: Optional[Dict[str, Any]] = None,
+    profile_io: bool = False,
+    open_fast: bool = False,
+    nc_engine: Optional[str] = None,
 ) -> str:
     """Build a Zarr store from per-experiment meteogram NetCDF files.
 
-    Chunk defaults (time=100, station=1, bins=30) suit time-frame and single-station
-    analysis on both SLURM and laptop; reprocess existing zarrs with --overwrite to apply.
+    Chunk defaults favour larger writes on shared HPC filesystems while keeping
+    ``expname`` chunked by one experiment for region-based incremental writes.
 
     Strategy
     --------
     1. Open every experiment lazily (flat per-file open, no open_mfdataset).
-    2. Concatenate along *expname* with a single ``xr.concat``.
-    3. Assign coordinates and metadata.
-    4. Write to Zarr in one pass with blosc-zstd compression.
+    2. Pre-create the Zarr store from a template dataset with final coordinates.
+    3. Write coordinate payloads once.
+    4. Stream one experiment at a time into its ``expname`` region.
 
     Returns the *zarr_path*.
     """
-    import dask
-    from dask.diagnostics import ProgressBar
+    from dask.base import compute
+    from dask.diagnostics.progress import ProgressBar
 
     if station_coords is None and meta_file is not None:
         station_coords = get_station_coords_from_cfg(meta_file)
@@ -382,24 +519,14 @@ def build_meteogram_zarr(
     expnames = list(file_dict.keys())
     n_experiments = len(expnames)
 
-    # region agent log
-    _agent_debug_log(
-        "H7",
-        "meteogram_io.py:build_meteogram_zarr:start",
-        "lv2_build_start",
-        {
-            "n_experiments": n_experiments,
-            "n_files_total": sum(len(v) for v in file_dict.values()),
-            "n_variables": len(variables),
-            "max_time": max_time,
-            "max_height_level": max_height_level,
-            "debug_mode": debug_mode,
-            "rss_mb": _debug_maxrss_mb(),
-        },
-    )
-    # endregion
+    if profile_io or open_fast or (nc_engine and str(nc_engine).lower() != "auto"):
+        sample = next(iter(file_dict.values()))[0]
+        print(
+            f"  NetCDF read options: engine={_resolve_nc_engine(sample, nc_engine)} "
+            f"open_fast={open_fast} profile_io={profile_io}"
+        )
 
-    # --- target chunks (set once — no rechunking later) ---
+    # --- target chunks (set once and reused for every region write) ---
     target_chunks: Dict[str, int] = {
         "time": min(target_time_chunk, max_time) if max_time > 0 else target_time_chunk,
         "height_level": -1,
@@ -417,7 +544,14 @@ def build_meteogram_zarr(
         files = sorted(file_dict[exp])
         print(f"  Opening [{i + 1}/{n_experiments}] {exp}  ({len(files)} stations)")
         ds_exp, sids = _open_experiment(
-            files, variables, max_time, max_height_level, target_chunks,
+            files,
+            variables,
+            max_time,
+            max_height_level,
+            target_chunks,
+            profile_io=profile_io,
+            open_fast=open_fast,
+            nc_engine=nc_engine,
         )
         station_ids_seen.extend([_coerce_station_id(s) for s in sids.tolist()])
         exp_datasets.append(ds_exp)
@@ -427,51 +561,38 @@ def build_meteogram_zarr(
     else:
         station_ids = _station_id_array(sorted(set(station_ids_seen)))
 
-    # region agent log
-    _agent_debug_log(
-        "H7",
-        "meteogram_io.py:build_meteogram_zarr:after_open",
-        "lv2_open_complete",
-        {
-            "n_exp_datasets": len(exp_datasets),
-            "n_station_ids": int(len(station_ids)),
-            "first_exp_sizes": dict(exp_datasets[0].sizes) if exp_datasets else {},
-            "rss_mb": _debug_maxrss_mb(),
-        },
-    )
-    # endregion
+    if not exp_datasets:
+        raise ValueError("No experiment datasets available for Zarr export.")
 
-    exp_datasets = [ds_exp.reindex(station=station_ids) for ds_exp in exp_datasets]
     n_stations = len(station_ids)
-    target_chunks["station"] = min(target_station_chunk, n_stations)
+    target_chunks["station"] = -1 if target_station_chunk == -1 else min(target_station_chunk, n_stations)
 
     # -----------------------------------------------------------
-    # 2. Concatenate along expname (single concat, lazy)
+    # 2. Resolve final chunk plan and build the template dataset
     # -----------------------------------------------------------
-    print("Concatenating experiments...")
-    ds_all = xr.concat(exp_datasets, dim="expname", coords="minimal", compat="override")
-
-    # apply target chunks once; clamp bins to actual size
+    sample_sizes = dict(exp_datasets[0].sizes)
+    sample_sizes["station"] = n_stations
+    sample_sizes["expname"] = n_experiments
     active_chunks = {}
     for k, v in target_chunks.items():
-        if k not in ds_all.sizes:
+        if k not in sample_sizes:
             continue
-        if v == -1:
-            active_chunks[k] = v
-        else:
-            active_chunks[k] = min(v, ds_all.sizes[k])
+        active_chunks[k] = sample_sizes[k] if v == -1 else min(v, sample_sizes[k])
     active_chunks["expname"] = 1
-    ds_all = ds_all.chunk(active_chunks)
+
+    write_chunks = {k: v for k, v in active_chunks.items() if k != "expname"}
+    exp_datasets = [ds_exp.reindex(station=station_ids).chunk(write_chunks) for ds_exp in exp_datasets]
 
     # -----------------------------------------------------------
-    # 3. Assign coordinates and metadata
+    # 3. Assign coordinates and metadata to the template dataset
     # -----------------------------------------------------------
     experiments_da = xr.DataArray(
         np.asarray(expnames, dtype="U"), dims="expname",
         attrs={"long_name": "Experiment name"},
     )
     station_ids_da = xr.DataArray(station_ids, dims="station", attrs={"long_name": "Station ID"})
-    ds_all = ds_all.assign_coords(expname=experiments_da, station=station_ids_da)
+    ds_template = exp_datasets[0].expand_dims(expname=experiments_da)
+    ds_template = ds_template.assign_coords(expname=experiments_da, station=station_ids_da)
 
     if station_coords is not None:
         station_lat = []
@@ -484,24 +605,25 @@ def build_meteogram_zarr(
             else:
                 station_lat.append(float(lat_lon[0]))
                 station_lon.append(float(lat_lon[1]))
-        ds_all = ds_all.assign_coords(
+        ds_template = ds_template.assign_coords(
             station_lat=xr.DataArray(np.asarray(station_lat, dtype="f8"), dims="station",
                                      attrs={"units": "deg", "long_name": "Latitude"}),
             station_lon=xr.DataArray(np.asarray(station_lon, dtype="f8"), dims="station",
                                      attrs={"units": "deg", "long_name": "Longitude"}),
         )
 
-    if "dim" in ds_all.coords:
-        ds_all = ds_all.drop_vars("dim")
+    if "dim" in ds_template.coords:
+        ds_template = ds_template.drop_vars("dim")
 
-    ds_all = add_coords_and_metadata(ds_all, meta_file=meta_file,
-                                     station_coords=station_coords)
+    ds_template = add_coords_and_metadata(ds_template, meta_file=meta_file,
+                                          station_coords=station_coords)
+    ds_template = ds_template.chunk(active_chunks)
 
     if global_attrs:
         for k, v in global_attrs.items():
-            ds_all.attrs[k] = v
+            ds_template.attrs[k] = v
 
-    encoding = _zarr_encoding(ds_all, compression_level)
+    encoding = _zarr_encoding(ds_template, compression_level)
 
     # -----------------------------------------------------------
     # 4. Write to Zarr
@@ -510,45 +632,43 @@ def build_meteogram_zarr(
         print(f"Removing existing Zarr store: {zarr_path}")
         shutil.rmtree(zarr_path)
 
-    print(f"Writing Zarr store: {zarr_path}")
-    print(f"  shape : {dict(ds_all.sizes)}")
-    print(f"  chunks: {dict(ds_all.chunks)}")
+    print(f"Initializing Zarr store: {zarr_path}")
+    print(f"  shape : {dict(ds_template.sizes)}")
+    print(f"  chunks: {dict(ds_template.chunks)}")
 
-    delayed = ds_all.to_zarr(zarr_path, mode="w", compute=False,
-                             encoding=encoding, zarr_format=2)
-    graph = delayed.__dask_graph__()
-    write_t0 = __import__("time").time()
-
-    # region agent log
-    _agent_debug_log(
-        "H7",
-        "meteogram_io.py:build_meteogram_zarr:before_compute",
-        "lv2_write_start",
-        {
-            "zarr_path": zarr_path,
-            "sizes": dict(ds_all.sizes),
-            "chunks": {k: list(v) for k, v in dict(ds_all.chunks).items()},
-            "n_tasks": len(graph) if graph is not None else None,
-            "rss_mb": _debug_maxrss_mb(),
-        },
+    ds_template.to_zarr(
+        zarr_path,
+        mode="w",
+        compute=False,
+        encoding=encoding,
+        zarr_format=2,
     )
-    # endregion
+    ds_template.coords.to_dataset().to_zarr(zarr_path, mode="a", zarr_format=2)
 
-    with ProgressBar(minimum=2):
-        dask.compute(delayed)
-
-    # region agent log
-    _agent_debug_log(
-        "H7",
-        "meteogram_io.py:build_meteogram_zarr:after_compute",
-        "lv2_write_complete",
-        {
-            "zarr_path": zarr_path,
-            "elapsed_s": round(__import__("time").time() - write_t0, 1),
-            "rss_mb": _debug_maxrss_mb(),
-        },
-    )
-    # endregion
+    print("Writing experiment regions...")
+    for i, (exp, ds_exp) in enumerate(zip(expnames, exp_datasets)):
+        print(f"  Writing [{i + 1}/{n_experiments}] {exp}")
+        ds_region = xr.Dataset(
+            data_vars={
+                name: da.expand_dims(expname=[exp])
+                for name, da in ds_exp.data_vars.items()
+            }
+        ).chunk(active_chunks)
+        non_region_dim_vars = {
+            str(name): list(da.dims)
+            for name, da in ds_region.variables.items()
+            if "expname" not in da.dims
+        }
+        ds_region = ds_region.drop_vars(list(non_region_dim_vars))
+        delayed = ds_region.to_zarr(
+            zarr_path,
+            mode="r+",
+            region={"expname": slice(i, i + 1)},
+            compute=False,
+            zarr_format=2,
+        )
+        with ProgressBar(minimum=2):
+            compute(delayed)
 
     print(f"\nZarr store complete: {zarr_path}")
     return zarr_path

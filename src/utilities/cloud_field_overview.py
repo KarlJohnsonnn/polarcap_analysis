@@ -823,11 +823,20 @@ def load_cloud_field_overview_context(
     }
 
 
-def render_cloud_field_overview(context: dict[str, Any]) -> plt.Figure:
+def render_cloud_field_overview(context: dict[str, Any], *, show_maps: bool = True) -> plt.Figure:
     n_stations = int(context["n_stations"])
-    nrows, ncols = 2 + 1 + n_stations, 4
+    ncols = 4
     fig_width = FULL_COL_IN * 1.3
-    fig_height = min((96 + 25 * n_stations) * MM, MAX_H_IN)
+    if show_maps:
+        nrows = 2 + 1 + n_stations
+        fig_height = min((96 + 25 * n_stations) * MM, MAX_H_IN)
+        height_ratios = [1.3, 1.3, 0.14] + [1.0] * n_stations
+        data_row0 = 3
+    else:
+        nrows = 1 + n_stations
+        fig_height = min((36 + 25 * n_stations) * MM, MAX_H_IN)
+        height_ratios = [0.14] + [1.0] * n_stations
+        data_row0 = 1
     fig = plt.figure(figsize=(fig_width, fig_height), constrained_layout=True)
     fig.set_constrained_layout_pads(w_pad=3.0 / 72.0, h_pad=3.0 / 72.0, wspace=0.045, hspace=0.045)
     grid = gridspec.GridSpec(
@@ -835,56 +844,58 @@ def render_cloud_field_overview(context: dict[str, Any]) -> plt.Figure:
         ncols,
         figure=fig,
         width_ratios=[1.0, 1.0, 1.0, 1.0],
-        height_ratios=[1.3, 1.3, 0.14] + [1.0] * n_stations,
+        height_ratios=height_ratios,
         hspace=0.08,
         wspace=0.14,
     )
 
-    map_grid = grid[:2, :].subgridspec(2, 2, width_ratios=[1, 1], wspace=0.04)
-    ax_low = fig.add_subplot(map_grid[:, 0])
-    ax_high = fig.add_subplot(map_grid[:, 1])
-    terrain_vmin, terrain_vmax = context["terrain_lims"]
-    map_artist = None
-    for ax, lon, lat, hsurf, title in [
-        (ax_low, context["lon_low"], context["lat_low"], context["hsurf_low"], "Low-res extpar orography (400 m)"),
-        (ax_high, context["lon_high"], context["lat_high"], context["hsurf_high"], "High-res extpar orography (100 m)"),
-    ]:
-        map_artist = ax.pcolormesh(
-            lon,
-            lat,
-            hsurf,
-            cmap="terrain",
-            vmin=terrain_vmin,
-            vmax=terrain_vmax,
-            shading="auto",
-        )
-        ax.set_title(title)
-        ax.set_xlabel("Longitude [deg E]")
-        ax.set_ylabel("Latitude [deg N]")
-        ax.set_aspect("equal")
-        for station_idx in range(n_stations):
-            slat = float(context["ds_exp"].station_lat.values[station_idx])
-            slon = float(context["ds_exp"].station_lon.values[station_idx])
-            ax.plot(slon, slat, "o", ms=5.5, mfc="none", mec="black", mew=0.7, zorder=5)
-            ax.annotate(
-                f"S{station_idx + 1}",
-                (slon, slat),
-                textcoords="offset points",
-                xytext=(4, 4),
-                fontsize=6.5,
-                fontweight="bold",
+    if show_maps:
+        map_grid = grid[:2, :].subgridspec(2, 2, width_ratios=[1, 1], wspace=0.04)
+        ax_low = fig.add_subplot(map_grid[:, 0])
+        ax_high = fig.add_subplot(map_grid[:, 1])
+        terrain_vmin, terrain_vmax = context["terrain_lims"]
+        map_artist = None
+        for ax, lon, lat, hsurf, title in [
+            (ax_low, context["lon_low"], context["lat_low"], context["hsurf_low"], "Low-res extpar orography (400 m)"),
+            (ax_high, context["lon_high"], context["lat_high"], context["hsurf_high"], "High-res extpar orography (100 m)"),
+        ]:
+            map_artist = ax.pcolormesh(
+                lon,
+                lat,
+                hsurf,
+                cmap="terrain",
+                vmin=terrain_vmin,
+                vmax=terrain_vmax,
+                shading="auto",
             )
-        ax.tick_params(top=True, right=True, labeltop=False, labelright=False)
+            ax.set_title(title)
+            ax.set_xlabel("Longitude [deg E]")
+            ax.set_ylabel("Latitude [deg N]")
+            ax.set_aspect("equal")
+            for station_idx in range(n_stations):
+                slat = float(context["ds_exp"].station_lat.values[station_idx])
+                slon = float(context["ds_exp"].station_lon.values[station_idx])
+                ax.plot(slon, slat, "o", ms=5.5, mfc="none", mec="black", mew=0.7, zorder=5)
+                ax.annotate(
+                    f"S{station_idx + 1}",
+                    (slon, slat),
+                    textcoords="offset points",
+                    xytext=(4, 4),
+                    fontsize=6.5,
+                    fontweight="bold",
+                )
+            ax.tick_params(top=True, right=True, labeltop=False, labelright=False)
 
-    if map_artist is not None:
-        fig.colorbar(
-            map_artist,
-            ax=[ax_low, ax_high],
-            label="Surface height [m]",
-            shrink=0.5,
-            pad=0.025,
-        )
+        if map_artist is not None:
+            fig.colorbar(
+                map_artist,
+                ax=[ax_low, ax_high],
+                label="Surface height [m]",
+                shrink=0.5,
+                pad=0.025,
+            )
 
+    cbar_row = 2 if show_maps else 0
     qw_axes: list[plt.Axes] = []
     qfw_axes: list[plt.Axes] = []
     budget_axes_top: list[plt.Axes] = []
@@ -896,8 +907,8 @@ def render_cloud_field_overview(context: dict[str, Any]) -> plt.Figure:
         station_name = stn_label(row_idx, context["station_labels"])
         window_stn = context["time_windows"][row_idx]
         ridge_stn = context["qfw_ridges"][row_idx]
-        ax_qw = fig.add_subplot(grid[row_idx + 3, 0])
-        ax_qfw = fig.add_subplot(grid[row_idx + 3, 1], sharey=ax_qw)
+        ax_qw = fig.add_subplot(grid[row_idx + data_row0, 0])
+        ax_qfw = fig.add_subplot(grid[row_idx + data_row0, 1], sharey=ax_qw)
         qw_axes.append(ax_qw)
         qfw_axes.append(ax_qfw)
 
@@ -943,7 +954,7 @@ def render_cloud_field_overview(context: dict[str, Any]) -> plt.Figure:
             ax.set_ylim(*context["ylim_glob"])
 
         for col, rates_dict in [(2, context["rates_q_liq"]), (3, context["rates_q_ice"])]:
-            ax = fig.add_subplot(grid[row_idx + 3, col], sharey=ax_qw)
+            ax = fig.add_subplot(grid[row_idx + data_row0, col], sharey=ax_qw)
             if row_idx == 0:
                 budget_axes_top.append(ax)
             active_processes.update(
@@ -973,8 +984,8 @@ def render_cloud_field_overview(context: dict[str, Any]) -> plt.Figure:
             )
             ax.set_ylim(*context["ylim_glob"])
 
-    cax_qw = fig.add_subplot(grid[2, :2])
-    cax_proc = fig.add_subplot(grid[2, 2:4])
+    cax_qw = fig.add_subplot(grid[cbar_row, :2])
+    cax_proc = fig.add_subplot(grid[cbar_row, 2:4])
     if last_qw_artist is not None:
         fig.colorbar(
             last_qw_artist,
@@ -1023,11 +1034,17 @@ def render_cloud_field_overview(context: dict[str, Any]) -> plt.Figure:
             ]
         )
 
-    fig.suptitle(
-        f"Cloud field overview — Exp {context['exp_label']}: orography, QW/QWF, liquid/ice ridge-sampled "
-        f"process tendencies ({context['active_range_key']})",
-        y=1.01,
-    )
+    if show_maps:
+        suptitle = (
+            f"Cloud field overview — Exp {context['exp_label']}: orography, QW/QWF, liquid/ice ridge-sampled "
+            f"process tendencies ({context['active_range_key']})"
+        )
+    else:
+        suptitle = (
+            f"Cloud field overview — Exp {context['exp_label']}: QW/QWF, liquid/ice ridge-sampled process "
+            f"tendencies ({context['active_range_key']})"
+        )
+    fig.suptitle(suptitle, y=1.01)
     return fig
 
 
