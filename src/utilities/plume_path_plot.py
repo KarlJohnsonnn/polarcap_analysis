@@ -274,8 +274,10 @@ def plot_plume_path_sum(
     ylim=(1, 2000),
     zlim=None,
     cmap="viridis",
+    cmap_alpha: float = 0.95,
     log_norm=True,
     x_axis_fmt: str = "elapsed",
+    y_axis_fmt: str = "log",
     add_missing_data=True,
     figsize_scale=(6.5, 3.6),
     annote_letters=True,
@@ -289,7 +291,7 @@ def plot_plume_path_sum(
     return_pmesh: bool = False,
     cbar_kwargs: dict | None = None,
     add_holimo_legend: bool = True,
-):
+) -> tuple[plt.Figure, np.ndarray, list, list]:
     labels = [k for k, v in ds_by_run.items() if isinstance(v.get(kind), xr.Dataset)]
     if not labels:
         raise ValueError(f"No datasets available for kind='{kind}'")
@@ -311,7 +313,7 @@ def plot_plume_path_sum(
 
     pmesh = None
     obs_legend_added = False
-    xlabel = "elapsed time / (min)" if x_axis_fmt in {"elapsed", "log", "symlog"} else "time"
+    xlabel = "time elapsed / (min)" if x_axis_fmt in {"elapsed", "log", "symlog"} else "time"
     cbar_kwargs = cbar_kwargs or {}
     cbar_kwargs.setdefault("shrink", 0.75)
     cbar_kwargs.setdefault("aspect", 40)
@@ -331,8 +333,7 @@ def plot_plume_path_sum(
             "unit_factor": holimo_overlay.get("unit_factor", 1.0),
             "scatter_cmap": holimo_overlay.get("scatter_cmap", cmap),
             "markers": holimo_overlay.get("markers", ["o", "s", "^"]),
-            "sizes": np.array(holimo_overlay.get("sizes", [16, 18, 20])) * marker_size_scale,
-            "alpha": holimo_overlay.get("alpha", 0.9),
+            "sizes": np.array(holimo_overlay.get("sizes", np.array([16, 18, 20]))) * marker_size_scale,
             "edgecolor": holimo_overlay.get("edgecolor", "black"),
             "linewidth": holimo_overlay.get("linewidth", 0.35),
             "legend_loc": holimo_overlay.get("legend_loc", "upper right"),
@@ -343,6 +344,8 @@ def plot_plume_path_sum(
                                           growth_times_min=obs_cfg["growth"], seeding_start_times=obs_cfg["seed_starts"]),
         )
 
+    pmeshs = []
+    scatters = []
     for i, label in enumerate(labels):
         ax = axes[i]
         ds = ds_by_run[label].get(kind)
@@ -377,6 +380,7 @@ def plot_plume_path_sum(
                     da = da.assign_coords(time_elapsed=("time", np.where(da.time_elapsed.values - panel_shift < 0, 0.0, da.time_elapsed.values - panel_shift)))
             coord = "time_elapsed"
 
+        # da = da.where(da > 1, np.nan)
         if zlim is not None:
             vmin, vmax = float(zlim[0]), float(zlim[1])
         else:
@@ -389,14 +393,14 @@ def plot_plume_path_sum(
                 vmax = max(vmin * 10, 1.0)
         vlim_kw = {"norm": LogNorm(vmin=vmin, vmax=vmax)} if log_norm and vmax > vmin else {"vmin": vmin, "vmax": vmax}
 
-        pmesh = da.plot(x=coord, y="diameter", ax=ax, cmap=cmap, add_colorbar=False, **vlim_kw)
+        pmesh = da.plot(x=coord, y="diameter", ax=ax, cmap=cmap, alpha=cmap_alpha, add_colorbar=False, **vlim_kw)
         model_norm = vlim_kw.get("norm", plt.Normalize(vmin=vmin, vmax=vmax))
-
+        pmeshs.append(pmesh)
         if add_missing_data:
             ax.add_missing_data_patches(da, min_consecutive=1, add_legend=False)
         ax.set_title(label, fontsize=10)
         ax.set_ylim(*ylim)
-        ax.set_yscale("log")
+        ax.set_yscale(y_axis_fmt)
         ax.format_axis_ticks(y_tick_pos="left", y_tick_labels=True, x_tick_labels=True, grid=True)
 
         if x_axis_fmt == "elapsed":
@@ -448,16 +452,16 @@ def plot_plume_path_sum(
                     valid_scatter &= cvals > 0
                 if valid_scatter.any():
                     ax.scatter(xvals[valid_scatter], mean_d[valid_scatter], c=cvals[valid_scatter],
-                              cmap=obs_cfg["scatter_cmap"], marker=mk, s=size, alpha=obs_cfg["alpha"],
+                              cmap=obs_cfg["scatter_cmap"], marker=mk, s=size, alpha=cmap_alpha,
                               edgecolors=obs_cfg["edgecolor"], linewidths=obs_cfg["linewidth"],
                               zorder=126, label=obs_id, **vlim_kw)
             if add_holimo_legend and not obs_legend_added and ax.collections:
                 handles = [Line2D([0], [0], marker=obs_cfg["markers"][j % len(obs_cfg["markers"])], linestyle="None",
                                  markerfacecolor="grey", markeredgecolor="black", markeredgewidth=0.4, markersize=5,
-                                 alpha=0.8, label=oid) for j, oid in enumerate(obs_cfg["obs_ids"])]
+                                 alpha=cmap_alpha, label=oid) for j, oid in enumerate(obs_cfg["obs_ids"])]
                 ax.legend(handles=handles, title="HOLIMO missions", fontsize=7, title_fontsize=7, loc=obs_cfg["legend_loc"], framealpha=0.8)
                 obs_legend_added = True
-
+            scatters.append(ax.collections)
         if x_axis_fmt == "elapsed" and xlim is not None:
             _apply_x_axis_elapsed(ax, xlim)
             ax.set_xlabel("")
@@ -482,4 +486,4 @@ def plot_plume_path_sum(
     if add_shared_labels:
         fig.supylabel("equivalent diameter / (µm)")
         fig.supxlabel(xlabel)
-    return (fig, axes[:n], pmesh) if return_pmesh else (fig, axes[:n])
+    return (fig, axes[:n], pmeshs, scatters)
