@@ -83,23 +83,25 @@ DEFAULT_N_TIMELINE = 200
 diameter_max = 300.0  # um; restrict fits to the growth regime before the coarse-particle tail.
 DEFAULT_XSCALING = ("elapsed", "elapsed", "log")
 DEFAULT_YSCALING = ("log", "log", "log")
-DEFAULT_ALL_TS_ALPHA = 0.85
-DEFAULT_ZOOM_TS_ALPHA = 0.1
+DEFAULT_ALL_TS_ALPHA = 0.75
+DEFAULT_ZOOM_TS_ALPHA = 0.35
 DEFAULT_THRESHOLD = 1.0e-10
 DEFAULT_XLIM = [np.datetime64("2023-01-25T12:31:00"), np.datetime64("2023-01-25T13:14:00")]
 DEFAULT_PANEL_LIMS = {
-    "all_timeseries":  ([.01, 35.0],   [5.0, 1000.0], [1.0, 3000.0]),
-    "zoom_timeseries": ([7.0, 14.0],   [30.0, 300.0], [1.0, 3000.0]),
-    "hist":            ([20.0, 280.0], [1.0, 1000.0], [None, None]),
+    # Top panel y capped at 500 um: coarse tail >500 um is sparse and distracts
+    # from the growth region where the fits live (<=300 um, see diameter_max).
+    "all_timeseries":  ([.01, 35.0],   [5.0, 600.0],  [1.0, 3000.0]),
+    "zoom_timeseries": ([5.0, 16.0],   [20.0, 325.0], [1.0, 3000.0]),
+    "hist":            ([20.0, 280.0], [1.0, 1500.0], [None, None]),
 }
 # for composite line (white,color,white,black)
 DEFAULT_LINE_FIT_KWARGS = { "outer": {  "color": "black", 
                                         "ls": "solid", 
-                                        "lw": 1.75,
-                                        "alpha": 0.8,
+                                        "lw": 2.1,
+                                        "alpha": 0.7,
                                         "edge_color": "white",
-                                        "edge_alpha": 0.95,
-                                        "edge_lw": 0.225  }, 
+                                        "edge_alpha": 0.7,
+                                        "edge_lw": 0.325  }, 
                             "inner": {  "color": "black", 
                                         "ls": "dashed", 
                                         "lw": 0.35,
@@ -120,8 +122,9 @@ ENVELOPE_PCT = (10.0, 90.0)
 ENSEMBLE_LINE_COLOR = "#1f1f1f"
 ENSEMBLE_BAND_COLOR = "#6e6e6e"
 
-# Reference power-law exponents D ~ t^alpha plotted over the zoom panel (Eq. in 05_results.tex).
-DEFAULT_SUBLINEAR_ALPHAS: tuple[float, ...] = tuple(np.linspace(0.25, 1.25, 6))
+# Two reference exponents frame the optimal alpha: sub-linear (0.5) and linear (1.0).
+# A denser fan obscures the ensemble envelope on the trajectory panel.
+DEFAULT_SUBLINEAR_ALPHAS: tuple[float, ...] = (0.25, 0.5, 0.75, 1.0, 1.25)
 
 
 # ----- small helpers ----------------------------------------------------------
@@ -409,15 +412,11 @@ def load_plume_lagrangian_context(
 
 
 def _draw_plume_panels(fig, ensemble, kind, cmap, alphas: tuple[float, float] = (0.95, 0.25)):
-    # Only the top panel carries the full-span pcolormesh; the lower-left panel is
-    # populated by ``_draw_trajectory_panel`` from ``render_plume_lagrangian_figure``.
     gs = fig.add_gridspec(2, 2, width_ratios=[0.65, 0.35], wspace=0.1, hspace=0.1)
     ax_sym  = fig.add_subplot(gs[0, 0:2])
     ax_el   = fig.add_subplot(gs[1, 0])
     ax_hist = fig.add_subplot(gs[1, 1])
-    x_r, y_r, z_r = DEFAULT_PANEL_LIMS["all_timeseries"]
-    _, _, pmeshs, scatters = plot_plume_path_sum(
-        ensemble,
+    kwargs = dict(
         kind=kind, variable=DEFAULT_VARIABLE,
         cbar_kwargs=DEFAULT_CBAR_KW,
         common_xlim_minutes=35,
@@ -425,11 +424,24 @@ def _draw_plume_panels(fig, ensemble, kind, cmap, alphas: tuple[float, float] = 
         cmap=cmap, log_norm=True, add_missing_data=True, holimo_overlay=None,
         add_colorbar=False, add_shared_labels=False, annote_letters=False,
         return_pmesh=True, add_holimo_legend=False, marker_size_scale=0.05,
-        x_axis_fmt=DEFAULT_XSCALING[0], y_axis_fmt=DEFAULT_YSCALING[0],
-        zlim=z_r, axes_override=[ax_sym], cmap_alpha=alphas[0],
     )
-    ax_sym.set(xlim=x_r, ylim=y_r)
-    handles = {"all_timeseries": {"pmeshs": pmeshs, "scatters": scatters}}
+    handles = {}
+    for ax, key, alpha, xscaling, yscaling in (
+        (ax_sym, "all_timeseries", alphas[0], DEFAULT_XSCALING[0], DEFAULT_YSCALING[0]),
+        (ax_el,  "zoom_timeseries", alphas[1], DEFAULT_XSCALING[1], DEFAULT_YSCALING[1]),
+    ):
+        x_r, y_r, z_r = DEFAULT_PANEL_LIMS[key]
+        _, _, pmeshs, scatters = plot_plume_path_sum(
+            ensemble,
+            x_axis_fmt=xscaling,
+            y_axis_fmt=yscaling,
+            zlim=z_r,
+            axes_override=[ax],
+            cmap_alpha=alpha,
+            **kwargs,
+        )
+        ax.set(xlim=x_r, ylim=y_r)
+        handles[key] = {"pmeshs": pmeshs, "scatters": scatters}
     return ax_sym, ax_el, ax_hist, handles
 
 
@@ -497,13 +509,13 @@ def _draw_trajectory_panel(
     ok_band = np.isfinite(p_lo) & np.isfinite(p_hi)
     # zorder chosen to sit above the fixed-alpha reference fan (~206) but below
     # the fit overlays (~211) and mission markers (~150 from _draw_trajectory_panel).
-    ax.fill_between(
+    band_artist = ax.fill_between(
         t_grid[ok_band], p_lo[ok_band], p_hi[ok_band],
         color=ENSEMBLE_BAND_COLOR, alpha=0.35, lw=0, zorder=205,
         label=f"model {ENVELOPE_PCT[0]:.0f}-{ENVELOPE_PCT[1]:.0f}th pct.",
     )
     ok_line = np.isfinite(mean_line)
-    ax.plot(
+    (mean_artist,) = ax.plot(
         t_grid[ok_line], mean_line[ok_line],
         color=ENSEMBLE_LINE_COLOR, lw=2.0, alpha=0.95, zorder=207,
         path_effects=[pe.withStroke(linewidth=3.2, foreground="white", alpha=0.9)],
@@ -531,9 +543,12 @@ def _draw_trajectory_panel(
         )
 
     ax.set(xlim=x_lim, ylim=y_lim, yscale="log")
+    # Single consolidated legend: ensemble band, ensemble mean, then missions.
+    # Mission legend is already shown on the top panel; colour identifies it here.
     traj_leg = ax.legend(
-        handles=mission_handles, title="HOLIMO missions",
+        handles=[band_artist, mean_artist, *mission_handles],
         loc="upper left", fontsize=7, title_fontsize=7, framealpha=0.8,
+        labelspacing=0.3, borderaxespad=0.3,
     )
     traj_leg.set_zorder(500)
     ax.add_artist(traj_leg)
@@ -638,28 +653,13 @@ def _add_growth_fits(
 ) -> None:
     """Overlay growth fits on ``axes``; legend is placed on ``ax_legend`` only."""
     panel_lo, panel_hi = DEFAULT_PANEL_LIMS["zoom_timeseries"][0]
+    hol_t0 = min(lo for lo, _ in elapsed_wins)
+    hol_t1 = max(hi for _, hi in elapsed_wins)
 
     da_m = da_model.where(
         (da_model.time_elapsed >= panel_lo) & (da_model.time_elapsed <= panel_hi), drop=True,
     ).sel(diameter=slice(None, diameter_max))
     t_m, D_m = _weighted_mean_D_per_time(da_m)
-
-    # Sample time axis: log-spaced on log/symlog panels (smooth curves at small t),
-    # linear-spaced on linear panels. Fits are always computed in linear time.
-    def _t_axis(ax, n: int = DEFAULT_N_TIMELINE) -> np.ndarray:
-        x_lo, x_hi = ax.get_xlim()
-        lo = max(float(x_lo), 1e-3)
-        hi = float(x_hi)
-        return (np.geomspace(lo, hi, n)
-                if ax.get_xscale() in ("log", "symlog")
-                else np.linspace(lo, hi, n))
-
-    # Scale DASH_LOOSE pattern so the visual dash frequency matches between
-    # lines of different linewidths drawn on the same axis.
-    # def _dash_match(ref_lw: float, this_lw: float) -> tuple:
-    #     s = ref_lw / this_lw
-    #     on, off = DASH_LOOSE[1]
-    #     return (0, (on * s, off * s))
 
     if t_m.size >= 2:
         a_mu, b_mu = np.polyfit(t_m, D_m, 1)
@@ -692,51 +692,83 @@ def _add_growth_fits(
             f"rmse_logD={rmse_opt:.4f}  rmse_lin={rmse_lin:.4f}  "
             f"rmse_fixed=[{rmse_fixed_str}]"
         )
+        # Model + α reference: full x extent on both panels. HOLIMO-only line clipped later.
         for idx, ax in enumerate(axes):
-            t_axis = _t_axis(ax)
             is_legend = ax is ax_legend
+            ax_lo, ax_hi = ax.get_xlim()
+            t_lo_fit = max(ax_lo, 1e-3)
+            t_hi_fit = ax_hi
+            if t_hi_fit <= t_lo_fit:
+                t_hi_fit = t_lo_fit + 1e-6
+            t_fit = np.linspace(t_lo_fit, t_hi_fit, DEFAULT_N_TIMELINE)
 
-            # Model linear fit alpha=1.0
             _draw_fit_line(
-                ax, t_axis, a_mu * t_axis + b_mu,
+                ax, t_fit, a_mu * t_fit + b_mu,
                 outer={"color": "#FFB343"},
                 inner={"ls": (0, (8,  4))}, # corresponds to "loose dashed" line
                 zorder=211,
                 label="model D(t) linear fit",
             )
-            # Both panels: optimal 2-parameter power-law fit (light purple).
             _draw_fit_line(
-                ax, t_axis, C_star * t_axis ** alpha_star,
+                ax, t_fit, C_star * t_fit ** alpha_star,
                 outer={"color": "#CD1C18"},
                 inner={"ls": (0, (8,  4))}, # corresponds to "loose dashed" line
                 zorder=212,
                 label=rf"model optimal $D=C\,t^{{\alpha}}$ ($\alpha$={alpha_star:.2f})",
             )
-            if is_legend:
-                # Zoom panel: anchor DEFAULT_SUBLINEAR_ALPHAS reference curves
-                # through the model data (OLS in log-log with alpha held fixed).
-                # Dash size is linearly interpolated from loose (low alpha) to
-                # dense (high alpha) across the alpha range.
-                a_lo, a_hi = min(alphas), max(alphas)
-                span = (a_hi - a_lo) or 1.0
-                for a_fix in alphas:
-                    # loose (on=off=8 pt) at a_lo -> dense (on=off=2 pt) at a_hi.
-                    seg = 8.0 - 6.0 * (a_fix - a_lo) / span
-                    C_fix = float(np.exp(np.mean(log_D_m - a_fix * log_t_m)))
-                    (ln,) = ax.plot(
-                        t_axis, C_fix * t_axis ** a_fix,
-                        color="black", ls=(0, (seg, seg)),
-                        lw=0.65, alpha=0.95, zorder=206,
-                    )
+            a_lo, a_hi = min(alphas), max(alphas)
+            span = (a_hi - a_lo) or 1.0
+            for i_a, a_fix in enumerate(alphas):
+                seg = 8.0 - 6.0 * (a_fix - a_lo) / span
+                C_fix = float(np.exp(np.mean(log_D_m - a_fix * log_t_m)))
+                (ln,) = ax.plot(
+                    t_fit, C_fix * t_fit ** a_fix,
+                    color="black", ls=(0, (seg, seg)),
+                    lw=0.65, alpha=0.95, zorder=206,
+                )
+                if is_legend:
                     ax.__dict__.setdefault("_composite_handles", []).append(
                         (rf"$D\propto t^{{{a_fix:.2f}}}$", ln)
                     )
+                    if not np.isclose(a_fix, 0.75):
+                        t_end = float(ax_hi)
+                        y_ann = float(C_fix * (t_end ** a_fix))
+                        if np.isfinite(y_ann):
+                            n_lab = len(alphas)
+                            dy_pt = (i_a - 0.5 * (n_lab - 1)) * 1.0
+                            ax.annotate(
+                                f"{a_fix:g}",
+                                xy=(t_end, y_ann),
+                                xytext=(4.0, dy_pt),
+                                textcoords="offset points",
+                                fontsize=4.4,
+                                color="black",
+                                ha="left",
+                                va="center",
+                                clip_on=False,
+                                zorder=207,
+                            )
+            if is_legend:
+                t_end = float(ax_hi)
+                y_opt = float(C_star * (t_end ** alpha_star))
+                if np.isfinite(y_opt):
+                    ax.annotate(
+                        f"{alpha_star:.2f}",
+                        xy=(t_end, y_opt),
+                        xytext=(4.0, 0.0),
+                        textcoords="offset points",
+                        fontsize=4.4,
+                        color="#CD1C18",
+                        ha="left",
+                        va="center",
+                        clip_on=False,
+                        zorder=208,
+                    )
 
-    # HOLIMO linear fits: individual per-mission on the zoom panel; one combined
-    # line for all missions on the top (symlog) panel.
+    # Combined HOLIMO linear fit across all mission coverage windows; drawn on
+    # every axis (both the top panel and the zoom panel).
     combined_t: list[np.ndarray] = []
     combined_D: list[np.ndarray] = []
-    labeled = False
     print("[plume_lagrangian] HOLIMO weighted-mean D(t) linear fit:")
     for mi, obs_id in enumerate(DEFAULT_OBS_IDS):
         da_o = obs_elapsed.get(obs_id)
@@ -759,15 +791,6 @@ def _add_growth_fits(
             f"D_first={D_o[0]:6.1f}  D_last={D_o[-1]:6.1f}  "
             f"slope={a_o:+7.3f} um/min  intercept={b_o:+7.1f}"
         )
-        t_line_o = np.linspace(lo, hi, DEFAULT_N_TIMELINE)
-        _draw_fit_line(
-            ax_legend, t_line_o, a_o * t_line_o + b_o,
-            outer={"color": "#305CDE"},
-            inner={"ls": (0, (8,  4)), "color": "white"}, # corresponds to "loose dashed" line
-            zorder=208,
-            label=("HOLIMO linear fit" if not labeled else None),
-        )
-        labeled = True
 
     if combined_t:
         tc = np.concatenate(combined_t)
@@ -779,11 +802,18 @@ def _add_growth_fits(
             f"slope={a_c:+7.3f} um/min  intercept={b_c:+7.1f}"
         )
         for ax in axes:
+            ax_lo, ax_hi = ax.get_xlim()
             if ax is ax_legend:
-                continue
-            t_axis = _t_axis(ax)
+                t_lo_c = max(ax_lo, hol_t0, 1e-3)
+                t_hi_c = min(ax_hi, hol_t1)
+            else:
+                t_lo_c = max(ax_lo, 1e-3)
+                t_hi_c = ax_hi
+            if t_hi_c <= t_lo_c:
+                t_hi_c = t_lo_c + 1e-6
+            t_comb = np.linspace(t_lo_c, t_hi_c, DEFAULT_N_TIMELINE)
             _draw_fit_line(
-                ax, t_axis, a_c * t_axis + b_c,
+                ax, t_comb, a_c * t_comb + b_c,
                 outer={"color": "royalblue"},
                 inner={"ls": (0, (8,  4)), "color": "white"}, # corresponds to "loose dashed" line
                 zorder=209,
@@ -854,13 +884,13 @@ def render_plume_lagrangian_figure(
 
     da_holimo = ds_holimo[DEFAULT_HOLIMO_VAR]
     profiles = add_holimo_column_scatter(
-        [ax_sym], da_holimo,
+        [ax_sym, ax_el], da_holimo,
         obs_ids = DEFAULT_OBS_IDS,
         time_frames_plume = DEFAULT_TIME_FRAMES_PLUME,
         seeding_start_times = DEFAULT_SEEDING_START_TIMES,
         threshold = DEFAULT_THRESHOLD,
         unit_conversion = hol_scale,
-        alphas = (all_ts_alpha,),
+        alphas = (all_ts_alpha, zoom_ts_alpha),
         mission_markers = DEFAULT_MISSION_MARKERS,
         mission_msizes = DEFAULT_MISSION_MSIZES,
     )
@@ -870,9 +900,6 @@ def render_plume_lagrangian_figure(
         loc="lower right", framealpha=0.8,
     )
 
-    # Lower-left panel: growth-trajectory view (per-run envelope + ensemble mean
-    # + per-mission HOLIMO D(t)). Fit overlays are added below by ``_add_growth_fits``.
-    _draw_trajectory_panel(ax_el, context["datasets"], da_holimo, kind=kind)
 
     # --- histogram panel -----------------------------------------------------
     run_label = next(l for l, r in ensemble.items() if isinstance(r.get(kind), xr.Dataset))
@@ -959,16 +986,34 @@ def render_plume_lagrangian_figure(
     ax_hist.legend(
         [Line2D([], [], color="orange", lw=2.0, alpha=0.8),
          Line2D([], [], color="royalblue", lw=2.0, alpha=0.8)],
-        ["COSMO-SPECS", "HOLIMO"], loc="upper left", frameon=False, fontsize=7,
+        ["COSMO-SPECS", "HOLIMO"], loc="upper right", frameon=False, fontsize=7,
         handler_map={tuple: HandlerTuple(ndivide=None)},
     )
 
     ax_sym.set_title("")
-    ax_sym.set_xlabel(r"elapsed time / (min)")
-    ax_el.set_xlabel(r"elapsed time / (min)")
+    ax_sym.set_xlabel(r"time elapsed / (min)")
+    ax_el.set_xlabel(r"time elapsed / (min)")
     ax_el.yaxis.set_major_formatter(fmt)
     fig.supylabel(r"equivalent diameter D$_{\mathrm{eq}}$ / ($\mu$m)")
     ax_sym.set_xlim(DEFAULT_PANEL_LIMS["all_timeseries"][0])
+
+    # Mark the fit-relevant diameter cap on the top panel (fits use diameter_max=300 um).
+    ax_sym.axhline(diameter_max, color="black", ls=":", lw=0.6, alpha=0.5, zorder=50)
+    ax_el.annotate(
+        rf"$D_{{\max}}={diameter_max:.0f}\,\mu$m (fit cutoff)",
+        xy=(DEFAULT_PANEL_LIMS["zoom_timeseries"][0][1], 20),
+        xytext=(-4, 3), textcoords="offset points",
+        ha="right", va="bottom", fontsize=6, alpha=0.7,
+    )
+
+    # Publication-standard panel letters.
+    for ax, letter in ((ax_sym, "A"), (ax_el, "B"), (ax_hist, "C")):
+        ax.text(
+            0.012, 0.97, f"({letter})", transform=ax.transAxes,
+            ha="left", va="top", fontweight="semibold", fontsize=12,
+            bbox=dict(facecolor="white", edgecolor="none", alpha=0.7, pad=1.5),
+            zorder=1000,
+        )
 
     out = context["output_path"] if output_path is None else Path(output_path)
     return fig, out
