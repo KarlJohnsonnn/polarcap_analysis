@@ -28,7 +28,7 @@ from matplotlib.ticker import FuncFormatter
 from utilities.holimo_helpers import load_and_prepare_holimo
 from utilities.plotting import create_new_jet3, make_pastel
 from utilities.plume_loader import load_plume_path_runs
-from utilities.plume_path_plot import build_common_xlim, diagnostics_table
+from utilities.plume_path_helpers import build_common_xlim, diagnostics_table
 from utilities.style_profiles import FULL_COL_IN, MAX_H_IN, SINGLE_COL_IN
 from utilities.table_paths import psd_stats_output_paths, sync_file
 

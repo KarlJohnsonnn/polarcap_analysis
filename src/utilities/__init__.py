@@ -117,14 +117,6 @@ try:
         proc_hatch,
         build_fixed_legend,
     )
-    from utilities.plume_path_plot import (
-        _assign_elapsed_time,
-        _prepare_da,
-        plot_plume_path_sum,
-        build_common_xlim,
-        diagnostics_table,
-        compute_holimo_elapsed_anchors,
-    )
     from utilities.cloud_field_overview import (
         DEFAULT_WINDOW_SPECS_MIN,
         build_cloud_phase_budget_tables,
@@ -135,16 +127,17 @@ try:
         save_cloud_phase_budget_tables,
         save_cloud_field_overview,
     )
-    from utilities.plume_lagrangian import (
-        DEFAULT_RUNS as DEFAULT_PLUME_RUNS,
-        build_ensemble_mean_datasets,
-        hist_profile,
-        load_plume_lagrangian_context,
-        median_diameter,
-        peak_indices,
-        plume_lagrangian_output,
-        render_plume_lagrangian_figure,
-        save_plume_lagrangian_figure,
+    from utilities.plume_path_helpers import (
+        build_common_xlim,
+        diagnostics_table,
+    )
+    from utilities.plume_lagrangian_slim import (
+        DEFAULT_CFG,
+        FigCfg,
+        load_context,
+        print_model_growth_fit_table,
+        render_figure,
+        save_figure,
     )
     from utilities.plume_loader import load_plume_path_runs
     from utilities.psd_waterfall import (

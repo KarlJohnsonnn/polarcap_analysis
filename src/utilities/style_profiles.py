@@ -4,16 +4,23 @@ Matplotlib style profiles and publication figure helpers.
 Styles: timeseries, 2d, hist, publication (use_style("name") or get_style("name")).
 Publication style: single column 89 mm, full width 183 mm, 300 DPI, 7 pt body;
 Okabe–Ito colorblind-safe process colors. See conceptviz.app blog for journal specs.
+
+Axis geometry: ``PUBLICATION_TICK_*`` and ``apply_publication_axis_tick_geometry`` /
+``apply_publication_panel_axis`` keep tick sizes, stroke widths, and optional panel grids
+aligned across PolarCAP manuscript figures.
 """
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import FuncFormatter
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 BASE_STYLE = {
     "font.size": 15.5,
@@ -74,6 +81,23 @@ SINGLE_COL_IN = 89 * MM
 FULL_COL_IN = 183 * MM
 MAX_H_IN = 247 * MM
 
+# Tick geometry shared across PolarCAP publication panels (heatmaps, composites, log hists).
+# Values are the mean of former multi-panel heatmap styling (major 7×0.63, minor 3.75×0.35)
+# and pre-unification ``rcParams`` (major width 0.5, minor 0.4; mpl default lengths 3.5 / 2).
+# Using one set keeps multi-panel figures visually aligned (journal-style consistency).
+PUBLICATION_TICK_MAJOR_LEN = (7.0 + 3.5) / 2.0
+PUBLICATION_TICK_MAJOR_W = (0.63 + 0.5) / 2.0
+PUBLICATION_TICK_MINOR_LEN = (3.75 + 2.0) / 2.0
+PUBLICATION_TICK_MINOR_W = (0.35 + 0.4) / 2.0
+
+# Default major/minor grid strokes for panels that use ``apply_publication_axis_grid``.
+PUBLICATION_GRID_MAJOR_KW: dict[str, Any] = {
+    "linestyle": "--", "linewidth": 0.25, "color": "black", "alpha": 0.6,
+}
+PUBLICATION_GRID_MINOR_KW: dict[str, Any] = {
+    "linestyle": ":", "linewidth": 0.15, "color": "black", "alpha": 0.35,
+}
+
 PUBLICATION_RCPARAMS: dict[str, Any] = {
     "figure.dpi": 300,
     "savefig.dpi": 300,
@@ -99,10 +123,18 @@ PUBLICATION_RCPARAMS: dict[str, Any] = {
     "figure.titleweight": "bold",
     "lines.linewidth": 0.8,
     "axes.linewidth": 0.5,
-    "xtick.major.width": 0.5,
-    "ytick.major.width": 0.5,
-    "xtick.minor.width": 0.4,
-    "ytick.minor.width": 0.4,
+    "xtick.top": True,
+    "ytick.right": True,
+    "xtick.major.size": PUBLICATION_TICK_MAJOR_LEN,
+    "ytick.major.size": PUBLICATION_TICK_MAJOR_LEN,
+    "xtick.minor.size": PUBLICATION_TICK_MINOR_LEN,
+    "ytick.minor.size": PUBLICATION_TICK_MINOR_LEN,
+    "xtick.major.width": PUBLICATION_TICK_MAJOR_W,
+    "ytick.major.width": PUBLICATION_TICK_MAJOR_W,
+    "xtick.minor.width": PUBLICATION_TICK_MINOR_W,
+    "ytick.minor.width": PUBLICATION_TICK_MINOR_W,
+    "xtick.minor.visible": True,
+    "ytick.minor.visible": True,
     "patch.linewidth": 0.5,
     "axes.grid": False,
 }
@@ -175,6 +207,38 @@ def use_style(kind: str):
 def apply_publication_style() -> None:
     """Set matplotlib rcParams to publication standards (300 DPI, 7 pt body, etc.)."""
     plt.rcParams.update(PUBLICATION_RCPARAMS)
+
+
+def apply_publication_axis_tick_geometry(ax: "Axes") -> None:
+    """
+    Apply publication tick lengths, widths, and outward direction on all spines.
+
+    Use after ``apply_publication_style()`` when an axis needs explicit geometry
+    (e.g. after xarray/plot or other code that resets ticks).
+    """
+    ax.minorticks_on()
+    ax.tick_params(which="both", direction="out", top=True, right=True, bottom=True, left=True)
+    ax.tick_params(
+        which="major", direction="out",
+        length=PUBLICATION_TICK_MAJOR_LEN, width=PUBLICATION_TICK_MAJOR_W,
+    )
+    ax.tick_params(
+        which="minor", direction="out",
+        length=PUBLICATION_TICK_MINOR_LEN, width=PUBLICATION_TICK_MINOR_W,
+    )
+
+
+def apply_publication_axis_grid(ax: "Axes") -> None:
+    """Major/minor grid matching PolarCAP multi-panel publication figures."""
+    ax.grid(True, which="major", **PUBLICATION_GRID_MAJOR_KW)
+    ax.grid(True, which="minor", **PUBLICATION_GRID_MINOR_KW)
+    ax.set_axisbelow(False)
+
+
+def apply_publication_panel_axis(ax: "Axes") -> None:
+    """Tick geometry plus grid; same baseline as heatmap panels in ``plume_lagrangian_slim``."""
+    apply_publication_axis_tick_geometry(ax)
+    apply_publication_axis_grid(ax)
 
 
 def save_fig(

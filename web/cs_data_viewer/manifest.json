@@ -17,8 +17,8 @@
    "mtime": 1773821134989
   },
   {
-   "path": "notebooks/output/03/figure12_ensemble_mean_plume_path_foo.png",
-   "name": "figure12_ensemble_mean_plume_path_foo.png",
+   "path": "notebooks/output/03/figure12_ensemble_mean_plume_path_slim.png",
+   "name": "figure12_ensemble_mean_plume_path_slim.png",
    "folder": "notebooks/output/03",
    "type": "image",
    "ext": "png",
@@ -217,8 +217,8 @@
    "mtime": 1773997374289
   },
   {
-   "path": "output/gallery/figure12_ensemble_mean_plume_path_foo.png",
-   "name": "figure12_ensemble_mean_plume_path_foo.png",
+   "path": "output/gallery/figure12_ensemble_mean_plume_path_slim.png",
+   "name": "figure12_ensemble_mean_plume_path_slim.png",
    "folder": "output/gallery",
    "type": "image",
    "ext": "png",
@@ -673,8 +673,8 @@
    "mtime": 1774291507546
   },
   {
-   "path": "output/gfx/png/03/figure12_ensemble_mean_plume_path_foo.png",
-   "name": "figure12_ensemble_mean_plume_path_foo.png",
+   "path": "output/gfx/png/03/figure12_ensemble_mean_plume_path_slim.png",
+   "name": "figure12_ensemble_mean_plume_path_slim.png",
    "folder": "output/gfx/png/03",
    "type": "image",
    "ext": "png",
