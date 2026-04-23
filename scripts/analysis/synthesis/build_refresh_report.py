@@ -353,7 +353,7 @@ def _regenerated_figure_assets(
         (
             "Plume-Lagrangian Evolution",
             "fig_plume_lagrangian",
-            REPO_ROOT / "output" / "gfx" / "png" / "03" / "figure12_ensemble_mean_plume_path_slim.png",
+            REPO_ROOT / "output" / "gfx" / "png" / "03" / "figure12_ensemble_mean_plume_path.png",
             "Regenerated ensemble plume-lagrangian comparison figure with HOLIMO overlays.",
         ),
     ]

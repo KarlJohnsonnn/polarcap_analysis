@@ -135,8 +135,8 @@ PUBLICATION_PRODUCTS: Tuple[FigureJob, ...] = (
     ),
     FigureJob(
         key="plume_lagrangian",
-        rel_script="scripts/analysis/growth/run_plume_lagrangian_evolution_slim.py",
-        description="Notebook 03 plume-lagrangian evolution figure (slim pipeline).",
+        rel_script="scripts/analysis/growth/run_plume_lagrangian_evolution.py",
+        description="Notebook 03 plume-lagrangian evolution figure.",
     ),
     FigureJob(
         key="ridge_metrics",
@@ -369,7 +369,7 @@ def _sync_gallery() -> None:
     # Canonical names for docs/gallery.html; captions are in figure_captions.yaml (one per figure type).
     canonical = [
         ("fig01_cloud_field_overview.png", GFX_PNG_ROOT / "01", "cloud_field_overview_*_ALLBB.png"),
-        ("fig12_plume_path.png", GFX_PNG_ROOT / "03", "figure12_ensemble_mean_plume_path_slim.png"),
+        ("fig12_plume_path.png", GFX_PNG_ROOT / "03", "figure12_ensemble_mean_plume_path.png"),
         ("fig13_psd_mass.png", GFX_PNG_ROOT / "04", "figure13_psd_alt_time_mass_*.png"),
         ("fig13_psd_number.png", GFX_PNG_ROOT / "04", "figure13_psd_alt_time_number_*.png"),
     ]

@@ -16,7 +16,7 @@ Current promoted products:
 - `registry/build_analysis_registry.py` -> `output/tables/registry/analysis_registry.csv`
 - `forcing/run_cloud_field_overview.py` -> `output/gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_<exp>_<range>.png`
 - `forcing/run_cloud_phase_budget_table.py` -> `output/tables/phase_budget/cloud_phase_budget_summary_<exp>_<range>.csv`, `output/tables/phase_budget/cloud_phase_budget_summary_<exp>_<range>.tex`
-- `growth/run_plume_lagrangian_evolution_slim.py` -> `output/gfx/png/03/figure12_ensemble_mean_plume_path_slim.png`
+- `growth/run_plume_lagrangian_evolution.py` -> `output/gfx/png/03/figure12_ensemble_mean_plume_path.png`
 - `growth/run_psd_waterfall.py` -> `output/gfx/png/04/figure13_psd_alt_time_<kind>_<run_id>.png`, `output/gfx/csv/04/figure13_psd_stats_<kind>_<run_id>.csv`, `output/gfx/tex/04/figure13_psd_stats_<kind>_<run_id>.tex`
 - `growth/run_psd_stats.py` -> `output/tables/registry/psd_stats.csv`
 - `growth/run_growth_summary.py` -> `output/tables/registry/growth_summary.csv`

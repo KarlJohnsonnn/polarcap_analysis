@@ -131,7 +131,7 @@ try:
         build_common_xlim,
         diagnostics_table,
     )
-    from utilities.plume_lagrangian_slim import (
+    from utilities.plume_lagrangian import (
         DEFAULT_CFG,
         FigCfg,
         load_context,

@@ -236,7 +236,7 @@ def apply_publication_axis_grid(ax: "Axes") -> None:
 
 
 def apply_publication_panel_axis(ax: "Axes") -> None:
-    """Tick geometry plus grid; same baseline as heatmap panels in ``plume_lagrangian_slim``."""
+    """Tick geometry plus grid; same baseline as heatmap panels in ``plume_lagrangian``."""
     apply_publication_axis_tick_geometry(ax)
     apply_publication_axis_grid(ax)
 

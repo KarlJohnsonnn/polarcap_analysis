@@ -12,8 +12,8 @@ Environment:
 - `output/gfx/png/01/cloud_field_overview_mass_profiles_steps_symlog_20260304110446_ALLBB.png`
   - regenerated from `scripts/analysis/forcing/run_cloud_field_overview.py`
   - size: `336955` bytes
-- `output/gfx/png/03/figure12_ensemble_mean_plume_path_slim.png`
-  - regenerated from `scripts/analysis/growth/run_plume_lagrangian_evolution_slim.py`
+- `output/gfx/png/03/figure12_ensemble_mean_plume_path.png`
+  - regenerated from `scripts/analysis/growth/run_plume_lagrangian_evolution.py`
   - size: `1463711` bytes
 - `output/gfx/png/04/figure13_psd_alt_time_mass_20260121131632.png`
   - regenerated from `scripts/analysis/growth/run_psd_waterfall.py`
