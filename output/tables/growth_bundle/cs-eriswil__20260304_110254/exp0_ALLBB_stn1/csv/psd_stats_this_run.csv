@@ -1,0 +1,1 @@
+variant,basis,run_id,run_label,time_frame_min,t_lo_min,t_hi_min,t_mid_min,liq_mean_diam_um,liq_std_diam_um,liq_net_tendency_per_min,ice_mean_diam_um,ice_std_diam_um,ice_net_tendency_per_min,obs_match_ids,obs_ice_mean_diam_um,obs_ice_std_diam_um,alpha_ice_mean_diam,source_stats_csv,cs_run,exp_id,expname

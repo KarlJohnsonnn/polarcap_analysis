@@ -20,7 +20,7 @@ from utilities.table_paths import registry_output_paths, resolve_registry_input,
 STATS_DIR = REPO_ROOT / "output" / "tables" / "psd"
 LEGACY_STATS_DIR = REPO_ROOT / "output" / "gfx" / "csv" / "04"
 LEGACY_TABLE_DIR = REPO_ROOT / "output" / "gfx" / "tex" / "04"
-REGISTRY_CSV = resolve_registry_input("experiment_registry.csv", repo_root=REPO_ROOT)
+REGISTRY_CSV = resolve_registry_input("analysis_registry.csv", repo_root=REPO_ROOT)
 OUT_PATHS = registry_output_paths("psd_stats.csv", repo_root=REPO_ROOT)
 OUT_CSV = OUT_PATHS["canonical"]
 

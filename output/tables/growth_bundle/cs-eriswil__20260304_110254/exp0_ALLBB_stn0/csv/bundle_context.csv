@@ -1,0 +1,2 @@
+cs_run,exp_id,range_key,station,spectral_kind,n_growth_windows,bundle_out_dir
+cs-eriswil__20260304_110254,0,ALLBB,0,Q,3,output/tables/growth_bundle/cs-eriswil__20260304_110254/exp0_ALLBB_stn0

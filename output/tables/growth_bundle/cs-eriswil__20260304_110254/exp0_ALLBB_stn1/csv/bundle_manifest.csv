@@ -1,0 +1,6 @@
+component,path,status,slice
+spectral_ridge_growth_csv,output/tables/spectral_growth/cs-eriswil__20260304_110254/ridge_growth_Q_stn0-1-2.csv,ok,
+process_dominance,,skipped_placeholder,
+,,,exp0_ALLBB_stn1
+psd_stats,(see parent csv/),ok,
+growth_summary_merge,(see parent csv/),ok,

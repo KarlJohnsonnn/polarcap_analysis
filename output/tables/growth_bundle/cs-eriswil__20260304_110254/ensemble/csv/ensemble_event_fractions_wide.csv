@@ -1,0 +1,4 @@
+cs_run,exp_id,range_key,station,evt_liquid_growth_gt_0,evt_ice_growth_gt_0,evt_ice_growth_lt_0,evt_d_ice_ge_50_um,evt_d_ice_ge_100_um,evt_d_liq_ge_10_um
+cs-eriswil__20260304_110254,0,ALLBB,0,77.77777777777777,0.0,77.77777777777777,100.0,100.0,0.0
+cs-eriswil__20260304_110254,0,ALLBB,1,0.0,0.0,77.77777777777777,100.0,100.0,0.0
+cs-eriswil__20260304_110254,0,ALLBB,2,77.77777777777777,0.0,77.77777777777777,100.0,100.0,0.0
