@@ -20,7 +20,7 @@
 
 ensemble:
   cs_runs: [cs-eriswil__20260304_110254, cs-eriswil__20260314_103039, cs-eriswil__20260313_111441, cs-eriswil__20260328_205320]  # Picks the run to load and names every PNG / MP4 / CSV output folder.
-  cs_run: cs-eriswil__20260304_110254
+  cs_run: cs-eriswil__20260313_111441
   domain: 50x42
   
 paths:

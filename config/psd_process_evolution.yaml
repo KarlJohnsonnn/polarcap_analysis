@@ -11,8 +11,8 @@
 # `load_process_budget_data`. CLI flags override for one-off runs.
 
 ensemble:
-  cs_runs: [cs-eriswil__20260304_110254]  # Picks the run to load and names every PNG / MP4 / CSV output folder.
-  cs_run: cs-eriswil__20260304_110254
+  cs_runs: [cs-eriswil__20260313_111441]  # Picks the run to load and names every PNG / MP4 / CSV output folder.
+  cs_run: cs-eriswil__20260313_111441
   domain: 50x42
 
 
@@ -24,8 +24,8 @@ ensemble:
 paths:
   # Point to the server archive when you want the runner to use cluster-side products directly.
   # Leave blank for laptop / local runs.
-  # server_root: "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_50x40x100/"
-  server_root: "" # "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/"
+  server_root: "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/"
+  # server_root: "/work/bb1178/schimmel/cosmo-specs-runs/" # "/work/bb1262/user/schimmel/cosmo-specs-torch/cosmo-specs-runs/RUN_ERISWILL_200x160x100/"
   local_meteogram_root: null  # Override where local Meteogram Zarr files are discovered.
   local_ensemble_config_root: null  # Override where local `<cs_run>.json` ensemble configs are discovered.
 
