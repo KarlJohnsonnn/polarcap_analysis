@@ -1,0 +1,32 @@
+
+********************************************************************************
+*                                                                              *
+*  This is the automated job summary provided by DKRZ.                         *
+*  If you encounter problems, need assistance or have any suggestion, please   *
+*  write an email to                                                           *
+*                                                                              *
+*  --  support@dkrz.de --                                                      *
+*                                                                              *
+*                       We hope you enjoyed the DKRZ supercomputer LEVANTE ... *
+*
+* JobID            : 23877222
+* JobName          : compress_nc                                       
+* Account          : bb1262
+* User             : b382237 (201556), bb1262 (201189)                 
+* Partition        : compute
+* QOS              : normal
+* Nodelist         : l30477 (1)                                                
+* Submit date      : 2026-04-01T07:28:04
+* Start time       : 2026-04-01T07:55:09
+* End time         : 2026-04-01T08:18:47
+* Elapsed time     : 00:23:38 (Timelimit=02:00:00)                     
+* Command          : (null)
+* WorkDir          : /home/b/b382237/code/polarcap/python/polarcap_analysis/
+*                    scripts/nc_compression
+*
+* StepID | JobName      NodeHours    MaxRSS [Byte] (@task)
+* ------------------------------------------------------------------------------
+* batch  | batch             0.39
+* extern | extern            0.39                 856K (0)
+* ------------------------------------------------------------------------------
+
