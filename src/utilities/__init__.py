@@ -5,6 +5,7 @@ from utilities.compute_fabric import (
     in_slurm_allocation,
     recommend_target_chunk_mb,
     auto_chunk_dataset,
+    auto_chunk_dataset_priority_split,
     describe_chunk_plan,
 )
 
