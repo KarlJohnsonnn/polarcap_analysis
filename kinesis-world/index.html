@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kinesis World — Advantage 360 Practice</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon">⌨</span>
+        <div>
+          <h1>Kinesis World</h1>
+          <p class="tagline">Train your Advantage 360 — thumbs first, right hand safe</p>
+        </div>
+      </div>
+      <div class="topbar-stats">
+        <div class="stat-pill" title="Total practice minutes">
+          <span class="stat-label">Practice</span>
+          <span id="total-minutes">0</span>m
+        </div>
+        <div class="stat-pill" title="Quests completed">
+          <span class="stat-label">Quests</span>
+          <span id="quests-done">0</span>/<span id="quests-total">0</span>
+        </div>
+        <div class="stat-pill" title="Best session WPM on Kinesis track">
+          <span class="stat-label">Best WPM</span>
+          <span id="best-wpm">—</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar">
+        <section class="panel">
+          <h2>Settings</h2>
+          <label class="field">
+            <span>Keyboard OS profile</span>
+            <select id="os-profile">
+              <option value="mac">Mac (⌘ on left thumb)</option>
+              <option value="win">Windows / Linux</option>
+            </select>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox" id="ergo-guard" checked>
+            <span>Right-hand ergo guard (warn on pinky stretch)</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox" id="sound-feedback">
+            <span>Key click sounds</span>
+          </label>
+        </section>
+
+        <section class="panel">
+          <h2>World Map</h2>
+          <p class="hint">Complete quests in order. Each builds muscle memory with less mental load.</p>
+          <nav id="quest-map" class="quest-map" aria-label="Quest regions"></nav>
+        </section>
+
+        <section class="panel daily-panel">
+          <h2>Today's Drill</h2>
+          <p id="daily-summary" class="daily-summary"></p>
+          <button type="button" id="daily-btn" class="btn btn-secondary">Start 10-min drill</button>
+        </section>
+      </aside>
+
+      <section class="stage">
+        <div id="welcome-screen" class="screen active">
+          <div class="hero">
+            <h2>Welcome to the Valley</h2>
+            <p>
+              Switching from a MacBook keyboard is cognitive work. This world breaks the Advantage 360
+              into tiny quests so your <strong>thumbs</strong> do the heavy lifting and your
+              <strong>right hand</strong> stays neutral — no pinky reaches for Enter or Shift.
+            </p>
+            <ul class="principles">
+              <li>Right thumb: Space, Enter, Shift</li>
+              <li>Left thumb: Backspace, Delete</li>
+              <li>Move your whole hand for far thumb keys — don't stretch</li>
+              <li>Short daily reps beat long frustrated sessions</li>
+            </ul>
+            <button type="button" id="start-first" class="btn btn-primary">Begin Quest 1</button>
+          </div>
+          <div class="keyboard-preview" id="keyboard-preview" aria-hidden="true"></div>
+        </div>
+
+        <div id="quest-screen" class="screen">
+          <div class="quest-header">
+            <div>
+              <p class="region-label" id="region-label"></p>
+              <h2 id="quest-title"></h2>
+              <p id="quest-desc" class="quest-desc"></p>
+            </div>
+            <div class="quest-meta">
+              <span class="badge" id="quest-focus"></span>
+              <span class="badge badge-muted" id="quest-goal"></span>
+            </div>
+          </div>
+
+          <div class="metrics-row">
+            <div class="metric"><span>WPM</span><strong id="live-wpm">0</strong></div>
+            <div class="metric"><span>Accuracy</span><strong id="live-accuracy">100%</strong></div>
+            <div class="metric"><span>Thumb keys</span><strong id="thumb-count">0</strong></div>
+            <div class="metric"><span>Time</span><strong id="live-time">0:00</strong></div>
+          </div>
+
+          <div id="ergo-alert" class="ergo-alert hidden" role="status"></div>
+
+          <div class="typing-area" id="typing-area" tabindex="0" aria-label="Typing practice area">
+            <div id="prompt" class="prompt"></div>
+            <input
+              id="hidden-input"
+              type="text"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              aria-hidden="true"
+            >
+          </div>
+
+          <div class="keyboard-live" id="keyboard-live" aria-label="Kinesis Advantage 360 layout"></div>
+
+          <div class="stage-actions">
+            <button type="button" id="retry-btn" class="btn btn-secondary">Retry</button>
+            <button type="button" id="skip-btn" class="btn btn-ghost">Skip (not recommended)</button>
+            <button type="button" id="next-btn" class="btn btn-primary hidden">Next quest</button>
+          </div>
+        </div>
+
+        <div id="complete-screen" class="screen">
+          <div class="complete-card">
+            <h2 id="complete-title"></h2>
+            <p id="complete-body"></p>
+            <div class="complete-stats" id="complete-stats"></div>
+            <button type="button" id="map-btn" class="btn btn-primary">Back to map</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="lessons.js"></script>
+  <script src="keyboard.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
