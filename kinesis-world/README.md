@@ -2,6 +2,8 @@
 
 A small practice world for getting comfortable on the **Kinesis Advantage 360** — especially thumb keys and right-hand ergonomics when switching from a MacBook keyboard.
 
+Includes a **programming track** for Python, bash, Fortran, markdown, Neovim, and tmux.
+
 ## Open it
 
 No install. From this folder:
@@ -15,16 +17,34 @@ Then open [http://localhost:8765](http://localhost:8765) in your browser.
 
 Or open `index.html` directly in a browser (some features work best via a local server).
 
-## How to use
+## Tracks
 
-1. **Start with Quest 1** — home row only, low cognitive load.
-2. **Thumb Shores** — Space (right thumb) and Backspace (left thumb).
-3. **Enter Cave** — right thumb Enter instead of pinky reach (MacBook habit).
-4. **Shift Highlands** — capitals with thumb Shift.
-5. **MacBook Ghost** — unlearn Command reach and awkward right-hand angles.
-6. **Speed Plains** — longer text when basics feel automatic.
+### Foundation (quests 1–15)
 
-**Daily drill** (sidebar): ~10 minutes rotating through thumb + home + speed quests. Short daily reps beat long frustrated sessions.
+Home row → thumbs → Enter → Shift → Mac habits → speed prose.
+
+### Programming (quests 16–45)
+
+Unlocks after **Shift Highlands · quest 2** (or use **Programming track** on the welcome screen).
+
+| Region | What you practice |
+|--------|-------------------|
+| **Code Glyphs** | `()[]{}`, operators, `\|` pipes, `> >>` redirects, quotes |
+| **Python Grove** | `def`, imports, blocks, indentation (`Tab` = right thumb) |
+| **Bash Dock** | paths, `$VAR`, pipes, redirects, loops, shebang |
+| **Markdown Forge** | `#` headers, links, ` ``` ` fences, tables |
+| **Fortran Lab** | `program`, `implicit none`, `do` loops, modules |
+| **Vim & Tmux Dojo** | `:w` `:split`, search/replace, lua config, `tmux split-window` |
+
+**Markers in lessons**
+
+- `⏎` in the source becomes a line break — press **Enter** (right thumb)
+- `→` becomes **Tab** (right thumb on Kinesis) for indentation
+
+## Daily drills
+
+- **10-min foundation drill** — home row, thumbs, speed
+- **10-min dev drill** — symbols, Python blocks, bash pipes, vim ex commands
 
 ## Settings
 
@@ -45,7 +65,7 @@ Or open `index.html` directly in a browser (some features work best via a local 
 | `index.html` | Shell UI |
 | `lessons.js` | Quest regions and lesson text |
 | `keyboard.js` | Advantage-style layout + finger hints |
-| `app.js` | Typing engine, progress, daily drill |
+| `app.js` | Typing engine, progress, daily drills |
 | `style.css` | Visual design |
 
 This folder is unrelated to the main research repo — a personal typing trainer you can keep or copy anywhere.

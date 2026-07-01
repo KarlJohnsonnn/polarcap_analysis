@@ -400,6 +400,45 @@ html, body {
   white-space: pre-wrap;
 }
 
+.prompt.code-mode {
+  font-size: 1rem;
+  line-height: 1.65;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+}
+
+.char.tab-char {
+  opacity: 0.85;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.track-hint {
+  margin-top: 0.75rem;
+  max-width: 520px;
+}
+
+.daily-panel .btn {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.daily-panel .btn + .btn {
+  margin-top: 0.4rem;
+}
+
+.region-block[data-track="dev"] .region-head {
+  border-left: 3px solid var(--thumb);
+}
+
 .char {
   opacity: 0.55;
 }
@@ -559,9 +598,4 @@ html, body {
   display: block;
   font-size: 1.4rem;
   font-family: var(--mono);
-}
-
-.daily-panel .btn {
-  width: 100%;
-  margin-top: 0.5rem;
 }

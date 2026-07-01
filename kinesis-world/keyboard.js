@@ -27,13 +27,16 @@ const RIGHT_ROWS = [
 
 const FINGER_MAP = {
   "`": "L-pinky", "1": "L-pinky", "2": "L-ring", "3": "L-middle", "4": "L-index", "5": "L-index",
-  tab: "L-pinky", q: "L-pinky", w: "L-ring", e: "L-middle", r: "L-index", t: "L-index",
+  tab: "R-thumb", q: "L-pinky", w: "L-ring", e: "L-middle", r: "L-index", t: "L-index",
   caps: "L-pinky", a: "L-pinky", s: "L-ring", d: "L-middle", f: "L-index", g: "L-index",
   shift: "L-pinky", z: "L-pinky", x: "L-ring", c: "L-middle", v: "L-index", b: "L-index",
   "6": "R-index", "7": "R-index", "8": "R-middle", "9": "R-ring", "0": "R-pinky", "-": "R-pinky",
-  y: "R-index", u: "R-index", i: "R-middle", o: "R-ring", p: "R-pinky", "[": "R-pinky",
+  y: "R-index", u: "R-index", i: "R-middle", o: "R-ring", p: "R-pinky", "[": "L-pinky",
   h: "R-index", j: "R-index", k: "R-middle", l: "R-ring", ";": "R-pinky", "'": "R-pinky",
   n: "R-index", m: "R-index", ",": "R-middle", ".": "R-ring", "/": "R-pinky",
+  "\\": "R-pinky", "]": "R-pinky", "{": "L-pinky", "}": "R-pinky", "|": "R-pinky",
+  "=": "R-pinky", "+": "R-pinky", _: "R-pinky", "*": "R-ring", "&": "L-ring",
+  ":": "R-ring", '"': "R-pinky", "<": "R-pinky", ">": "R-pinky", "?": "R-pinky",
   " ": "R-thumb",
   enter: "R-thumb",
   backspace: "L-thumb",
@@ -51,6 +54,7 @@ function normalizeKey(key) {
   if (k === "backspace") return "backspace";
   if (k === "enter" || k === "return") return "enter";
   if (k === "shift") return "shift";
+  if (k === "tab") return "tab";
   if (k === "meta" || k === "cmd" || k === "command") return "meta";
   return k;
 }
@@ -64,7 +68,7 @@ function fingerForChar(char, shiftHeld) {
 
 function isThumbKey(char) {
   const c = normalizeKey(char);
-  return c === " " || c === "enter" || c === "backspace" || c === "delete" || c === "meta";
+  return c === " " || c === "enter" || c === "backspace" || c === "delete" || c === "meta" || c === "tab";
 }
 
 function isRightPinkyStretch(char) {

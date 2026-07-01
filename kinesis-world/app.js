@@ -1,5 +1,5 @@
 (function () {
-  const { REGIONS, LESSONS, DAILY_DRILL_IDS } = window.KINESIS_LESSONS;
+  const { REGIONS, LESSONS, DAILY_DRILL_IDS, PROGRAMMING_DAILY_DRILL_IDS, PROGRAMMING_REGION_IDS } = window.KINESIS_LESSONS;
   const {
     renderKeyboard,
     flashKey,
@@ -111,17 +111,51 @@
     return REGIONS.find((r) => r.id === id);
   }
 
-  function lessonUnlocked(lesson, idx) {
-    if (idx === 0) return true;
-    const prev = LESSONS[idx - 1];
-    return state.completed.completedLessons.includes(prev.id);
+  function lessonUnlocked(lesson) {
+    if (lesson.requires?.length) {
+      return lesson.requires.every((id) => state.completed.completedLessons.includes(id));
+    }
+
+    const regionLessons = LESSONS.filter((l) => l.region === lesson.region);
+    const idxInRegion = regionLessons.findIndex((l) => l.id === lesson.id);
+
+    if (idxInRegion > 0) {
+      return state.completed.completedLessons.includes(regionLessons[idxInRegion - 1].id);
+    }
+
+    const regionIdx = REGIONS.findIndex((r) => r.id === lesson.region);
+    if (regionIdx === 0) return true;
+
+    const prevRegion = REGIONS[regionIdx - 1];
+    const prevLessons = LESSONS.filter((l) => l.region === prevRegion.id);
+    const lastPrev = prevLessons[prevLessons.length - 1];
+    return state.completed.completedLessons.includes(lastPrev.id);
+  }
+
+  function firstProgrammingLesson() {
+    return LESSONS.find((l) => l.region === "code-glyphs");
+  }
+
+  function programmingTrackUnlocked() {
+    const first = firstProgrammingLesson();
+    return first ? lessonUnlocked(first) : false;
   }
 
   function displayText(lesson) {
+    let text = lesson.text;
     if (lesson.enterMarkers) {
-      return lesson.text.replace(/\|/g, "\n");
+      text = text.replace(/⏎/g, "\n");
     }
-    return lesson.text;
+    if (lesson.tabMarkers) {
+      text = text.replace(/→/g, "\t");
+    }
+    return text;
+  }
+
+  function displayChar(ch) {
+    if (ch === "\n") return "↵";
+    if (ch === "\t") return "→";
+    return ch;
   }
 
   function expectedChars(lesson) {
@@ -146,6 +180,9 @@
     REGIONS.forEach((region) => {
       const block = document.createElement("div");
       block.className = "region-block";
+      if (PROGRAMMING_REGION_IDS.has(region.id)) {
+        block.dataset.track = "dev";
+      }
       const regionLessons = LESSONS.filter((l) => l.region === region.id);
       const done = regionLessons.filter((l) =>
         state.completed.completedLessons.includes(l.id)
@@ -159,12 +196,11 @@
       list.className = "quest-list";
 
       regionLessons.forEach((lesson) => {
-        const globalIdx = LESSONS.findIndex((l) => l.id === lesson.id);
         const li = document.createElement("li");
         li.className = "quest-item";
         const btn = document.createElement("button");
         const isDone = state.completed.completedLessons.includes(lesson.id);
-        const unlocked = lessonUnlocked(lesson, globalIdx);
+        const unlocked = lessonUnlocked(lesson);
         btn.disabled = !unlocked;
         btn.dataset.lessonId = lesson.id;
         if (state.currentLessonId === lesson.id) btn.classList.add("active");
@@ -211,6 +247,7 @@
     els.questDesc.textContent = lesson.desc;
     els.questFocus.textContent = lesson.focus;
     els.questGoal.textContent = `Goal: ${lesson.goals.accuracy}% acc · ${lesson.goals.wpm} WPM`;
+    els.prompt.classList.toggle("code-mode", Boolean(lesson.code));
 
     renderPrompt();
     renderKeyboard(els.liveKb, {
@@ -224,13 +261,13 @@
     startTimer();
   }
 
-  function startDailyDrill() {
+  function startDailyDrill(programming) {
     state.dailyMode = true;
     state.dailyEndsAt = Date.now() + 10 * 60 * 1000;
-    state.dailyQueue = [...DAILY_DRILL_IDS];
+    state.dailyQueue = [...(programming ? PROGRAMMING_DAILY_DRILL_IDS : DAILY_DRILL_IDS)];
     const first = state.dailyQueue.shift();
     startLesson(first);
-    els.questTitle.textContent += " (Daily drill)";
+    els.questTitle.textContent += programming ? " (Dev drill)" : " (Daily drill)";
   }
 
   function nextChar() {
@@ -249,7 +286,8 @@
     chars.forEach((ch, i) => {
       const span = document.createElement("span");
       span.className = "char";
-      span.textContent = ch === "\n" ? "↵" : ch;
+      if (ch === "\t") span.classList.add("tab-char");
+      span.textContent = displayChar(ch);
       if (i < state.index) span.classList.add("correct");
       if (i === state.index) span.classList.add("current");
       if (i < state.index && state.wrongAt.has(i)) {
@@ -351,8 +389,11 @@
   if (expected === "\n" && (typed === "Enter" || typed === "\n")) {
     typed = "\n";
   }
+  if (expected === "\t" && typed === "Tab") {
+    typed = "\t";
+  }
 
-  if (typed.length !== 1 && typed !== "\n") {
+  if (typed.length !== 1 && typed !== "\n" && typed !== "\t") {
     if (typed === "Backspace" && lesson.practiceBackspace) {
       ev.preventDefault();
       if (state.index > 0) {
@@ -380,7 +421,8 @@
     const needsShift = /[A-Z]/.test(expected);
     if (needsShift) state.thumbHits += 1;
 
-    flashKey(els.liveKb, typed === "\n" ? "enter" : typed, true);
+    const flashId = typed === "\n" ? "enter" : typed === "\t" ? "tab" : typed;
+    flashKey(els.liveKb, flashId, true);
     playClick(true);
 
     if (state.settings.ergoGuard) {
@@ -399,7 +441,7 @@
     renderKeyboard(els.liveKb, {
       osProfile: state.settings.osProfile,
       highlightKey: nextChar(),
-      pressedKey: typed === "\n" ? "enter" : typed,
+      pressedKey: flashId,
     });
 
     if (nextChar() === null) {
@@ -408,7 +450,8 @@
   } else {
     state.errors += 1;
     state.wrongAt.add(state.index);
-    flashKey(els.liveKb, typed === "\n" ? "enter" : typed, false);
+    const flashId = typed === "\n" ? "enter" : typed === "\t" ? "tab" : typed;
+    flashKey(els.liveKb, flashId, false);
     playClick(false);
     renderPrompt();
   }
@@ -488,6 +531,16 @@
       );
     }
     buildMap();
+    updateProgrammingButton();
+  }
+
+  function updateProgrammingButton() {
+    const progBtn = document.getElementById("start-programming");
+    if (!progBtn) return;
+    progBtn.disabled = !programmingTrackUnlocked();
+    progBtn.title = programmingTrackUnlocked()
+      ? "Jump to Code Glyphs track"
+      : "Complete Shift Highlands quest 2 first";
   }
 
   function showCompleteScreen(title, body, stats) {
@@ -519,7 +572,12 @@
     });
     document.getElementById("next-btn").addEventListener("click", nextLesson);
     document.getElementById("map-btn").addEventListener("click", () => showScreen("welcome"));
-    document.getElementById("daily-btn").addEventListener("click", startDailyDrill);
+    document.getElementById("daily-btn").addEventListener("click", () => startDailyDrill(false));
+    document.getElementById("dev-daily-btn").addEventListener("click", () => startDailyDrill(true));
+    document.getElementById("start-programming").addEventListener("click", () => {
+      const first = firstProgrammingLesson();
+      if (first && lessonUnlocked(first)) startLesson(first.id);
+    });
 
     document.getElementById("os-profile").value = state.settings.osProfile;
     document.getElementById("ergo-guard").checked = state.settings.ergoGuard;
@@ -558,6 +616,11 @@
     updateHeaderStats();
     updateDailySummary();
     renderKeyboard(els.preview, { osProfile: state.settings.osProfile, compact: true });
+
+    const progBtn = document.getElementById("start-programming");
+    if (progBtn) {
+      updateProgrammingButton();
+    }
   }
 
   init();
